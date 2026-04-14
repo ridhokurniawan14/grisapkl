@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StudentClasses\Schemas;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -11,11 +12,16 @@ class StudentClassForm
     {
         return $schema
             ->components([
-                TextInput::make('major_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('name')
+                Select::make('major_id')
+                    ->relationship('major', 'name')
+                    ->label('Jurusan')
+                    ->searchable()
+                    ->preload()
                     ->required(),
+
+                TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
             ]);
     }
 }

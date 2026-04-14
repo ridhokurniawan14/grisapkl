@@ -17,9 +17,12 @@ class StudentForm
                 TextInput::make('user_id')
                     ->required()
                     ->numeric(),
-                TextInput::make('student_class_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('student_class_id')
+                    ->relationship('studentClass', 'name')
+                    ->label('Kelas')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 TextInput::make('nis')
                     ->required(),
                 Select::make('gender')
