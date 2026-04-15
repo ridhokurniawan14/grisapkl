@@ -13,15 +13,26 @@ class PklPlacementForm
     {
         return $schema
             ->components([
-                TextInput::make('student_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('dudika_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('teacher_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('student_id')
+                    ->relationship('student', 'nis')
+                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->nis} - " . ($record->user ? $record->user->name : 'No Name'))
+                    ->label('Siswa')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+                Select::make('dudika_id')
+                    ->relationship('dudika', 'name')
+                    ->label('Tempat DUDIKA')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+                Select::make('teacher_id')
+                    ->relationship('teacher', 'id')
+                    ->getOptionLabelFromRecordUsing(fn($record) => $record->user ? $record->user->name : 'No Name')
+                    ->label('Guru Pembimbing')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 DatePicker::make('start_date')
                     ->required(),
                 DatePicker::make('end_date')

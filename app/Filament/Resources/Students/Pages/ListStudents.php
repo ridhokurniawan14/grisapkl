@@ -4,7 +4,9 @@ namespace App\Filament\Resources\Students\Pages;
 
 use App\Filament\Resources\Students\StudentResource;
 use Filament\Actions\CreateAction;
+use Filament\Actions\ImportAction;
 use Filament\Resources\Pages\ListRecords;
+use App\Filament\Imports\StudentImporter;
 
 class ListStudents extends ListRecords
 {
@@ -14,6 +16,9 @@ class ListStudents extends ListRecords
     {
         return [
             CreateAction::make(),
+            ImportAction::make()
+                ->importer(StudentImporter::class)
+                ->label('Import Siswa (Excel/CSV)')
         ];
     }
 }

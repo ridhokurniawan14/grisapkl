@@ -10,4 +10,9 @@ class Student extends Model
     {
         return $this->belongsTo(StudentClass::class);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
