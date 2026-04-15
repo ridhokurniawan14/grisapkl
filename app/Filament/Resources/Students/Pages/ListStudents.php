@@ -7,6 +7,8 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\ImportAction;
 use Filament\Resources\Pages\ListRecords;
 use App\Filament\Imports\StudentImporter;
+use App\Models\StudentClass;
+use Filament\Forms\Components\Select;
 
 class ListStudents extends ListRecords
 {
@@ -15,10 +17,13 @@ class ListStudents extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
             ImportAction::make()
                 ->importer(StudentImporter::class)
-                ->label('Import Siswa (Excel/CSV)')
+                ->label('Import Data Siswa')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('success'),
+
+            CreateAction::make(),
         ];
     }
 }

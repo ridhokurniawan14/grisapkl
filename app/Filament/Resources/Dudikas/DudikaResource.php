@@ -20,9 +20,20 @@ class DudikaResource extends Resource
 {
     protected static ?string $model = Dudika::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    // Icon Gedung Perkantoran
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    // Translasi
+    protected static ?string $navigationLabel = 'Tempat PKL (DUDIKA)';
+    protected static ?string $modelLabel = 'DUDIKA';
+    protected static ?string $pluralModelLabel = 'DUDIKA';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Data Master';
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -41,9 +52,7 @@ class DudikaResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

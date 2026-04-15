@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Dudikas\Pages;
 
+use App\Filament\Imports\DudikaImporter;
 use App\Filament\Resources\Dudikas\DudikaResource;
-use Filament\Actions\CreateAction;
+use Filament\Actions;
+use Filament\Actions\ImportAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListDudikas extends ListRecords
@@ -13,7 +15,12 @@ class ListDudikas extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            ImportAction::make()
+                ->importer(DudikaImporter::class)
+                ->label('Import DUDIKA')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('success'),
+            Actions\CreateAction::make(),
         ];
     }
 }

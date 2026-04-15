@@ -13,8 +13,16 @@ class AcademicYearForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->required(),
+                    ->label('Nama Tahun Ajaran') // Label atas
+                    ->placeholder('Contoh: 2025/2026') // Tulisan abu-abu di dalam form
+                    ->helperText('Masukkan rentang tahun ajaran yang berlaku saat ini.') // Catatan kecil di bawah form
+                    ->required()
+                    ->maxLength(255),
+
                 Toggle::make('is_active')
+                    ->label('Status Aktif?')
+                    ->helperText('Nyalakan jika ini adalah tahun ajaran yang sedang berjalan.')
+                    ->default(false)
                     ->required(),
             ]);
     }

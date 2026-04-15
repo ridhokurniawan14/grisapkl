@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentClasses\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -14,16 +15,24 @@ class StudentClassesTable
     {
         return $table
             ->columns([
-                TextColumn::make('major_id')
-                    ->numeric()
-                    ->sortable(),
                 TextColumn::make('name')
+                    ->label('Nama Kelas')
                     ->searchable(),
+
+                // MAGIC TRICK: Ubah major_id menjadi major.name agar namanya yang keluar
+                TextColumn::make('major.name')
+                    ->label('Jurusan')
+                    ->sortable()
+                    ->searchable(), // Bisa dicari berdasarkan nama jurusan
+
                 TextColumn::make('created_at')
+                    ->label('Dibuat pada')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
+                    ->label('Diubah pada')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -33,6 +42,7 @@ class StudentClassesTable
             ])
             ->recordActions([
                 EditAction::make(),
+                DeleteAction::make(), // Tombol hapus merah!
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

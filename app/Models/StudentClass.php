@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentClass extends Model
 {
+    protected $guarded = [];
+
     public function major()
     {
         return $this->belongsTo(Major::class);

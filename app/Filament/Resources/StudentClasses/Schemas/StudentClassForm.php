@@ -14,12 +14,16 @@ class StudentClassForm
             ->components([
                 Select::make('major_id')
                     ->relationship('major', 'name')
-                    ->label('Jurusan')
+                    ->label('Jurusan / Kompetensi Keahlian')
+                    ->helperText('Pilih jurusan yang menaungi kelas ini.')
                     ->searchable()
                     ->preload()
                     ->required(),
 
                 TextInput::make('name')
+                    ->label('Nama Kelas')
+                    ->placeholder('Contoh: XII TKJ 1')
+                    ->helperText('Gunakan format penulisan nama kelas yang standar (Angka Romawi - Jurusan - Nomor).')
                     ->required()
                     ->maxLength(255),
             ]);

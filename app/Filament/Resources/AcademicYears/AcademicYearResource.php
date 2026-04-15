@@ -18,14 +18,15 @@ class AcademicYearResource extends Resource
 {
     protected static ?string $model = AcademicYear::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()->hasRole('Humas');
-    }
+    // TAMBAHAN: Translate & Rapikan Sidebar
+    protected static ?string $navigationLabel = 'Tahun Ajaran';
+    protected static ?string $modelLabel = 'Tahun Ajaran';
+    protected static ?string $pluralModelLabel = 'Tahun Ajaran';
+    protected static string | \UnitEnum | null $navigationGroup = 'Data Master';
 
     public static function form(Schema $schema): Schema
     {
@@ -39,9 +40,7 @@ class AcademicYearResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

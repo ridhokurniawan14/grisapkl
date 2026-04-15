@@ -18,9 +18,21 @@ class MajorResource extends Resource
 {
     protected static ?string $model = Major::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    // Pakai icon topi akademik
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ListBullet;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    // Translasi ke Bahasa Indonesia
+    protected static ?string $navigationLabel = 'Jurusan';
+    protected static ?string $modelLabel = 'Jurusan';
+    protected static ?string $pluralModelLabel = 'Jurusan';
+
+    // Grouping Menu pakai method biar aman dari error Intelephense
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Data Master';
+    }
 
     public static function form(Schema $schema): Schema
     {
