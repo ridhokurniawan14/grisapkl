@@ -28,7 +28,23 @@ class DudikaImporter extends Importer
             ImportColumn::make('supervisor_nip')
                 ->rules(['max:255']),
             ImportColumn::make('supervisor_phone')
-                ->rules(['max:255']),
+                ->label('No. HP Pembimbing')
+                ->fillRecordUsing(function ($record, $state) {
+                    // Jika di excel kosong, biarkan saja
+                    if (blank($state)) return;
+
+                    // 1. Bersihkan semua karakter KECUALI angka dan tanda plus (+)
+                    // Jadi spasi dan strip (-) akan otomatis hilang
+                    $phone = preg_replace('/[^0-9+]/', '', $state);
+
+                    // 2. Jika nomor diawali dengan angka '0', ubah menjadi '+62'
+                    if (str_starts_with($phone, '0')) {
+                        $phone = '+62' . substr($phone, 1);
+                    }
+
+                    // 3. Masukkan ke database
+                    $record->supervisor_phone = $phone;
+                }),
         ];
     }
 
