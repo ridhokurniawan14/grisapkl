@@ -95,7 +95,7 @@
     <div class="header">
         <h1>DATA REKAPITULASI DUDIKA<br>
 
-            SMK PGRI 1 Giri - Tahun Ajaran 2025/2026
+            SMK PGRI 1 Giri
         </h1>
     </div>
 

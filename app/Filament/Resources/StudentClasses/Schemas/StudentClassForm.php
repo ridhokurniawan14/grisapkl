@@ -14,8 +14,8 @@ class StudentClassForm
             ->components([
                 Select::make('major_id')
                     ->relationship('major', 'name')
-                    ->label('Jurusan / Kompetensi Keahlian')
-                    ->helperText('Pilih jurusan yang menaungi kelas ini.')
+                    ->label('Konsentrasi Keahlian')
+                    ->helperText('Pilih konsentrasi keahlian yang menaungi kelas ini.')
                     ->searchable()
                     ->preload()
                     ->required(),
@@ -23,7 +23,7 @@ class StudentClassForm
                 TextInput::make('name')
                     ->label('Nama Kelas')
                     ->placeholder('Contoh: XII TKJ 1')
-                    ->helperText('Gunakan format penulisan nama kelas yang standar (Angka Romawi - Jurusan - Nomor).')
+                    ->helperText('Gunakan format penulisan nama kelas yang standar (Angka Romawi - Konsentrasi Keahlian - Nomor).')
                     ->required()
                     ->maxLength(255),
             ]);

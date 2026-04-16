@@ -11,10 +11,10 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Notifications\Collection;
+use Illuminate\Database\Eloquent\Collection;
 use Filament\Notifications\Notification;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
 
 class DudikasTable
 {
@@ -61,7 +61,7 @@ class DudikasTable
                 Action::make('print_pdf')
                     ->label('Cetak PDF')
                     ->icon('heroicon-o-printer')
-                    ->color('info')
+                    ->color('gray')
                     ->url(fn() => route('dudika.print')) // Nanti kita buat route ini
                     ->openUrlInNewTab(),
             ])
@@ -91,8 +91,8 @@ class DudikasTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    // ✅ Cukup begini, bersih
                     DeleteBulkAction::make(),
-                    // Bulk Reset Password
                     BulkAction::make('bulk_reset_password')
                         ->label('Reset Password Terpilih')
                         ->icon('heroicon-o-key')

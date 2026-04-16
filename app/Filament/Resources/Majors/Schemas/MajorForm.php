@@ -11,10 +11,17 @@ class MajorForm
     {
         return $schema
             ->components([
+                TextInput::make('program_keahlian')
+                    ->label('Program Keahlian')
+                    ->placeholder('Contoh: Teknik Jaringan Komputer dan Telekomunikasi')
+                    ->helperText('Masukkan nama lengkap Program Keahlian secara mendetail.')
+                    ->required()
+                    ->maxLength(255),
+
                 TextInput::make('name')
-                    ->label('Nama Jurusan / Kompetensi Keahlian')
+                    ->label('Konsentrasi Keahlian')
                     ->placeholder('Contoh: Teknik Komputer dan Jaringan')
-                    ->helperText('Masukkan nama lengkap jurusan secara mendetail.')
+                    ->helperText('Masukkan nama lengkap Konsentrasi Keahlian secara mendetail.')
                     ->required()
                     ->autocomplete('off')
                     ->maxLength(255),

@@ -20,7 +20,19 @@ class TeacherResource extends Resource
 {
     protected static ?string $model = Teacher::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Users;
+
+    protected static ?string $recordTitleAttribute = 'name';
+
+    // Translasi
+    protected static ?string $navigationLabel = 'Guru Pembimbing';
+    protected static ?string $modelLabel = 'Guru Pembimbing';
+    protected static ?string $pluralModelLabel = 'Guru Pembimbing';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Data Master';
+    }
 
     public static function form(Schema $schema): Schema
     {

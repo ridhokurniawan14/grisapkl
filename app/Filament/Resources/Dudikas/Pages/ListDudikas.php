@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Dudikas\Pages;
 
-use App\Exports\DudikaExport;
+use App\Filament\Exports\DudikaExport;
 use App\Filament\Imports\DudikaImporter;
 use App\Filament\Resources\Dudikas\DudikaResource;
 use Filament\Actions\Action;
@@ -32,7 +32,9 @@ class ListDudikas extends ListRecords
                 ->color('warning'),
 
             CreateAction::make()
-                ->label('Tambah DUDIKA'),
+                ->label('Tambah DUDIKA')
+                ->icon('heroicon-o-plus')
+                ->color('info'),
         ];
     }
 }

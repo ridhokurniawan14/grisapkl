@@ -15,8 +15,12 @@ class MajorsTable
     {
         return $table
             ->columns([
+                TextColumn::make('program_keahlian')
+                    ->label('Program Keahlian')
+                    ->searchable(),
+
                 TextColumn::make('name')
-                    ->label('Nama Jurusan')
+                    ->label('Konsentrasi Keahlian')
                     ->searchable(),
 
                 TextColumn::make('abbreviation')
