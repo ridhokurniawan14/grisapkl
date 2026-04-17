@@ -9,14 +9,22 @@ class TeacherObserver
 {
     public function saved(Teacher $teacher): void
     {
-        // Ambil Nama Terang (Nama + Gelar jika ada)
+        // Skip kalau datang dari proses import (importer handle sendiri)
+        if (app()->bound('importing.teacher')) {
+            return;
+        }
+
         $fullNameWithTitle = $teacher->title
             ? $teacher->name . ', ' . $teacher->title
             : $teacher->name;
 
         if (!$teacher->user_id && $teacher->name) {
-            // Logic Username: nama tanpa spasi
-            $baseUsername = strtolower(preg_replace('/[^A-Za-z0-9]/', '', $teacher->name));
+
+            // 1. Ambil kata depan untuk Email
+            $firstName = strtolower(explode(' ', trim($teacher->name))[0]);
+            $baseUsername = preg_replace('/[^a-z0-9]/', '', $firstName);
+            if (empty($baseUsername)) $baseUsername = 'guru';
+
             $username = $baseUsername;
             $email = $username . '@smkpgri1giri.sch.id';
             $counter = 1;
@@ -27,12 +35,16 @@ class TeacherObserver
                 $counter++;
             }
 
-            // Password Default = Full No HP
-            $password = preg_replace('/[^0-9]/', '', $teacher->phone ?? '12345678');
-            if (empty($password)) $password = '12345678';
+            // 2. Password 5 digit HP
+            $phone = preg_replace('/[^0-9]/', '', $teacher->phone ?? '12345');
+            $password = substr($phone, -5);
+            if (strlen($password) < 5) {
+                $password = '12345';
+            }
 
+            // 3. Buat User
             $user = User::create([
-                'name' => $fullNameWithTitle, // Simpan nama + gelar
+                'name' => $fullNameWithTitle,
                 'email' => $email,
                 'password' => bcrypt($password),
             ]);

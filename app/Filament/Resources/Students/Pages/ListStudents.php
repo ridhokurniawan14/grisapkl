@@ -2,13 +2,14 @@
 
 namespace App\Filament\Resources\Students\Pages;
 
+use App\Filament\Exports\StudentExport;
+use App\Filament\Imports\StudentImporter;
 use App\Filament\Resources\Students\StudentResource;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\ImportAction;
 use Filament\Resources\Pages\ListRecords;
-use App\Filament\Imports\StudentImporter;
-use App\Models\StudentClass;
-use Filament\Forms\Components\Select;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ListStudents extends ListRecords
 {
@@ -17,13 +18,31 @@ class ListStudents extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('download_excel')
+                ->label('Download Excel')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('success')
+                ->action(function () {
+                    // AMBIL QUERY YANG SEDANG TER-FILTER DI TABEL
+                    $filteredQuery = $this->getFilteredTableQuery();
+
+                    // Pastikan relasi ikut terbawa agar tidak berat
+                    $filteredQuery->with(['studentClass', 'academicYear']);
+
+                    // Kirim query-nya ke StudentExport
+                    return Excel::download(new StudentExport($filteredQuery), 'Data_Siswa_Filtered.xlsx');
+                }),
+
             ImportAction::make()
                 ->importer(StudentImporter::class)
-                ->label('Import Data Siswa')
+                ->label('Import Siswa')
                 ->icon('heroicon-o-arrow-up-tray')
-                ->color('success'),
+                ->color('warning'),
 
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Tambah Siswa')
+                ->icon('heroicon-o-plus')
+                ->color('info'),
         ];
     }
 }

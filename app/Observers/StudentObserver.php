@@ -3,58 +3,48 @@
 namespace App\Observers;
 
 use App\Models\Student;
+use App\Models\User;
 
 class StudentObserver
 {
-    /**
-     * Handle the Student "created" event.
-     */
-    public function created(Student $student): void
+    public function saved(Student $student): void
     {
-        // Ambil password dari tgl lahir (format dmy: 24122002)
-        $password = $student->birth_date ? $student->birth_date->format('dmY') : '12345678';
+        // Abaikan jika sedang proses Import Excel
+        if (app()->bound('importing.student')) {
+            return;
+        }
 
-        $user = \App\Models\User::create([
-            'name' => $student->user->name, // Mengambil nama dari input user
-            'email' => $student->nis . '@smkpgri1giri.sch.id', // Username pakai NIS
-            'password' => bcrypt($password),
-        ]);
+        if (!$student->user_id && $student->name && $student->nis) {
+            $email = $student->nis . '@smkpgri1giri.sch.id';
 
-        $user->assignRole('Siswa');
+            // Password = nis untuk memudahkan siswa login pertama kali, bisa diganti setelah login
+            $password = $student->nis;
 
-        // Update link student ke user yang baru dibuat
-        $student->updateQuietly(['user_id' => $user->id]);
+            $user = User::firstOrNew(['email' => $email]);
+            $user->name = $student->name;
+
+            if (!$user->exists) {
+                $user->password = bcrypt($password);
+            }
+
+            $user->save();
+
+            if (!$user->hasRole('Siswa')) {
+                $user->assignRole('Siswa');
+            }
+
+            $student->updateQuietly(['user_id' => $user->id]);
+        } elseif ($student->user_id) {
+            $user = User::find($student->user_id);
+            if ($user) $user->update(['name' => $student->name]);
+        }
     }
 
-    /**
-     * Handle the Student "updated" event.
-     */
-    public function updated(Student $student): void
-    {
-        //
-    }
-
-    /**
-     * Handle the Student "deleted" event.
-     */
     public function deleted(Student $student): void
     {
-        //
-    }
-
-    /**
-     * Handle the Student "restored" event.
-     */
-    public function restored(Student $student): void
-    {
-        //
-    }
-
-    /**
-     * Handle the Student "force deleted" event.
-     */
-    public function forceDeleted(Student $student): void
-    {
-        //
+        if ($student->user_id) {
+            $user = User::find($student->user_id);
+            if ($user) $user->delete();
+        }
     }
 }

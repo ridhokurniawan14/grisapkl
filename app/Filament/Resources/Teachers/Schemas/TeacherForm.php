@@ -47,8 +47,9 @@ class TeacherForm
                     ->dotSize(2.0)
                     ->lineMinWidth(1.0)
                     ->lineMaxWidth(2.5)
-                    ->exportPenColor('#000000') // Tinta hitam
-                    ->backgroundColor('#ffffff') // <-- Background putih paksa biar aman di dark mode
+                    // Hapus warna UI agar kanvas dan tinta otomatis menyesuaikan Dark/Light mode
+                    ->exportPenColor('#000000') // Tinta WAJIB hitam saat disimpan ke database
+                    ->exportBackgroundColor('#ffffff') // Background WAJIB putih saat disimpan ke database
                     ->helperText('Silakan tanda tangan langsung pada kotak di atas.'),
             ]);
     }

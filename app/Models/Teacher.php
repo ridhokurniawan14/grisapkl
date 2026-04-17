@@ -12,4 +12,8 @@ class Teacher extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function pklPlacements()
+    {
+        return $this->hasMany(PklPlacement::class);
+    }
 }

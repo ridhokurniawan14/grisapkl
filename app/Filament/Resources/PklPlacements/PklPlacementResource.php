@@ -20,7 +20,18 @@ class PklPlacementResource extends Resource
 {
     protected static ?string $model = PklPlacement::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::MapPin;
+
+    protected static ?string $recordTitleAttribute = 'name';
+
+    protected static ?string $navigationLabel = 'Penempatan PKL';
+    protected static ?string $modelLabel = 'Penempatan PKL';
+    protected static ?string $pluralModelLabel = 'Data Penempatan PKL';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Transaksi PKL';
+    }
 
     public static function form(Schema $schema): Schema
     {

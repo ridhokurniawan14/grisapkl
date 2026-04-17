@@ -20,10 +20,12 @@ class AcademicYearForm
                     ->maxLength(255),
 
                 Toggle::make('is_active')
-                    ->label('Status Aktif?')
-                    ->helperText('Nyalakan jika ini adalah tahun ajaran yang sedang berjalan.')
-                    ->default(false)
-                    ->required(),
+                    ->label('Aktif')
+                    ->unique(
+                        modifyRuleUsing: fn($rule) => $rule->where('is_active', true),
+                        ignoreRecord: true
+                    )
+                    ->helperText('Hanya boleh satu tahun ajaran yang aktif')
             ]);
     }
 }

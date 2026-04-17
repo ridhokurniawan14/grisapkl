@@ -13,10 +13,10 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\HtmlString;
 
 class TeachersTable
 {
@@ -27,22 +27,41 @@ class TeachersTable
             ->columns([
                 TextColumn::make('name')
                     ->label('Nama Lengkap')
-                    ->description(fn(Teacher $record): string => $record->title ?? '-') // Tampilkan gelar di bawah nama
+                    ->description(fn(Teacher $record): string => $record->title ?? '-')
                     ->searchable(),
                 TextColumn::make('nip')
                     ->label('NIP')
                     ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true), // NIP disembunyikan default
                 TextColumn::make('phone')
-                    ->label('No. HP')
-                    ->searchable(),
+                    ->label('No. HP / WA')
+                    ->searchable()
+                    ->icon('heroicon-m-chat-bubble-oval-left-ellipsis') // Ikon chat
+                    ->color('success') // Warna hijau khas WA
+                    ->url(function ($state) {
+                        if (blank($state)) return null;
+
+                        // Bersihkan semua karakter non-angka (seperti + atau spasi)
+                        $phone = preg_replace('/[^0-9]/', '', $state);
+
+                        // Jika nomor diawali dengan 0, ubah jadi 62
+                        if (str_starts_with($phone, '0')) {
+                            $phone = '62' . substr($phone, 1);
+                        }
+
+                        return "https://wa.me/{$phone}";
+                    })
+                    ->openUrlInNewTab(), // Buka di tab baru agar tidak keluar dari web
                 TextColumn::make('subject')
                     ->label('Mata Pelajaran')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                ImageColumn::make('signature_path')
+
+                // TTD Persegi Panjang dengan Background Putih
+                TextColumn::make('signature_path')
                     ->label('Tanda Tangan')
-                    ->circular(),
+                    ->formatStateUsing(fn($state) => $state ? new HtmlString('<img src="' . $state . '" style="height: 40px; background-color: #ffffff; border-radius: 4px; padding: 2px; border: 1px solid #ccc;" />') : '-')
+                    ->html(),
             ])
             ->recordActions([
                 ActionGroup::make([
@@ -50,6 +69,7 @@ class TeachersTable
                     EditAction::make()->label('Ubah'),
                     DeleteAction::make()->label('Hapus'),
 
+                    // Reset ke 5 Digit Terakhir
                     Action::make('reset_password')
                         ->label('Reset Password')
                         ->icon('heroicon-o-key')
@@ -57,8 +77,11 @@ class TeachersTable
                         ->requiresConfirmation()
                         ->action(function (Teacher $record) {
                             if ($record->user) {
-                                $fullPhone = preg_replace('/[^0-9]/', '', $record->phone ?? '12345678');
-                                $record->user->update(['password' => bcrypt($fullPhone)]);
+                                $phone = preg_replace('/[^0-9]/', '', $record->phone ?? '12345');
+                                $lastFive = substr($phone, -5);
+                                if (strlen($lastFive) < 5) $lastFive = '12345'; // Fallback
+
+                                $record->user->update(['password' => bcrypt($lastFive)]);
                                 Notification::make()->title('Password direset ke 5 digit terakhir HP')->success()->send();
                             }
                         }),
@@ -75,6 +98,8 @@ class TeachersTable
                                 }
                             }
                         }),
+
+                    // Bulk Reset ke 5 Digit Terakhir
                     BulkAction::make('bulk_reset_password')
                         ->label('Reset Password Terpilih')
                         ->icon('heroicon-o-key')
@@ -82,7 +107,10 @@ class TeachersTable
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
                                 if ($record->user) {
-                                    $lastFive = substr(preg_replace('/[^0-9]/', '', $record->phone ?? '12345'), -5);
+                                    $phone = preg_replace('/[^0-9]/', '', $record->phone ?? '12345');
+                                    $lastFive = substr($phone, -5);
+                                    if (strlen($lastFive) < 5) $lastFive = '12345';
+
                                     $record->user->update(['password' => bcrypt($lastFive)]);
                                 }
                             });

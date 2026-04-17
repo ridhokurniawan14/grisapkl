@@ -6,9 +6,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;   // Tambahkan ini
 use Filament\Tables\Table;
+use App\Models\AcademicYear;                // Tambahkan ini
 
 class AcademicYearsTable
 {
@@ -17,12 +18,23 @@ class AcademicYearsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Tahun Ajaran') // Label Bahasa Indonesia
+                    ->label('Tahun Ajaran')
                     ->searchable(),
 
-                IconColumn::make('is_active')
+                ToggleColumn::make('is_active')
                     ->label('Aktif?')
-                    ->boolean(),
+                    ->onColor('success')
+                    ->offColor('danger')
+                    ->onIcon('heroicon-m-check')
+                    ->offIcon('heroicon-m-x-mark')
+                    ->tooltip('Geser untuk mengaktifkan tahun ajaran ini (hanya boleh 1 yang aktif)')
+                    ->beforeStateUpdated(function (AcademicYear $record, $state) {
+                        // Kalau user mau mengaktifkan (state = true), matiin semua yang lain
+                        if ($state === true) {
+                            AcademicYear::where('id', '!=', $record->id)
+                                ->update(['is_active' => false]);
+                        }
+                    }),
 
                 TextColumn::make('created_at')
                     ->label('Dibuat pada')

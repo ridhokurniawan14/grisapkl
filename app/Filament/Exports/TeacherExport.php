@@ -17,6 +17,8 @@ use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class TeacherExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting
 {
+    private $rowNumber = 0; // Variabel untuk nomor urut
+
     public function collection()
     {
         return Teacher::all();
@@ -24,10 +26,12 @@ class TeacherExport implements FromCollection, WithHeadings, WithMapping, WithSt
 
     public function map($teacher): array
     {
+        $this->rowNumber++; // Tambah 1 setiap baris
         return [
+            $this->rowNumber, // Kolom Nomor
             $teacher->name . ($teacher->title ? ', ' . $teacher->title : ''),
             $teacher->nip ?? '-',
-            "'" . ($teacher->phone ?? '-'), // Tambahan tanda petik agar HP tidak jadi rumus rumus Excel
+            "'" . ($teacher->phone ?? '-'),
             $teacher->subject ?? '-',
         ];
     }
@@ -35,18 +39,19 @@ class TeacherExport implements FromCollection, WithHeadings, WithMapping, WithSt
     public function columnFormats(): array
     {
         return [
-            'C' => NumberFormat::FORMAT_TEXT, // Kolom No. HP
+            'D' => NumberFormat::FORMAT_TEXT, // Geser ke kolom D karena kolom A jadi Nomor
         ];
     }
 
     public function headings(): array
     {
-        return ['Nama Guru', 'NIP', 'No. HP', 'Mata Pelajaran'];
+        return ['No', 'Nama Guru', 'NIP', 'No. HP', 'Mata Pelajaran'];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->getStyle('A1:D' . $sheet->getHighestRow())->applyFromArray([
+        // Lebarkan border dari A sampai E
+        $sheet->getStyle('A1:E' . $sheet->getHighestRow())->applyFromArray([
             'borders' => [
                 'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF000000']],
             ],

@@ -4,8 +4,8 @@ namespace App\Filament\Imports;
 
 use App\Models\Student;
 use App\Models\StudentClass;
+use App\Models\AcademicYear;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -19,37 +19,42 @@ class StudentImporter extends Importer
     public static function getColumns(): array
     {
         return [
-            // Tambahkan kolom Nama (Tidak ada di tabel student, jadi kita cegah agar tidak error)
             ImportColumn::make('name')
                 ->label('Nama Lengkap Siswa')
                 ->requiredMapping()
-                ->fillRecordUsing(fn($record, $state) => null), // Cegah masuk ke tabel students
+                ->rules(['required', 'max:255']),
 
             ImportColumn::make('nis')
+                ->label('NIS')
                 ->requiredMapping()
                 ->rules(['required', 'max:255']),
 
+            // TAMBAHAN: NISN & PHONE
+            ImportColumn::make('nisn')
+                ->label('NISN')
+                ->rules(['max:255']),
+
+            ImportColumn::make('phone')
+                ->label('No. HP Siswa')
+                ->fillRecordUsing(function ($record, $state) {
+                    if (blank($state)) return;
+                    $phone = preg_replace('/[^0-9+]/', '', $state);
+                    if (str_starts_with($phone, '0')) {
+                        $phone = '+62' . substr($phone, 1);
+                    }
+                    $record->phone = $phone;
+                }),
+
             ImportColumn::make('gender')
+                ->label('L/P')
                 ->requiredMapping()
                 ->rules(['required']),
 
-            ImportColumn::make('birth_place')
-                ->rules(['max:255']),
-
-            ImportColumn::make('birth_date')
-                ->rules(['date']),
-
-            ImportColumn::make('religion')
-                ->rules(['max:255']),
-
-            ImportColumn::make('address'),
-
-            ImportColumn::make('father_name')->rules(['max:255']),
-            ImportColumn::make('mother_name')->rules(['max:255']),
-            ImportColumn::make('father_job')->rules(['max:255']),
-            ImportColumn::make('mother_job')->rules(['max:255']),
-            ImportColumn::make('parent_address'),
-            ImportColumn::make('parent_phone')->rules(['max:255']),
+            ImportColumn::make('birth_place')->label('Tempat Lahir')->rules(['max:255']),
+            ImportColumn::make('birth_date')->label('Tgl Lahir')->rules(['date']),
+            ImportColumn::make('religion')->label('Agama')->rules(['max:255']),
+            ImportColumn::make('address')->label('Alamat Lengkap'),
+            ImportColumn::make('parent_phone')->label('No. HP Ortu')->rules(['max:255']),
         ];
     }
 
@@ -60,7 +65,6 @@ class StudentImporter extends Importer
         ]);
     }
 
-    // 1. TAMBAHKAN FUNGSI INI UNTUK MENAMPILKAN DROPDOWN KELAS
     public static function getOptionsFormComponents(): array
     {
         return [
@@ -69,42 +73,59 @@ class StudentImporter extends Importer
                 ->options(StudentClass::pluck('name', 'id'))
                 ->searchable()
                 ->required(),
+            Select::make('academic_year_id')
+                ->label('Pilih Tahun Ajaran')
+                ->options(AcademicYear::where('is_active', true)->pluck('name', 'id'))
+                ->searchable()
+                ->required(),
         ];
     }
 
-    // 2. FUNGSI BEFORE SAVE
-    protected function beforeSave(): void
+    public function beforeCreate(): void
     {
-        // Mengambil ID Kelas dari form options di atas
+        app()->instance('importing.student', true);
+    }
+    public function beforeSave(): void
+    {
+        app()->instance('importing.student', true);
         $this->record->student_class_id = $this->options['student_class_id'];
+        $this->record->academic_year_id = $this->options['academic_year_id'];
+    }
+    public function afterCreate(): void
+    {
+        $this->createUserForRecord();
+    }
+    public function afterSave(): void
+    {
+        $this->createUserForRecord();
+        app()->forgetInstance('importing.student');
+    }
 
-        $password = isset($this->data['birth_date'])
-            ? Carbon::parse($this->data['birth_date'])->format('dmY')
-            : '12345678';
+    private function createUserForRecord(): void
+    {
+        $record = $this->record->fresh();
+        if ($record->user_id || blank($record->name)) return;
 
-        $user = User::firstOrCreate(
-            ['email' => $this->data['nis'] . '@smk.com'],
-            [
-                'name' => $this->data['name'],
-                'password' => bcrypt($password),
-            ]
-        );
+        // Password = NIS, Username = NIS@smk...
+        $password = $record->nis;
+        $email = $record->nis . '@smkpgri1giri.sch.id';
 
-        if (!$user->hasRole('Siswa')) {
-            $user->assignRole('Siswa');
-        }
+        $user = User::firstOrNew(['email' => $email]);
+        $user->name = $record->name;
 
-        $this->record->user_id = $user->id;
+        if (!$user->exists) $user->password = bcrypt($password);
+        $user->save();
+
+        if (!$user->hasRole('Siswa')) $user->assignRole('Siswa');
+        $record->updateQuietly(['user_id' => $user->id]);
     }
 
     public static function getCompletedNotificationBody(Import $import): string
     {
         $body = 'Import data siswa selesai! ' . Number::format($import->successful_rows) . ' baris berhasil masuk.';
-
         if ($failedRowsCount = $import->getFailedRowsCount()) {
             $body .= ' ' . Number::format($failedRowsCount) . ' baris gagal (cek file log).';
         }
-
         return $body;
     }
 }

@@ -20,9 +20,18 @@ class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::UserGroup;
 
-    protected static ?string $recordTitleAttribute = 'nis';
+    protected static ?string $recordTitleAttribute = 'name';
+
+    protected static ?string $navigationLabel = 'Siswa PKL';
+    protected static ?string $modelLabel = 'Siswa PKL';
+    protected static ?string $pluralModelLabel = 'Data Siswa';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Data Master';
+    }
 
     public static function form(Schema $schema): Schema
     {

@@ -39,8 +39,23 @@ class DudikasTable
                     ->searchable(),
                 TextColumn::make('supervisor_phone')
                     ->label('No. HP Pembimbing')
-                    ->searchable(),
+                    ->searchable()
+                    ->icon('heroicon-m-chat-bubble-oval-left-ellipsis') // Ikon chat
+                    ->color('success') // Warna hijau khas WA
+                    ->url(function ($state) {
+                        if (blank($state)) return null;
 
+                        // Bersihkan semua karakter non-angka (seperti + atau spasi)
+                        $phone = preg_replace('/[^0-9]/', '', $state);
+
+                        // Jika nomor diawali dengan 0, ubah jadi 62
+                        if (str_starts_with($phone, '0')) {
+                            $phone = '62' . substr($phone, 1);
+                        }
+
+                        return "https://wa.me/{$phone}";
+                    })
+                    ->openUrlInNewTab(), // Buka di tab baru agar tidak keluar dari web
                 // Kolom di bawah ini kita hide default biar tabel nggak penuh
                 TextColumn::make('head_name')
                     ->label('Pimpinan')

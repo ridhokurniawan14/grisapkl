@@ -39,11 +39,8 @@ class DudikaImporter extends Importer
                 ->fillRecordUsing(function ($record, $state) {
                     if (blank($state)) return;
 
-                    $phone = preg_replace('/[^0-9+]/', '', $state);
-                    if (str_starts_with($phone, '0')) {
-                        $phone = '+62' . substr($phone, 1);
-                    }
-                    $record->supervisor_phone = $phone;
+                    // Simpan sebagai digit murni saja — lebih konsisten
+                    $record->supervisor_phone = preg_replace('/[^0-9]/', '', $state);
                 }),
         ];
     }
@@ -51,46 +48,68 @@ class DudikaImporter extends Importer
     public function resolveRecord(): ?Dudika
     {
         return Dudika::firstOrNew([
-            'name'    => $this->data['name'] ?? null,
-            'address' => $this->data['address'] ?? null,
+            'name' => $this->data['name'] ?? null,
         ]);
     }
 
     /**
-     * Jalankan setelah Dudika berhasil dibuat (hanya untuk record baru)
+     * Tandai bahwa sedang dalam proses import
+     * supaya observer tidak ikut membuat user (hindari double execution)
+     */
+    public function beforeCreate(): void
+    {
+        app()->instance('importing.dudika', true);
+    }
+
+    public function beforeSave(): void
+    {
+        app()->instance('importing.dudika', true);
+    }
+
+    /**
+     * Satu-satunya tempat pembuatan user saat import
      */
     public function afterCreate(): void
     {
-        $record = $this->record;
+        $this->createUserForRecord();
+    }
 
-        // Skip kalau sudah punya user atau data penting kosong
+    public function afterSave(): void
+    {
+        // Tangani juga saat update via import (resolveRecord return existing)
+        $this->createUserForRecord();
+
+        // Lepas flag setelah selesai
+        app()->forgetInstance('importing.dudika');
+    }
+
+    private function createUserForRecord(): void
+    {
+        // Ambil fresh dari DB supaya user_id yang diset updateQuietly terbaca
+        $record = $this->record->fresh();
+
         if ($record->user_id || blank($record->supervisor_name) || blank($record->supervisor_phone)) {
             return;
         }
 
-        // Bersihkan nomor HP, ambil hanya 5 digit terakhir
-        $phone = preg_replace('/[^0-9]/', '', $record->supervisor_phone);
-        $lastFive = substr($phone, -5);                    // ← ini yang penting
+        // Phone sudah digit murni dari fillRecordUsing
+        $phone    = preg_replace('/[^0-9]/', '', $record->supervisor_phone);
+        $lastFive = substr($phone, -5);
+        $email    = $lastFive . '@smkpgri1giri.sch.id';
 
-        $email = $lastFive . '@smkpgri1giri.sch.id';
-
-        // Buat atau ambil user berdasarkan email
-        $user = User::firstOrNew(['email' => $email]);
-
+        $user       = User::firstOrNew(['email' => $email]);
         $user->name = $record->supervisor_name;
 
         if (!$user->exists) {
-            $user->password = bcrypt($lastFive);   // password juga 5 digit terakhir
+            $user->password = bcrypt($lastFive);
         }
 
         $user->save();
 
-        // Assign role (pastikan nama role sama persis dengan di database)
         if (!$user->hasRole('Dudika')) {
             $user->assignRole('Dudika');
         }
 
-        // Update user_id tanpa memicu event saved()
         $record->updateQuietly(['user_id' => $user->id]);
     }
 
