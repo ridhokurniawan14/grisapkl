@@ -28,16 +28,19 @@ class StudentsTable
             ->poll('5s')
             ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('rowIndex')
-                    ->label('No')
-                    ->rowIndex(),
                 TextColumn::make('name')
                     ->label('Nama Lengkap')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('nis')
-                    ->label('NIS')
-                    ->searchable(),
+                TextColumn::make('user.email')
+                    ->label('Email / Username')
+                    ->searchable()
+                    ->icon('heroicon-m-envelope')
+                    ->color('gray')
+                    ->copyable()
+                    ->copyMessage('Email berhasil disalin!')
+                    ->copyMessageDuration(1500)
+                    ->placeholder('Belum ada akun'),
                 TextColumn::make('gender')
                     ->label('Jenis Kelamin')
                     ->formatStateUsing(fn($state) => $state === 'L' ? 'Laki-laki' : 'Perempuan')
@@ -104,8 +107,9 @@ class StudentsTable
                         ->requiresConfirmation()
                         ->action(function (Student $record) {
                             if ($record->user) {
-                                $record->user->update(['password' => bcrypt($record->nis)]);
-                                Notification::make()->title("Password direset menjadi NIS: {$record->nis}")->success()->send();
+                                $shortNis = explode('/', $record->nis)[0];
+                                $record->user->update(['password' => bcrypt($shortNis)]);
+                                Notification::make()->title("Password direset menjadi: {$shortNis}")->success()->send();
                             }
                         }),
                 ])->label('Aksi')->button()->outlined(),
@@ -122,7 +126,6 @@ class StudentsTable
                             }
                         }),
 
-                    // BULK RESET PASSWORD
                     BulkAction::make('bulk_reset_password')
                         ->label('Reset Password Terpilih')
                         ->icon('heroicon-o-key')
@@ -131,10 +134,11 @@ class StudentsTable
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
                                 if ($record->user) {
-                                    $record->user->update(['password' => bcrypt($record->nis)]);
+                                    $shortNis = explode('/', $record->nis)[0];
+                                    $record->user->update(['password' => bcrypt($shortNis)]);
                                 }
                             });
-                            Notification::make()->title('Password massal berhasil direset ke NIS')->success()->send();
+                            Notification::make()->title('Password massal berhasil direset ke NIS pendek')->success()->send();
                         }),
 
                     // BULK NONAKTIFKAN AKUN

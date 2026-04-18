@@ -15,10 +15,11 @@ class StudentObserver
         }
 
         if (!$student->user_id && $student->name && $student->nis) {
-            $email = $student->nis . '@smkpgri1giri.sch.id';
+            // Potong NIS berdasarkan garis miring "/", ambil bagian pertama (index 0)
+            $shortNis = explode('/', $student->nis)[0];
 
-            // Password = nis untuk memudahkan siswa login pertama kali, bisa diganti setelah login
-            $password = $student->nis;
+            $email = $shortNis . '@smkpgri1giri.sch.id';
+            $password = $shortNis; // Password pakai NIS pendek
 
             $user = User::firstOrNew(['email' => $email]);
             $user->name = $student->name;

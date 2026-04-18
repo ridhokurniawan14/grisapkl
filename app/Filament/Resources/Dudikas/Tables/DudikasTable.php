@@ -26,6 +26,15 @@ class DudikasTable
                 TextColumn::make('name')
                     ->label('Nama DUDIKA')
                     ->searchable(),
+                TextColumn::make('user.email')
+                    ->label('Email / Username')
+                    ->searchable()
+                    ->icon('heroicon-m-envelope')
+                    ->color('gray')
+                    ->copyable()
+                    ->copyMessage('Email berhasil disalin!')
+                    ->copyMessageDuration(1500)
+                    ->placeholder('Belum ada akun'),
                 TextColumn::make('is_complete')
                     ->label('Status Data')
                     ->getStateUsing(fn($record) => $record->is_complete ? 'Lengkap' : 'Belum Lengkap')

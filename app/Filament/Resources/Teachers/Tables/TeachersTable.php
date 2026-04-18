@@ -33,6 +33,15 @@ class TeachersTable
                     ->label('NIP')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true), // NIP disembunyikan default
+                TextColumn::make('user.email')
+                    ->label('Email / Username')
+                    ->searchable()
+                    ->icon('heroicon-m-envelope')
+                    ->color('gray')
+                    ->copyable()
+                    ->copyMessage('Email berhasil disalin!')
+                    ->copyMessageDuration(1500)
+                    ->placeholder('Belum ada akun'),
                 TextColumn::make('phone')
                     ->label('No. HP / WA')
                     ->searchable()

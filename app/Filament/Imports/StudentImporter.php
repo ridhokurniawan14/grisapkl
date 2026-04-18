@@ -38,11 +38,8 @@ class StudentImporter extends Importer
                 ->label('No. HP Siswa')
                 ->fillRecordUsing(function ($record, $state) {
                     if (blank($state)) return;
-                    $phone = preg_replace('/[^0-9+]/', '', $state);
-                    if (str_starts_with($phone, '0')) {
-                        $phone = '+62' . substr($phone, 1);
-                    }
-                    $record->phone = $phone;
+                    // Simpan digit murni, konsisten dengan observer
+                    $record->phone = preg_replace('/[^0-9]/', '', $state);
                 }),
 
             ImportColumn::make('gender')
@@ -104,19 +101,28 @@ class StudentImporter extends Importer
     private function createUserForRecord(): void
     {
         $record = $this->record->fresh();
-        if ($record->user_id || blank($record->name)) return;
+        if ($record->user_id || blank($record->name) || blank($record->nis)) return;
 
-        // Password = NIS, Username = NIS@smk...
-        $password = $record->nis;
-        $email = $record->nis . '@smkpgri1giri.sch.id';
+        // Sama persis dengan logika di StudentObserver
+        // NIS bisa mengandung "/" dari format Excel, ambil bagian pertama saja
+        $shortNis = explode('/', $record->nis)[0];   // "12680/246.4.2.1" → "12680"
 
-        $user = User::firstOrNew(['email' => $email]);
+        $email    = $shortNis . '@smkpgri1giri.sch.id';
+        $password = $shortNis;
+
+        $user       = User::firstOrNew(['email' => $email]);
         $user->name = $record->name;
 
-        if (!$user->exists) $user->password = bcrypt($password);
+        if (!$user->exists) {
+            $user->password = bcrypt($password);
+        }
+
         $user->save();
 
-        if (!$user->hasRole('Siswa')) $user->assignRole('Siswa');
+        if (!$user->hasRole('Siswa')) {
+            $user->assignRole('Siswa');
+        }
+
         $record->updateQuietly(['user_id' => $user->id]);
     }
 
