@@ -27,11 +27,8 @@ class PklPlacementResource extends Resource
     protected static ?string $navigationLabel = 'Penempatan PKL';
     protected static ?string $modelLabel = 'Penempatan PKL';
     protected static ?string $pluralModelLabel = 'Data Penempatan PKL';
-
-    public static function getNavigationGroup(): ?string
-    {
-        return 'Transaksi PKL';
-    }
+    protected static string | \UnitEnum | null $navigationGroup = 'Data PKL';
+    protected static ?int $navigationSort = 8;
 
     public static function form(Schema $schema): Schema
     {

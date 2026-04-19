@@ -20,7 +20,14 @@ class MonitoringResource extends Resource
 {
     protected static ?string $model = Monitoring::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Tv;
+
+    protected static ?string $navigationLabel = 'Monitoring PKL';
+    protected static ?string $modelLabel = 'Monitoring PKL';
+    protected static ?string $pluralModelLabel = 'Monitoring PKL';
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Data PKL';
+    protected static ?int $navigationSort = 9;
 
     public static function form(Schema $schema): Schema
     {

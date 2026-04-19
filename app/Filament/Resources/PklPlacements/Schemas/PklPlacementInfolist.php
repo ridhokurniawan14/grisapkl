@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PklPlacements\Schemas;
 
-use Dotswan\MapPicker\Infolists\MapEntry; // <-- Komponen Map khusus untuk Infolist
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry; // ← Ganti import ini
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -48,29 +48,20 @@ class PklPlacementInfolist
                                     TextEntry::make('pkl_field')->label('Bidang Pekerjaan')->placeholder('-'),
                                 ]),
 
-                                MapEntry::make('location')
+                                // ✅ Pakai ViewEntry + blade yang sama persis
+                                ViewEntry::make('location_map')
                                     ->label('Peta Titik Absensi')
+                                    ->view('filament.infolists.map-readonly')
                                     ->columnSpanFull()
-                                    ->visible(fn($record) => !empty($record->latitude) && !empty($record->longitude))
-                                    ->state(fn($record) => [
-                                        'lat' => (float) $record?->latitude,
-                                        'lng' => (float) $record?->longitude,
-                                    ])
-                                    // ✅ Ganti ke OpenStreetMap (bebas CORS, tidak hitam)
-                                    ->tilesUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-                                    ->zoom(15) // ✅ Wajib agar map langsung fokus ke koordinat
-                                    ->extraStyles(['min-height: 400px', 'border-radius: 12px'])
-                                    ->showMarker(true)
-                                    ->markerColor("#ef4444")
-                                    ->showFullscreenControl(true)
-                                    ->showZoomControl(true)
-                                    ->draggable(false)
-                                    ->clickable(false),
+                                    ->visible(fn($record) => !empty($record->latitude) && !empty($record->longitude)),
 
                                 Grid::make(3)->schema([
                                     TextEntry::make('latitude')->label('Latitude')->placeholder('-'),
                                     TextEntry::make('longitude')->label('Longitude')->placeholder('-'),
-                                    TextEntry::make('radius')->label('Radius Absensi')->formatStateUsing(fn($state) => "{$state} Meter")->placeholder('-'),
+                                    TextEntry::make('radius')
+                                        ->label('Radius Absensi')
+                                        ->formatStateUsing(fn($state) => "{$state} Meter")
+                                        ->placeholder('-'),
                                 ]),
                             ]),
                     ])->columnSpanFull(),

@@ -29,10 +29,8 @@ class TeacherResource extends Resource
     protected static ?string $modelLabel = 'Guru Pembimbing';
     protected static ?string $pluralModelLabel = 'Guru Pembimbing';
 
-    public static function getNavigationGroup(): ?string
-    {
-        return 'Data Master';
-    }
+    protected static string | \UnitEnum | null $navigationGroup = 'Data Master';
+    protected static ?int $navigationSort = 5;
 
     public static function form(Schema $schema): Schema
     {

@@ -28,10 +28,8 @@ class StudentResource extends Resource
     protected static ?string $modelLabel = 'Siswa PKL';
     protected static ?string $pluralModelLabel = 'Data Siswa';
 
-    public static function getNavigationGroup(): ?string
-    {
-        return 'Data Master';
-    }
+    protected static string | \UnitEnum | null $navigationGroup = 'Data Master';
+    protected static ?int $navigationSort = 7;
 
     public static function form(Schema $schema): Schema
     {

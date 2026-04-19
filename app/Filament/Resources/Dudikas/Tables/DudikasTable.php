@@ -22,6 +22,7 @@ class DudikasTable
     {
         return $table
             ->poll('5s')
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('name')
                     ->label('Nama DUDIKA')

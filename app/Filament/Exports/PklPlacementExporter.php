@@ -3,56 +3,112 @@
 namespace App\Filament\Exports;
 
 use App\Models\PklPlacement;
-use Filament\Actions\Exports\ExportColumn;
-use Filament\Actions\Exports\Exporter;
-use Filament\Actions\Exports\Models\Export;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class PklPlacementExporter extends Exporter
+class PklPlacementExporter implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
 {
-    protected static ?string $model = PklPlacement::class;
+    protected $query;
 
-    public static function getColumns(): array
+    // Kita butuh construct ini biar hasil download-nya sesuai sama filter jurusan/tahun yang diklik Humas
+    public function __construct($query)
+    {
+        $this->query = $query;
+    }
+
+    public function collection()
+    {
+        return $this->query->get();
+    }
+
+    public function headings(): array
     {
         return [
-            ExportColumn::make('academicYear.name')->label('Tahun Ajaran'),
-            ExportColumn::make('student.nis')->label('NIS Siswa'),
-            ExportColumn::make('student.name')->label('Nama Siswa'),
-
-            // ANTI-ERROR: Ambil data kelas dengan aman
-            ExportColumn::make('kelas_siswa')
-                ->label('Kelas Siswa')
-                ->state(fn($record) => $record->student?->studentClass?->name ?? '-'),
-
-            ExportColumn::make('dudika.name')->label('Nama DUDIKA'),
-
-            // ANTI-ERROR: Ambil alamat DUDIKA dengan aman
-            ExportColumn::make('dudika_address')
-                ->label('Alamat DUDIKA')
-                ->state(fn($record) => $record->dudika?->address ?? '-'),
-
-            ExportColumn::make('teacher.name')->label('Guru Pembimbing (Sekolah)'),
-
-            // ANTI-ERROR: Ambil pembimbing lapangan dengan aman
-            ExportColumn::make('pembimbing_dudika')
-                ->label('Pembimbing Lapangan (DUDIKA)')
-                ->state(fn($record) => $record->dudika?->supervisor_name ?? '-'),
-
-            ExportColumn::make('start_date')->label('Tanggal Mulai'),
-            ExportColumn::make('end_date')->label('Tanggal Selesai'),
-            ExportColumn::make('latitude')->label('Latitude'),
-            ExportColumn::make('longitude')->label('Longitude'),
-            ExportColumn::make('status')->label('Status PKL'),
+            'NO',
+            'TAHUN AJARAN',
+            'NIS',
+            'NAMA SISWA',
+            'KELAS',
+            'TEMPAT DUDIKA',
+            'ALAMAT DUDIKA',
+            'GURU PEMBIMBING',
+            'PEMBIMBING DUDIKA',
+            'TANGGAL MULAI',
+            'TANGGAL SELESAI',
+            'STATUS',
+            'LATITUDE',
+            'LONGITUDE'
         ];
     }
 
-    public static function getCompletedNotificationBody(Export $export): string
+    public function map($record): array
     {
-        $body = 'Ekspor data penempatan PKL telah selesai dan 100% berhasil.';
+        static $no = 0;
+        $no++;
 
-        if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' Namun ada ' . number_format($failedRowsCount) . ' baris yang gagal diekspor.';
-        }
+        return [
+            $no,
+            $record->academicYear?->name ?? '-',
+            "'" . $record->student?->nis,
+            $record->student?->name ?? '-',
+            $record->student?->studentClass?->name ?? '-',
+            $record->dudika?->name ?? '-',
+            $record->dudika?->address ?? '-',
+            $record->teacher?->name ?? '-',
+            $record->dudika?->supervisor_name ?? '-',
 
-        return $body;
+            // OBAT ANTI-ERROR: Ubah string jadi Carbon dulu sebelum di-format
+            $record->start_date ? \Carbon\Carbon::parse($record->start_date)->format('d-m-Y') : '-',
+            $record->end_date ? \Carbon\Carbon::parse($record->end_date)->format('d-m-Y') : '-',
+
+            $record->status,
+            $record->latitude,
+            $record->longitude,
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        // Border seluruh sel
+        $lastRow = $sheet->getHighestRow();
+        $sheet->getStyle('A1:N' . $lastRow)->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['argb' => 'FF000000'],
+                ],
+            ],
+        ]);
+
+        // Style Header
+        return [
+            1 => [
+                'font' => [
+                    'bold' => true,
+                    'color' => ['argb' => 'FFFFFFFF'],
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['argb' => 'FF16A34A'], // Warna hijau
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical'   => Alignment::VERTICAL_CENTER,
+                ],
+            ],
+            // Rata tengah untuk kolom No, NIS, Tanggal, Status
+            'A' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            'C' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            'J' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            'K' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            'L' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+        ];
     }
 }

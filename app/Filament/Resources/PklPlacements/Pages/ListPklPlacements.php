@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\PklPlacements\Pages;
 
-use App\Filament\Exports\PklPlacementExporter;
+use App\Filament\Exports\PklPlacementExporter; // <-- Import-nya sudah kembali ke habitat aslinya bro
 use App\Filament\Resources\PklPlacements\PklPlacementResource;
-use Filament\Actions\CreateAction;
-use Filament\Actions\ExportAction;
+use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
+use Maatwebsite\Excel\Facades\Excel; // Wajib import Facade Excel
 
 class ListPklPlacements extends ListRecords
 {
@@ -15,15 +15,21 @@ class ListPklPlacements extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            // 1. Tombol Download Data (Sekarang ada di sebelah kiri)
-            ExportAction::make()
-                ->label('Download Data')
+            Actions\Action::make('download_excel')
+                ->label('Download Excel')
                 ->icon('heroicon-m-arrow-down-tray')
                 ->color('success')
-                ->exporter(PklPlacementExporter::class),
+                ->action(function () {
+                    // Ambil query data sesuai filter yang dipilih Humas
+                    $query = $this->getFilteredTableQuery();
 
-            // 2. Tombol Buat Penempatan PKL (Ditambah Icon Plus)
-            CreateAction::make()
+                    return Excel::download(
+                        new PklPlacementExporter($query),
+                        'Data-Penempatan-PKL-' . now()->format('d-m-Y') . '.xlsx'
+                    );
+                }),
+
+            Actions\CreateAction::make()
                 ->label('Buat Penempatan')
                 ->icon('heroicon-m-plus'),
         ];

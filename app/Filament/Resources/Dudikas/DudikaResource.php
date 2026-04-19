@@ -30,10 +30,8 @@ class DudikaResource extends Resource
     protected static ?string $modelLabel = 'DUDIKA';
     protected static ?string $pluralModelLabel = 'DUDIKA';
 
-    public static function getNavigationGroup(): ?string
-    {
-        return 'Data Master';
-    }
+    protected static string | \UnitEnum | null $navigationGroup = 'Data Master';
+    protected static ?int $navigationSort = 6;
 
     public static function form(Schema $schema): Schema
     {

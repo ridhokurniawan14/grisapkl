@@ -19,6 +19,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Navigation\NavigationGroup;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -31,6 +32,19 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->colors([
                 'primary' => Color::Blue,
+            ])
+            ->navigationGroups([
+                NavigationGroup::make()
+                    ->label('Data Master'),
+
+                NavigationGroup::make()
+                    ->label('Transaksi PKL'),
+
+                NavigationGroup::make()
+                    ->label('Pencetakan'),
+
+                NavigationGroup::make()
+                    ->label('Filament Shield'),
             ])
             ->databaseNotifications()
             ->databaseNotificationsPolling('5s')

@@ -28,11 +28,8 @@ class StudentClassResource extends Resource
     protected static ?string $modelLabel = 'Kelas';
     protected static ?string $pluralModelLabel = 'Kelas';
 
-    // Grouping Menu biar rapi
-    public static function getNavigationGroup(): ?string
-    {
-        return 'Data Master';
-    }
+    protected static string | \UnitEnum | null $navigationGroup = 'Data Master';
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {

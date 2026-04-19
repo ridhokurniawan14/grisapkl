@@ -28,6 +28,8 @@ class AcademicYearResource extends Resource
     protected static ?string $pluralModelLabel = 'Tahun Ajaran';
     protected static string | \UnitEnum | null $navigationGroup = 'Data Master';
 
+    protected static ?int $navigationSort = 2;
+
     public static function form(Schema $schema): Schema
     {
         return AcademicYearForm::configure($schema);

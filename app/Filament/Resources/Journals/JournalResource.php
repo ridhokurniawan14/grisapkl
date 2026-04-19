@@ -20,7 +20,14 @@ class JournalResource extends Resource
 {
     protected static ?string $model = Journal::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::BookOpen;
+
+    protected static ?string $navigationLabel = 'Jurnal Siswa';
+    protected static ?string $modelLabel = 'Jurnal Siswa';
+    protected static ?string $pluralModelLabel = 'Jurnal Siswa';
+
+    protected static string | \UnitEnum | null $navigationGroup = 'Data PKL';
+    protected static ?int $navigationSort = 10;
 
     public static function form(Schema $schema): Schema
     {
