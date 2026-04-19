@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Dudikas\Schemas;
 
-use Dotswan\MapPicker\Infolists\MapEntry; // <-- Komponen Map khusus untuk Infolist
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry; // ← Ganti import ini
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -17,7 +17,7 @@ class DudikaInfolist
             ->components([
                 Tabs::make('Tabs Dudika Detail')
                     ->tabs([
-                        // TAB 1: PROFIL & KONTAK (GABUNGAN)
+                        // TAB 1: PROFIL & KONTAK
                         Tab::make('Profil & Kontak')
                             ->icon('heroicon-m-building-office-2')
                             ->schema([
@@ -29,7 +29,7 @@ class DudikaInfolist
                                     TextEntry::make('head_nip')->label('NIP / NIK Pimpinan')->placeholder('-'),
                                 ]),
 
-                                \Filament\Infolists\Components\TextEntry::make('pembatas_supervisor')
+                                TextEntry::make('pembatas_supervisor')
                                     ->label('Data Pembimbing Lapangan (Instruktur)')
                                     ->default('')
                                     ->helperText('Orang yang akan membimbing dan menilai siswa di lokasi.')
@@ -53,28 +53,16 @@ class DudikaInfolist
                                 ]),
                             ]),
 
-                        // TAB 2: LOKASI ABSENSI (MAP READONLY)
+                        // TAB 2: LOKASI ABSENSI
                         Tab::make('Lokasi Absensi')
                             ->icon('heroicon-m-map-pin')
                             ->schema([
-                                MapEntry::make('location')
+                                // ✅ PAKAI ViewEntry — koordinat langsung dari $record, tidak bergantung dotswan lifecycle
+                                ViewEntry::make('location_map')
                                     ->label('Peta Titik Absensi')
+                                    ->view('filament.infolists.map-readonly')
                                     ->columnSpanFull()
-                                    ->visible(fn($record) => !empty($record->latitude) && !empty($record->longitude))
-                                    ->state(fn($record) => [
-                                        'lat' => (float) $record?->latitude,
-                                        'lng' => (float) $record?->longitude,
-                                    ])
-                                    // ✅ Ganti ke OpenStreetMap
-                                    ->tilesUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-                                    ->zoom(15) // ✅ Wajib!
-                                    ->extraStyles(['min-height: 400px', 'border-radius: 12px'])
-                                    ->showMarker(true)
-                                    ->markerColor("#ef4444")
-                                    ->showFullscreenControl(true)
-                                    ->showZoomControl(true)
-                                    ->draggable(false)
-                                    ->clickable(false),
+                                    ->visible(fn($record) => !empty($record->latitude) && !empty($record->longitude)),
 
                                 Grid::make(3)->schema([
                                     TextEntry::make('latitude')

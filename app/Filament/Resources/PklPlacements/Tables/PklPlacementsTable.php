@@ -96,14 +96,6 @@ class PklPlacementsTable
                     ->searchable()
                     ->preload(),
             ])
-            ->headerActions([
-                // TOMBOL EXPORT
-                ExportAction::make()
-                    ->label('Download Data')
-                    ->icon('heroicon-m-arrow-down-tray')
-                    ->color('success')
-                    ->exporter(PklPlacementExporter::class)
-            ])
             ->recordActions([
                 // TOMBOL AKSI DIBIKIN BUTTON OUTLINED (SAMA KAYA DUDIKA)
                 ActionGroup::make([
@@ -116,6 +108,24 @@ class PklPlacementsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label('Hapus Terpilih'),
 
+                    // TOMBOL BARU: AKTIF
+                    BulkAction::make('ubah_status_aktif')
+                        ->label('Ubah Status: Aktif')
+                        ->icon('heroicon-m-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records) {
+                            $records->each(function ($record) {
+                                $record->update(['status' => 'Aktif']);
+                            });
+                            Notification::make()
+                                ->title('Status siswa terpilih berhasil diubah menjadi Aktif')
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
+                    // TOMBOL LAMA: DITARIK
                     BulkAction::make('ubah_status_ditarik')
                         ->label('Ubah Status: Ditarik')
                         ->icon('heroicon-m-arrow-path-rounded-square')

@@ -24,8 +24,9 @@ class Dudika extends Model
             !empty($this->address) &&
             !empty($this->supervisor_name) &&
             !empty($this->supervisor_phone) &&
-            !empty($this->latitude) && // <-- SYARAT BARU: Latitude tidak boleh kosong
-            !empty($this->longitude);  // <-- SYARAT BARU: Longitude tidak boleh kosong
+            !empty($this->head_name) &&
+            !empty($this->latitude) &&
+            !empty($this->longitude);
     }
 
     public function user()

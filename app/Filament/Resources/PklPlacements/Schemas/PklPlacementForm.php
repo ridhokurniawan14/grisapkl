@@ -53,14 +53,22 @@ class PklPlacementForm
 
                                 Select::make('student_ids')
                                     ->label('Siswa PKL (Bisa pilih lebih dari 1)')
-                                    ->options(function (Get $get) {
+                                    ->options(function (Get $get, ?Model $record) {
                                         $majorId = $get('major_id');
                                         $query = Student::query();
+
                                         if ($majorId) {
                                             $query->whereHas('studentClass', function ($q) use ($majorId) {
                                                 $q->where('major_id', $majorId);
                                             });
                                         }
+
+                                        // LOGIKA SAKTI: Ambil semua ID siswa yang sudah PKL
+                                        $placedStudentIds = \App\Models\PklPlacement::pluck('student_id')->toArray();
+
+                                        // Keluarkan dari daftar pencarian agar tidak bisa dipilih lagi
+                                        $query->whereNotIn('id', $placedStudentIds);
+
                                         return $query->get()->mapWithKeys(fn($s) => [$s->id => "{$s->nis} - {$s->name}"]);
                                     })
                                     ->multiple()
@@ -71,21 +79,31 @@ class PklPlacementForm
 
                                 Select::make('student_id')
                                     ->label('Siswa PKL')
-                                    ->options(function (Get $get) {
+                                    ->options(function (Get $get, ?Model $record) {
                                         $majorId = $get('major_id');
                                         $query = Student::query();
+
                                         if ($majorId) {
                                             $query->whereHas('studentClass', function ($q) use ($majorId) {
                                                 $q->where('major_id', $majorId);
                                             });
                                         }
+
+                                        $placedStudentIds = \App\Models\PklPlacement::pluck('student_id')->toArray();
+
+                                        // PENGECUALIAN SAAT EDIT: Siswa yang sedang diedit harus tetap muncul
+                                        if ($record && $record->student_id) {
+                                            $placedStudentIds = array_diff($placedStudentIds, [$record->student_id]);
+                                        }
+
+                                        $query->whereNotIn('id', $placedStudentIds);
+
                                         return $query->get()->mapWithKeys(fn($s) => [$s->id => "{$s->nis} - {$s->name}"]);
                                     })
                                     ->searchable()
                                     ->required()
                                     ->hiddenOn('create')
                                     ->columnSpanFull(),
-
                                 Grid::make(2)->schema([
                                     Select::make('dudika_id')
                                         ->relationship('dudika', 'name')
