@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Journals\Tables;
 
 use App\Models\Major;
 use App\Models\Student;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -13,20 +14,21 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class JournalsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            // FITUR SAKTI: Tabel kosong duluan, load sangat cepat. User dipaksa nge-filter dulu!
+            // Menunda loading data sampai user melakukan pencarian / filter
             ->deferLoading()
             ->defaultSort('date', 'desc')
             ->columns([
+                // REVISI: Hapus huruf "s" pada student dan dudika
                 TextColumn::make('pklPlacement.student.name')
                     ->label('Nama Siswa')
                     ->searchable()
@@ -59,10 +61,22 @@ class JournalsTable
                         default => 'gray',
                     }),
 
+                // REVISI: FOTO BISA DIKLIK MUNCUL MODAL BESAR
                 ImageColumn::make('photo_path')
                     ->label('Foto')
                     ->circular()
-                    ->stacked(), // Biar fotonya cantik
+                    ->stacked()
+                    ->action(
+                        Action::make('lihat_foto')
+                            ->modalHeading('Foto Bukti Kegiatan')
+                            ->modalSubmitAction(false) // Hilangkan tombol submit
+                            ->modalCancelActionLabel('Tutup')
+                            ->modalContent(fn($record) => new HtmlString("
+                                <div class='flex justify-center'>
+                                    <img src='" . asset('storage/' . $record->photo_path) . "' alt='Foto Kegiatan' class='rounded-xl shadow-lg' style='max-width: 100%; height: auto;'>
+                                </div>
+                            "))
+                    ),
 
                 IconColumn::make('is_valid')
                     ->label('Valid')
@@ -71,7 +85,6 @@ class JournalsTable
                     ->falseIcon('heroicon-o-x-circle'),
             ])
             ->filters([
-                // FILTER JURUSAN
                 SelectFilter::make('major_id')
                     ->label('Filter Jurusan')
                     ->options(Major::pluck('name', 'id'))
@@ -83,7 +96,6 @@ class JournalsTable
                         }
                     }),
 
-                // FILTER NAMA SISWA
                 SelectFilter::make('student_id')
                     ->label('Cari Nama Siswa')
                     ->options(Student::pluck('name', 'id'))

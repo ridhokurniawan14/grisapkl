@@ -86,50 +86,38 @@ class JournalForm
                         TextInput::make('latitude')
                             ->label('Latitude Lokasi')
                             ->readOnly()
-                            ->placeholder('Mencari lokasi...')
+                            ->placeholder('Mendeteksi koordinat GPS...')
                             ->extraAlpineAttributes([
                                 'x-init' => "
-                                    // Cek apakah webnya HTTPS/Aman
-                                    if (window.isSecureContext === false) {
-                                        \$el.placeholder = 'DIBLOKIR: Web wajib HTTPS!';
-                                    } else if (navigator.geolocation) {
-                                        navigator.geolocation.getCurrentPosition(
-                                            (pos) => { 
-                                                // Sukses tarik lokasi
-                                                \$wire.\$set('data.latitude', pos.coords.latitude); 
-                                            },
-                                            (err) => { 
-                                                // Gagal (Izin ditolak atau timeout)
-                                                \$el.placeholder = 'Izin lokasi ditolak browser!'; 
-                                                console.warn(err);
-                                            },
-                                            { enableHighAccuracy: true, timeout: 5000 }
-                                        );
-                                    } else {
-                                        \$el.placeholder = 'GPS tidak didukung.';
-                                    }
-                                "
+                    if (!window.isSecureContext) {
+                        \$el.placeholder = 'Butuh HTTPS atau akses via localhost!';
+                        return;
+                    }
+                    if (!navigator.geolocation) {
+                        \$el.placeholder = 'GPS tidak didukung browser ini.';
+                        return;
+                    }
+                    \$el.placeholder = 'Sedang mengambil koordinat...';
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            \$wire.\$set('data.latitude', pos.coords.latitude.toFixed(7));
+                            \$wire.\$set('data.longitude', pos.coords.longitude.toFixed(7));
+                        },
+                        (err) => {
+                            const msg = ['', 'Izin lokasi ditolak browser.', 'Sinyal GPS tidak ada.', 'Timeout, refresh halaman.'];
+                            \$el.placeholder = msg[err.code] || 'Gagal mendapat lokasi.';
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    );
+                "
                             ])
-                            ->helperText('Otomatis terisi. Pastikan browser mengizinkan akses lokasi.'),
+                            ->helperText('Otomatis terisi. Pastikan izin lokasi diaktifkan di browser.'),
 
                         TextInput::make('longitude')
                             ->label('Longitude Lokasi')
                             ->readOnly()
-                            ->placeholder('Mencari lokasi...')
-                            ->extraAlpineAttributes([
-                                'x-init' => "
-                                    if (window.isSecureContext === false) {
-                                        \$el.placeholder = 'DIBLOKIR: Web wajib HTTPS!';
-                                    } else if (navigator.geolocation) {
-                                        navigator.geolocation.getCurrentPosition(
-                                            (pos) => { \$wire.\$set('data.longitude', pos.coords.longitude); },
-                                            (err) => { \$el.placeholder = 'Izin lokasi ditolak browser!'; },
-                                            { enableHighAccuracy: true, timeout: 5000 }
-                                        );
-                                    }
-                                "
-                            ])
-                            ->helperText('Otomatis terisi. Pastikan browser mengizinkan akses lokasi.'),
+                            ->placeholder('Menunggu latitude...')
+                            ->helperText('Terisi otomatis bersamaan dengan latitude.'),
                     ]),
                 Grid::make(2)->schema([
                     Toggle::make('is_valid')
