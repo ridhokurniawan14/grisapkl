@@ -27,7 +27,7 @@ class JournalResource extends Resource
     protected static ?string $pluralModelLabel = 'Jurnal Siswa';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Data PKL';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 9;
 
     public static function form(Schema $schema): Schema
     {
