@@ -24,11 +24,9 @@ class JournalsTable
     public static function configure(Table $table): Table
     {
         return $table
-            // Menunda loading data sampai user melakukan pencarian / filter
             ->deferLoading()
             ->defaultSort('date', 'desc')
             ->columns([
-                // REVISI: Hapus huruf "s" pada student dan dudika
                 TextColumn::make('pklPlacement.student.name')
                     ->label('Nama Siswa')
                     ->searchable()
@@ -61,21 +59,37 @@ class JournalsTable
                         default => 'gray',
                     }),
 
-                // REVISI: FOTO BISA DIKLIK MUNCUL MODAL BESAR
                 ImageColumn::make('photo_path')
                     ->label('Foto')
                     ->circular()
+                    ->disk('public')
                     ->stacked()
                     ->action(
                         Action::make('lihat_foto')
                             ->modalHeading('Foto Bukti Kegiatan')
-                            ->modalSubmitAction(false) // Hilangkan tombol submit
+
+                            // MANTRA SAKTI 1: Lebarkan jendela pop-up modalnya (pilihan: '3xl', '5xl', '7xl', 'screen')
+                            ->modalWidth('5xl')
+
+                            ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Tutup')
-                            ->modalContent(fn($record) => new HtmlString("
-                                <div class='flex justify-center'>
-                                    <img src='" . asset('storage/' . $record->photo_path) . "' alt='Foto Kegiatan' class='rounded-xl shadow-lg' style='max-width: 100%; height: auto;'>
-                                </div>
-                            "))
+                            ->infolist([
+                                \Filament\Infolists\Components\ImageEntry::make('photo_path')
+                                    ->hiddenLabel()
+                                    ->disk('public')
+
+                                    // MANTRA SAKTI 2: Bebaskan tinggi & lebar bawaan komponen ImageEntry
+                                    ->width('100%')
+                                    ->height('auto')
+
+                                    ->extraImgAttributes([
+                                        // Tambahkan w-full di class Tailwind
+                                        'class' => 'rounded-xl shadow-md w-full',
+
+                                        // Tinggikan batas layar jadi 80vh biar fotonya makin lega
+                                        'style' => 'max-height: 80vh; object-fit: contain; margin: 0 auto;'
+                                    ])
+                            ])
                     ),
 
                 IconColumn::make('is_valid')
@@ -113,7 +127,7 @@ class JournalsTable
                     ViewAction::make()->label('Detail'),
                     EditAction::make()->label('Validasi / Ubah'),
                     DeleteAction::make()->label('Hapus'),
-                ])->button()->outlined()->label('Aksi')->icon('heroicon-m-cog-6-tooth'),
+                ])->button()->outlined()->label('Aksi'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

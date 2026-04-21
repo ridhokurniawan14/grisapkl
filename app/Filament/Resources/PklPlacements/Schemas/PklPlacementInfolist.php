@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\PklPlacements\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\ViewEntry; // ← Ganti import ini
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;

@@ -71,6 +71,8 @@ class JournalForm
                     ->label('Foto Bukti Kegiatan / Selfie')
                     ->image()
                     ->imageEditor()
+                    ->disk('public')
+                    ->replacesExistingFiles()
                     ->directory('journals')
                     ->imagePreviewHeight('250')
                     ->imageResizeMode('cover')
