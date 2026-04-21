@@ -26,6 +26,28 @@ class JournalsTable
         return $table
             ->deferLoading()
             ->defaultSort('date', 'desc')
+
+            // =======================================================
+            // MANTRA SAKTI: CEGAH LOAD DATA SEBELUM FILTER DIPILIH
+            // =======================================================
+            ->modifyQueryUsing(function (Builder $query, Table $table) {
+                // Ambil properti filter langsung dari Livewire agar tidak error ArgumentCount
+                $filters = $table->getLivewire()->tableFilters ?? [];
+
+                // Cek apakah filter Jurusan atau Siswa sudah diisi?
+                $hasMajorFilter = !empty($filters['major_id']['value']);
+                $hasStudentFilter = !empty($filters['student_id']['value']);
+
+                // Jika KEDUANYA KOSONG, pangkas query jadi 0 data
+                if (!$hasMajorFilter && !$hasStudentFilter) {
+                    $query->whereRaw('1 = 0');
+                }
+            })
+            ->emptyStateHeading('Silakan Filter Data Terlebih Dahulu')
+            ->emptyStateDescription('Data jurnal sangat banyak. Gunakan ikon Filter (Corong) di kanan atas untuk memilih Jurusan atau Nama Siswa.')
+            ->emptyStateIcon('heroicon-o-funnel')
+            // =======================================================
+
             ->columns([
                 TextColumn::make('pklPlacement.student.name')
                     ->label('Nama Siswa')
@@ -67,26 +89,17 @@ class JournalsTable
                     ->action(
                         Action::make('lihat_foto')
                             ->modalHeading('Foto Bukti Kegiatan')
-
-                            // MANTRA SAKTI 1: Lebarkan jendela pop-up modalnya (pilihan: '3xl', '5xl', '7xl', 'screen')
                             ->modalWidth('5xl')
-
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Tutup')
                             ->infolist([
                                 \Filament\Infolists\Components\ImageEntry::make('photo_path')
                                     ->hiddenLabel()
                                     ->disk('public')
-
-                                    // MANTRA SAKTI 2: Bebaskan tinggi & lebar bawaan komponen ImageEntry
                                     ->width('100%')
                                     ->height('auto')
-
                                     ->extraImgAttributes([
-                                        // Tambahkan w-full di class Tailwind
                                         'class' => 'rounded-xl shadow-md w-full',
-
-                                        // Tinggikan batas layar jadi 80vh biar fotonya makin lega
                                         'style' => 'max-height: 80vh; object-fit: contain; margin: 0 auto;'
                                     ])
                             ])
@@ -127,7 +140,7 @@ class JournalsTable
                     ViewAction::make()->label('Detail'),
                     EditAction::make()->label('Validasi / Ubah'),
                     DeleteAction::make()->label('Hapus'),
-                ])->button()->outlined()->label('Aksi'),
+                ])->button()->outlined()->label('Aksi')->icon('heroicon-m-cog-6-tooth'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
