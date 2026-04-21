@@ -11,13 +11,15 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Grid;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\HtmlString;
+use Filament\Tables\Enums\FiltersLayout;
 
 class JournalsTable
 {
@@ -26,28 +28,19 @@ class JournalsTable
         return $table
             ->deferLoading()
             ->defaultSort('date', 'desc')
-
-            // =======================================================
-            // MANTRA SAKTI: CEGAH LOAD DATA SEBELUM FILTER DIPILIH
-            // =======================================================
             ->modifyQueryUsing(function (Builder $query, Table $table) {
-                // Ambil properti filter langsung dari Livewire agar tidak error ArgumentCount
                 $filters = $table->getLivewire()->tableFilters ?? [];
 
-                // Cek apakah filter Jurusan atau Siswa sudah diisi?
                 $hasMajorFilter = !empty($filters['major_id']['value']);
                 $hasStudentFilter = !empty($filters['student_id']['value']);
 
-                // Jika KEDUANYA KOSONG, pangkas query jadi 0 data
                 if (!$hasMajorFilter && !$hasStudentFilter) {
                     $query->whereRaw('1 = 0');
                 }
             })
-            ->emptyStateHeading('Silakan Filter Data Terlebih Dahulu')
-            ->emptyStateDescription('Data jurnal sangat banyak. Gunakan ikon Filter (Corong) di kanan atas untuk memilih Jurusan atau Nama Siswa.')
-            ->emptyStateIcon('heroicon-o-funnel')
-            // =======================================================
-
+            ->emptyStateHeading('Silakan Cari Data Terlebih Dahulu')
+            ->emptyStateDescription('Pilih Jurusan atau Cari Nama Siswa, lalu klik tombol Cari Data.')
+            ->emptyStateIcon('heroicon-o-magnifying-glass-circle')
             ->columns([
                 TextColumn::make('pklPlacement.student.name')
                     ->label('Nama Siswa')
@@ -82,7 +75,7 @@ class JournalsTable
                     }),
 
                 ImageColumn::make('photo_path')
-                    ->label('Foto')
+                    ->label('Foto Kegiatan')
                     ->circular()
                     ->disk('public')
                     ->stacked()
@@ -134,13 +127,44 @@ class JournalsTable
                             });
                         }
                     }),
+
+                // MANTRA SAKTI: FILTER RANGE TANGGAL
+                \Filament\Tables\Filters\Filter::make('date_range')
+                    ->form([
+                        Grid::make(2)->schema([
+                            DatePicker::make('start')
+                                ->label('Dari Tanggal'),
+                            DatePicker::make('end')
+                                ->label('Sampai Tanggal'),
+                        ])
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['start'], fn(Builder $q, $date) => $q->whereDate('date', '>=', $date))
+                            ->when($data['end'], fn(Builder $q, $date) => $q->whereDate('date', '<=', $date));
+                    })
             ])
+            // =======================================================
+            // UX MANTAP: TATA LETAK & TOMBOL KANAN
+            // =======================================================
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(3) // Dibagi 3 Kolom Biar Sejajar (Jurusan | Siswa | Tanggal)
+            ->deferFilters()
+            ->filtersApplyAction(
+                fn(Action $action) => $action
+                    ->label('Cari Data')
+                    ->icon('heroicon-m-magnifying-glass')
+                    // CSS Sakti membuang tombol ke pojok kanan
+                    ->extraAttributes(['class' => 'ml-auto justify-end w-full sm:w-auto mt-4'])
+                    ->button()
+            )
+            // =======================================================
             ->recordActions([
                 ActionGroup::make([
                     ViewAction::make()->label('Detail'),
                     EditAction::make()->label('Validasi / Ubah'),
                     DeleteAction::make()->label('Hapus'),
-                ])->button()->outlined()->label('Aksi')->icon('heroicon-m-cog-6-tooth'),
+                ])->button()->outlined()->label('Aksi'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

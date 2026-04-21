@@ -60,25 +60,44 @@ class JournalForm
                 ]),
 
                 Textarea::make('activity')
-                    ->label('Detail Kegiatan yang Dilakukan')
+                    ->label('Detail Kegiatan yang Dilakukan (Sore/Siang)')
                     ->placeholder('Contoh: Melakukan instalasi Windows 11 pada 5 PC Lab komputer...')
-                    ->required()
+                    // Kita buat nullable, karena saat absen pagi, kegiatan ini belum diisi oleh siswa
+                    ->nullable()
                     ->rows(4)
                     ->columnSpanFull()
                     ->helperText('Jelaskan kegiatan secara rinci minimal 1 kalimat.'),
 
-                FileUpload::make('photo_path')
-                    ->label('Foto Bukti Kegiatan / Selfie')
-                    ->image()
-                    ->imageEditor()
-                    ->disk('public')
-                    ->directory('journals')
-                    ->imagePreviewHeight('250')
-                    ->imageResizeMode('cover')
-                    ->imageResizeTargetWidth('1024')
-                    ->imageResizeTargetHeight('1024')
-                    ->columnSpanFull()
-                    ->helperText('Sistem akan mengompres foto secara otomatis. Pastikan foto tidak blur.'),
+                // =======================================================
+                // DUA FOTO BERSEBELAHAN (PAGI & SORE)
+                // =======================================================
+                Grid::make(2)->schema([
+                    // FOTO 1: SELFIE PAGI
+                    FileUpload::make('attendance_photo_path')
+                        ->label('Foto Selfie Absen Wajah (Pagi)')
+                        ->image()
+                        ->disk('public')
+                        ->visibility('public') // Pengaman preview
+                        ->directory('journals/attendance') // Folder dipisah biar rapi
+                        ->imagePreviewHeight('250')
+                        ->columnSpan(1)
+                        ->helperText('Foto wajah saat absen pagi. Terisi otomatis dari aplikasi siswa.'),
+
+                    // FOTO 2: KEGIATAN SORE
+                    FileUpload::make('photo_path')
+                        ->label('Foto Bukti Kegiatan (Siang/Sore)')
+                        ->image()
+                        ->imageEditor()
+                        ->disk('public')
+                        ->visibility('public') // Pengaman preview
+                        ->directory('journals')
+                        ->imagePreviewHeight('250')
+                        ->imageResizeMode('cover')
+                        ->imageResizeTargetWidth('1024')
+                        ->imageResizeTargetHeight('1024')
+                        ->columnSpan(1)
+                        ->helperText('Foto pekerjaan/kegiatan. Bisa diunggah dari galeri oleh siswa.'),
+                ]),
 
                 // MANTRA SAKTI 2: LOKASI DENGAN ERROR HANDLING
                 Grid::make(2)

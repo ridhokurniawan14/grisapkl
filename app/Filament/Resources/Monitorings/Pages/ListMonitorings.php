@@ -1,10 +1,13 @@
 <?php
 
-namespace App\Filament\Resources\Monitorings\Pages;
+namespace App\Filament\Resources\MonitoringResource\Pages;
 
 use App\Filament\Resources\Monitorings\MonitoringResource;
-use Filament\Actions\CreateAction;
+use App\Models\MonitoringSchedule;
+use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ListMonitorings extends ListRecords
 {
@@ -13,7 +16,25 @@ class ListMonitorings extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            Actions\Action::make('download_excel')
+                ->label('Download Excel')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('success')
+                ->action(function () {
+                    // Mengambil ID data yang tampil di tabel (sudah terfilter)
+                    $ids = $this->getFilteredTableQuery()->pluck('id')->toArray();
+
+                    if (empty($ids)) {
+                        \Filament\Notifications\Notification::make()->title('Data Kosong!')->warning()->send();
+                        return;
+                    }
+
+                    return Excel::download(new MonitoringExport($ids), 'Data_Monitoring_PKL.xlsx');
+                }),
+
+            Actions\CreateAction::make()
+                ->icon('heroicon-o-plus')
+                ->label('Buat Laporan'),
         ];
     }
 }

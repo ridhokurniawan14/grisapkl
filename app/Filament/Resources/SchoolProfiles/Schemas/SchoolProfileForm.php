@@ -92,6 +92,7 @@ class SchoolProfileForm
                                     FileUpload::make('logo_path')
                                         ->label('Logo Sekolah')
                                         ->image()
+                                        ->disk('public')
                                         ->imageEditor() // Bisa nge-crop langsung!
                                         ->imagePreviewHeight('250') // Preview gambar lebih besar
                                         ->directory('logos')
@@ -101,6 +102,7 @@ class SchoolProfileForm
                                         ->label('Tanda Tangan Kepala Sekolah')
                                         ->image()
                                         ->imageEditor()
+                                        ->disk('public')
                                         ->imagePreviewHeight('250')
                                         ->directory('signatures')
                                         ->helperText('Gunakan gambar tanda tangan berlatar transparan (.png) agar hasil cetak menyatu dengan kertas.'),
