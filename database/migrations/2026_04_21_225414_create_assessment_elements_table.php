@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('assessment_elements', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Contoh: "Internalisasi dan Penerapan Soft Skills"
-            $table->string('nm_tp'); // Contoh: "Internalisasi dan Penerapan Soft Skills"
+            $table->string('name');    // Nama Elemen (Contoh: Penerapan Hard Skills)
+            $table->string('tp_name'); // Nama TP (Contoh: Menerapkan Kompetensi Teknis...)
             $table->timestamps();
         });
     }

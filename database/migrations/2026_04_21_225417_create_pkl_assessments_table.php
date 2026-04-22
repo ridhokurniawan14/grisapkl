@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('pkl_assessments', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('pkl_placement_id')->constrained('pkl_placements')->cascadeOnDelete();
+            $table->text('attendance_notes')->nullable(); // Catatan Kehadiran
+            $table->text('assessment_notes')->nullable(); // Catatan Penilaian (Softskill/Hardskill dll)
             $table->timestamps();
         });
     }

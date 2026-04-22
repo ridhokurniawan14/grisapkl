@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('assessment_indicators', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('assessment_element_id')->constrained('assessment_elements')->cascadeOnDelete();
+            $table->foreignId('major_id')->constrained('majors')->cascadeOnDelete(); // Dibedakan per jurusan
+            $table->string('name'); // Contoh: "Melaksanakan komunikasi di tempat kerja"
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

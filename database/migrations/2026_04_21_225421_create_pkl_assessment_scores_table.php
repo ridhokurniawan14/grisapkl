@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('pkl_assessment_scores', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('pkl_assessment_id')->constrained('pkl_assessments')->cascadeOnDelete();
+            $table->foreignId('assessment_indicator_id')->constrained('assessment_indicators')->cascadeOnDelete();
+            $table->integer('score'); // Menyimpan nilai angka (misal: 85, 90)
             $table->timestamps();
         });
     }
