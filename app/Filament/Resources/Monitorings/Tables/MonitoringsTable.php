@@ -20,6 +20,7 @@ class MonitoringsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->poll('5s')
             ->defaultSort('date', 'desc')
 
             // MANTRA SAKTI: Default filter untuk tahun ajaran aktif (Asumsi menggunakan tahun berjalan)

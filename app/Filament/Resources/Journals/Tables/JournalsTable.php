@@ -26,6 +26,7 @@ class JournalsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->poll('5s')
             ->deferLoading()
             ->defaultSort('date', 'desc')
             ->modifyQueryUsing(function (Builder $query, Table $table) {
