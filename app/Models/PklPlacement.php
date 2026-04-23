@@ -25,4 +25,8 @@ class PklPlacement extends Model
     {
         return $this->belongsTo(Teacher::class);
     }
+    public function assessmentScheme()
+    {
+        return $this->belongsTo(AssessmentScheme::class);
+    }
 }
