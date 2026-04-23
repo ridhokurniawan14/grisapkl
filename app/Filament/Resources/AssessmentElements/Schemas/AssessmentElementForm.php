@@ -7,85 +7,96 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
-use App\Models\Major;
+use App\Models\AssessmentScheme; // Import Model Skema
 use Filament\Schemas\Components\Section;
 
 class AssessmentElementForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema
-            ->schema([
-                // =========================================================
-                // CARD 1 (ATAS): DATA ELEMEN PENILAIAN
-                // =========================================================
-                Section::make('Data Elemen Penilaian')
-                    ->columnSpanFull()
-                    ->description('Input informasi utama elemen dan tujuan pembelajaran.')
-                    ->icon('heroicon-m-document-text')
-                    ->collapsible()
-                    ->columns(2) // <-- ini kuncinya bro
-                    ->schema([
-                        TextInput::make('name')
-                            ->label('Nama Elemen Utama')
-                            ->placeholder('Contoh: Internalisasi dan Penerapan Soft Skills')
-                            ->required(),
+        return $schema->schema([
+            // =========================================================
+            // CARD 1 (ATAS): DATA ELEMEN PENILAIAN
+            // =========================================================
+            Section::make('Data Elemen Penilaian')
+                ->description('Input informasi utama elemen dan tujuan pembelajaran.')
+                ->icon('heroicon-m-document-text')
+                ->collapsible()
+                ->columnSpanFull()
+                ->schema([
+                    TextInput::make('name')
+                        ->label('Nama Elemen Utama')
+                        ->placeholder('Contoh: Internalisasi dan Penerapan Soft Skills')
+                        ->required()
+                        ->columnSpanFull(),
 
-                        TextInput::make('tp_name')
-                            ->label('Tujuan Pembelajaran (TP)')
-                            ->placeholder('Contoh: Menerapkan soft skills yang dibutuhkan...')
-                            ->required(),
-                    ]),
+                    TextInput::make('tp_name')
+                        ->label('Tujuan Pembelajaran (TP)')
+                        ->placeholder('Contoh: Menerapkan soft skills yang dibutuhkan...')
+                        ->required()
+                        ->columnSpanFull(),
+                ]),
 
-                // =========================================================
-                // CARD 2 (BAWAH): DAFTAR INDIKATOR PENILAIAN PER JURUSAN
-                // =========================================================
-                Section::make('Daftar Indikator Penilaian per Jurusan')
-                    ->description('Kelola detail kriteria penilaian untuk setiap jurusan di sini.')
-                    ->icon('heroicon-m-list-bullet')
-                    ->columnSpanFull()
-                    ->collapsible()
-                    ->schema([
-                        Repeater::make('assessmentIndicators')
-                            ->relationship()
-                            ->hiddenLabel()
-                            ->addActionLabel('Tambah Indikator Baru')
-                            ->cloneable()
-                            ->schema([
-                                Select::make('major_id')
-                                    ->label('Pilih Jurusan')
-                                    ->options(Major::pluck('name', 'id'))
-                                    ->searchable()
-                                    ->required()
-                                    ->live() // Biar judul bar langsung berubah saat jurusan dipilih
-                                    ->columnSpan(['default' => 12, 'md' => 4]),
+            // =========================================================
+            // CARD 2 (BAWAH): DAFTAR INDIKATOR BERDASARKAN SKEMA
+            // =========================================================
+            Section::make('Daftar Indikator Penilaian per Skema')
+                ->description('Pilih skema satu kali, lalu tambahkan banyak indikator di dalamnya.')
+                ->icon('heroicon-m-list-bullet')
+                ->collapsible()
+                ->columnSpanFull()
+                ->schema([
+                    // REPEATER LUAR: Untuk memilih Skema
+                    Repeater::make('scheme_groups') // <--- PERHATIKAN: Tidak pakai ->relationship() lagi
+                        ->label('')
+                        ->addActionLabel('Tambah Kelompok Skema')
+                        ->schema([
+                            Select::make('assessment_scheme_id')
+                                ->label('Pilih Skema Penilaian')
+                                ->options(function () {
+                                    return AssessmentScheme::with('major')->get()->mapWithKeys(function ($scheme) {
+                                        return [$scheme->id => "({$scheme->major->name}) - {$scheme->name}"];
+                                    });
+                                })
+                                ->searchable()
+                                ->required()
+                                ->live()
+                                ->columnSpanFull(),
 
-                                TextInput::make('name')
-                                    ->label('Detail Indikator / Kriteria Penilaian')
-                                    ->placeholder('Contoh: Melaksanakan komunikasi di tempat kerja...')
-                                    ->required()
-                                    ->columnSpan(['default' => 12, 'md' => 6]),
+                            // REPEATER DALAM: Hanya untuk teks Indikator (Kotak Hijau di gambarmu)
+                            Repeater::make('indicators')
+                                ->label('Detail Indikator untuk Skema di atas')
+                                ->addActionLabel('Tambah Indikator')
+                                ->cloneable() // Tombol copas yang kamu minta ada di sini bro!
+                                ->schema([
+                                    TextInput::make('name')
+                                        ->label('Detail Indikator / Kriteria Penilaian')
+                                        ->placeholder('Contoh: Melaksanakan komunikasi di tempat kerja...')
+                                        ->required()
+                                        ->columnSpan(['default' => 12, 'md' => 10]),
 
-                                Toggle::make('is_active')
-                                    ->label('Aktif')
-                                    ->default(true)
-                                    ->onColor('success')
-                                    ->inline(false)
-                                    ->offColor('danger')
-                                    ->columnSpan(['default' => 12, 'md' => 2]),
-                            ])
-                            ->columns(12)
-                            // MANTRA DYNAMIC LABEL: Menampilkan Nama Jurusan di Bar Judul
-                            ->itemLabel(
-                                fn(array $state): ?string =>
-                                isset($state['major_id'])
-                                    ? "Indikator Jurusan " . (Major::find($state['major_id'])?->name ?? '...')
-                                    : 'Indikator Baru'
-                            )
-                            ->collapsed() // Otomatis terlipat saat diedit biar tidak kepanjangan
-                            ->collapsible()
-                            ->reorderableWithButtons(),
-                    ]), // <--- TUTUP SCHEMA CARD 2 DI SINI
-            ]);
+                                    Toggle::make('is_active')
+                                        ->label('Aktif')
+                                        ->default(true)
+                                        ->inline(false)
+                                        ->onColor('success')
+                                        ->offColor('danger')
+                                        ->columnSpan(['default' => 12, 'md' => 2]),
+                                ])
+                                ->columns(12)
+                                ->columnSpanFull()
+                                ->itemLabel(fn(array $state): ?string => $state['name'] ?? 'Indikator Baru')
+                                ->collapsed(),
+                        ])
+                        ->itemLabel(
+                            fn(array $state): ?string =>
+                            isset($state['assessment_scheme_id'])
+                                ? "Kelompok Skema: " . (AssessmentScheme::find($state['assessment_scheme_id'])?->name ?? '...')
+                                : 'Kelompok Skema Baru'
+                        )
+                        ->collapsed()
+                        ->collapsible(),
+                ]),
+        ]);
     }
 }

@@ -46,8 +46,8 @@ class MonitoringSchedulesTable
                     ->label('Aktif')
                     ->onColor('success')
                     ->offColor('danger')
-                    ->onIcon('heroicon-m-check') // Icon Centang saat nyala
-                    ->offIcon('heroicon-m-x-mark') // Icon Silang saat mati
+                    ->onIcon('heroicon-m-check')
+                    ->offIcon('heroicon-m-x-mark')
                     ->tooltip('Geser untuk membuka/menutup akses jadwal monitoring'),
 
                 // ==========================================

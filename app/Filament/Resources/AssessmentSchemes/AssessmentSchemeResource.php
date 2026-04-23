@@ -18,7 +18,7 @@ class AssessmentSchemeResource extends Resource
 {
     protected static ?string $model = AssessmentScheme::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ClipboardDocumentList;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -31,7 +31,7 @@ class AssessmentElementResource extends Resource
 
     protected static string | \UnitEnum | null $navigationGroup = 'Data Master';
 
-    protected static ?int $navigationSort = 9; // Taruh di bawah Jadwal Monitoring
+    protected static ?int $navigationSort = 10; // Taruh di bawah Jadwal Monitoring
 
 
     public static function form(Schema $schema): Schema

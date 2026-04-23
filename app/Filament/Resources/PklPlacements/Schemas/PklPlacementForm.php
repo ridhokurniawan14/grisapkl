@@ -104,7 +104,7 @@ class PklPlacementForm
                                     ->required()
                                     ->hiddenOn('create')
                                     ->columnSpanFull(),
-                                Grid::make(2)->schema([
+                                Grid::make(3)->schema([
                                     Select::make('dudika_id')
                                         ->relationship('dudika', 'name')
                                         ->label('Tempat PKL (DUDIKA)')
@@ -137,6 +137,30 @@ class PklPlacementForm
                                         ->searchable()
                                         ->preload()
                                         ->required(),
+                                    Select::make('assessment_scheme_id')
+                                        ->label('Skema Penilaian')
+                                        ->options(function (Get $get) {
+                                            $majorId = $get('major_id');
+
+                                            // Jika Humas memilih filter jurusan di atas, tampilkan skema jurusan itu saja
+                                            if ($majorId) {
+                                                return \App\Models\AssessmentScheme::where('major_id', $majorId)
+                                                    ->where('is_active', true)
+                                                    ->pluck('name', 'id');
+                                            }
+
+                                            // Jika filter jurusan kosong, tampilkan semua skema yang aktif (beserta info jurusannya)
+                                            return \App\Models\AssessmentScheme::with('major')
+                                                ->where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(function ($scheme) {
+                                                    return [$scheme->id => "({$scheme->major->name}) - {$scheme->name}"];
+                                                });
+                                        })
+                                        ->searchable()
+                                        ->preload()
+                                        ->required()
+                                        ->helperText('Pilih skema nilai untuk siswa ini.'),
                                 ]),
                             ]),
 
@@ -230,7 +254,7 @@ class PklPlacementForm
                                         'min-height: 400px',
                                         'border-radius: 12px'
                                     ])
-                                    ->liveLocation(true, true, 5000)
+                                    ->liveLocation(false, false, 0)
                                     ->showMarker(true)
                                     ->markerColor("#ef4444")
                                     ->showFullscreenControl(true)
