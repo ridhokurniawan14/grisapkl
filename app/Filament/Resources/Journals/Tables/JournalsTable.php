@@ -15,6 +15,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Schemas\Components\Grid;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -73,7 +74,23 @@ class JournalsTable
                         'Izin' => 'warning',
                         'Sakit' => 'danger',
                         default => 'gray',
-                    }),
+                    })
+
+                    ->summarize([
+                        Summarizer::make('rekap_kehadiran')
+                            ->label('Rekap')
+                            ->using(function (\Illuminate\Database\Query\Builder $query): string {
+                                // Wajib pakai (clone $query) agar query tidak tertumpuk
+                                $hadir = (clone $query)->where('attend_status', 'Hadir')->count();
+                                $izin  = (clone $query)->where('attend_status', 'Izin')->count();
+                                $sakit = (clone $query)->where('attend_status', 'Sakit')->count();
+                                $alpha = (clone $query)->where('attend_status', 'Alpha')->count();
+                                $libur = (clone $query)->where('attend_status', 'Libur')->count();
+
+                                // Gabungkan menjadi 1 baris string yang rapi
+                                return "Hadir: {$hadir} | Izin: {$izin} | Sakit: {$sakit} | Alpha: {$alpha} | Libur: {$libur}";
+                            }),
+                    ]),
 
                 ImageColumn::make('photo_path')
                     ->label('Foto Kegiatan')

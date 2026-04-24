@@ -19,6 +19,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\VerticalAlignment;
+use Illuminate\Database\Eloquent\Model;
 
 class PklPlacementForm
 {
@@ -269,7 +270,7 @@ class PklPlacementForm
                                         ->numeric()
                                         ->required()
                                         ->live(onBlur: true) // Aktif saat user selesai ngetik
-                                        ->afterStateUpdated(function (Set $set, \Filament\Forms\Get $get, $state, $livewire) {
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state, $livewire) {
                                             $set('location', ['lat' => (float)$state, 'lng' => (float)$get('longitude')]);
                                             $livewire->dispatch('refreshMap'); // Peta otomatis geser
                                         }),

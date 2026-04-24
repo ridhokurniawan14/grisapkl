@@ -38,7 +38,8 @@ class JournalForm
                         ->options([
                             'Hadir' => 'Hadir',
                             'Sakit' => 'Sakit',
-                            'Izin' => 'Izin'
+                            'Izin' => 'Izin',
+                            'Libur' => 'Libur'
                         ])
                         ->default('Hadir')
                         ->required()

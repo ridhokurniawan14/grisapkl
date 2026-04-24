@@ -2,11 +2,12 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
     <title>Cetak Jurnal PKL</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-family: Arial, "DejaVu Sans", sans-serif;
+            font-size: 11px;
         }
 
         .page-break {
@@ -15,60 +16,57 @@
 
         .header-title {
             text-align: center;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             text-decoration: underline;
         }
 
         .bio-table {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             font-weight: bold;
         }
 
         .bio-table td {
-            padding: 3px 5px;
+            padding: 2px 4px;
         }
 
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
         .data-table th,
         .data-table td {
             border: 1px solid #000;
-            padding: 8px;
+            padding: 6px;
             text-align: center;
             vertical-align: top;
         }
 
         .data-table th {
-            background-color: #f2f2f2;
+            background-color: #e8e8e8;
         }
 
-        /* MANTRA SAKTI 1: Mencegah baris tabel terpotong di beda halaman */
         .data-table tr {
             page-break-inside: avoid;
         }
 
-        /* MANTRA SAKTI 2: Mengunci lebar kolom Hari/Tanggal biar konsisten */
         .data-table th:first-child,
         .data-table td:first-child {
             width: 18%;
         }
 
+        /* ✅ Fixed width untuk foto — cegah DomPDF overflow */
         .img-box {
-            width: 80px;
+            width: 70px;
             height: auto;
-            border-radius: 5px;
         }
 
         .img-kegiatan {
-            width: 120px;
+            width: 100px;
             height: auto;
-            border-radius: 5px;
         }
 
         .text-left {
@@ -78,15 +76,11 @@
         .check-icon {
             color: green;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 14px;
         }
 
-        /* CSS untuk menyembunyikan elemen tertentu saat di-print (jika butuh) */
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
+        .alpha-row td {
+            background-color: #fff3f3;
         }
     </style>
 </head>
@@ -95,8 +89,10 @@
 
     @foreach ($journalsByStudent as $placementId => $journals)
         @php
-            $student = $journals->first()->pklPlacement->student->name ?? '-';
-            $dudika = $journals->first()->pklPlacement->dudika->name ?? '-';
+            $first = $journals->first();
+            $student = $first->pklPlacement->student->name ?? '-';
+            $dudika = $first->pklPlacement->dudika->name ?? '-';
+            $dept = $first->pklPlacement->pkl_field ?? '..............................................';
         @endphp
 
         <div class="header-title">JURNAL KEGIATAN PKL</div>
@@ -112,9 +108,7 @@
             </tr>
             <tr>
                 <td>BIDANG/BAGIAN</td>
-                <td>:
-                    {{ $journals->first()->pklPlacement->department ?? '..........................................................' }}
-                </td>
+                <td>: {{ $dept }}</td>
             </tr>
         </table>
 
@@ -130,30 +124,38 @@
             </thead>
             <tbody>
                 @foreach ($journals as $j)
-                    <tr>
+                    @php
+                        $isAlpha = ($j->attend_status ?? '') === 'Alpha';
+                    @endphp
+                    <tr class="{{ $isAlpha ? 'alpha-row' : '' }}">
                         <td>
                             {{ \Carbon\Carbon::parse($j->date)->translatedFormat('l, d') }}<br>
                             {{ \Carbon\Carbon::parse($j->date)->translatedFormat('F Y') }}<br>
-                            {{ \Carbon\Carbon::parse($j->time)->format('H.i') }} WIB
+                            @if ($j->time)
+                                {{ \Carbon\Carbon::parse($j->time)->format('H.i') }} WIB
+                            @else
+                                -
+                            @endif
                         </td>
                         <td>
-                            @if ($j->attendance_photo_path)
-                                <img src="{{ asset('storage/' . $j->attendance_photo_path) }}" class="img-box">
+                            {{-- ✅ Gunakan path lokal, bukan URL HTTP --}}
+                            @if ($j->attendance_photo_path && file_exists(storage_path('app/public/' . $j->attendance_photo_path)))
+                                <img src="{{ storage_path('app/public/' . $j->attendance_photo_path) }}" class="img-box">
                             @else
                                 -
                             @endif
                         </td>
                         <td class="text-left">{{ $j->activity ?? 'Hanya Absen' }}</td>
                         <td>
-                            @if ($j->photo_path)
-                                <img src="{{ asset('storage/' . $j->photo_path) }}" class="img-kegiatan">
+                            @if ($j->photo_path && file_exists(storage_path('app/public/' . $j->photo_path)))
+                                <img src="{{ storage_path('app/public/' . $j->photo_path) }}" class="img-kegiatan">
                             @else
                                 -
                             @endif
                         </td>
                         <td>
-                            @if ($j->is_valid)
-                                <span class="check-icon">✔</span>
+                            @if ($j->is_valid == 1)
+                                <span class="check-icon" style="font-size: 30px">✓</span>
                             @else
                                 <span style="color:red">Revisi</span>
                             @endif
@@ -168,11 +170,6 @@
         @endif
     @endforeach
 
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
 </body>
 
 </html>

@@ -19,7 +19,7 @@ use Filament\Tables\Table;
 class AssessmentElementResource extends Resource
 {
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::ClipboardDocumentCheck;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ListBullet;
 
     protected static ?string $recordTitleAttribute = 'name';
 

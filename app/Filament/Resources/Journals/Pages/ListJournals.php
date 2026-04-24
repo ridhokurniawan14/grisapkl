@@ -17,7 +17,7 @@ class ListJournals extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            // TOMBOL CETAK PDF
+            // TOMBOL DOWNLOAD PDF
             Action::make('download_pdf')
                 ->label('Cetak PDF')
                 ->icon('heroicon-o-printer')
@@ -25,26 +25,23 @@ class ListJournals extends ListRecords
                 ->url(function () {
                     $ids = $this->getFilteredTableQuery()->pluck('id')->toArray();
 
-                    // MANTRA SAKTI FIX: Langsung ambil dari properti tableFilters (Anti-Error)
-                    $filters = $this->tableFilters;
-                    $start = $filters['date_range']['start'] ?? null;
-                    $end = $filters['date_range']['end'] ?? null;
+                    $filters   = $this->tableFilters;
+                    $start     = $filters['date_range']['start'] ?? null;
+                    $end       = $filters['date_range']['end'] ?? null;
                     $studentId = $filters['student_id']['value'] ?? null;
 
-                    if (empty($ids) && !$start) {
-                        // Notification::make()->title('Data Kosong! Silakan cari data dulu.')->warning()->send();
+                    if (empty($ids)) {
                         return '#';
                     }
 
                     return route('journal.pdf', [
-                        'ids' => implode(',', $ids),
-                        'start' => $start,
-                        'end' => $end,
-                        'student_id' => $studentId
+                        'ids'        => implode(',', $ids),
+                        'start'      => $start,
+                        'end'        => $end,
+                        'student_id' => $studentId,
                     ]);
                 })
-                ->openUrlInNewTab(),
-
+                ->openUrlInNewTab(), // ✅ buka tab baru, browser render PDF viewer langsung
             // TOMBOL EXCEL
             Action::make('download_excel')
                 ->label('Download Excel')

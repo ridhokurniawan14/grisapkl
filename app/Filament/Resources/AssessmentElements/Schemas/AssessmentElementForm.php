@@ -8,6 +8,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use App\Models\AssessmentScheme; // Import Model Skema
+use Filament\Forms\Components\Hidden;
 use Filament\Schemas\Components\Section;
 
 class AssessmentElementForm
@@ -69,6 +70,7 @@ class AssessmentElementForm
                                 ->addActionLabel('Tambah Indikator')
                                 ->cloneable() // Tombol copas yang kamu minta ada di sini bro!
                                 ->schema([
+                                    Hidden::make('id'),
                                     TextInput::make('name')
                                         ->label('Detail Indikator / Kriteria Penilaian')
                                         ->placeholder('Contoh: Melaksanakan komunikasi di tempat kerja...')

@@ -101,10 +101,30 @@ class JournalInfolist
                             ->columnSpanFull()
                             ->prose(),
 
-                        Grid::make(2)->schema([
+                        Grid::make(3)->schema([
                             // ==========================================
                             // 1. BAGIAN FOTO (Native Modal Filament + Auto URL)
                             // ==========================================
+                            ImageEntry::make('attendance_photo_path')
+                                ->label('Foto Absensi')
+                                ->columnSpan(1)
+                                ->disk('public')
+                                ->extraImgAttributes([
+                                    'class' => 'rounded-xl shadow-md cursor-pointer hover:opacity-80 transition-opacity',
+                                    'style' => 'height: 400px; width: 100%; object-fit: cover;'
+                                ])
+                                ->action(
+                                    // Panggil modal bawaan Filament yang anti-error
+                                    Action::make('zoom_foto')
+                                        ->modalHeading('Detail Foto Kegiatan')
+                                        ->modalSubmitAction(false) // Sembunyikan tombol Submit
+                                        ->modalCancelActionLabel('Tutup')
+                                        ->modalContent(fn($record) => new HtmlString('
+                                            <div style="display: flex; justify-content: center; align-items: center;">
+                                                <img src="' . Storage::disk('public')->url($record->attendance_photo_path) . '" alt="Foto Kegiatan" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                                            </div>
+                                        '))
+                                ),
                             ImageEntry::make('photo_path')
                                 ->label('Foto Bukti Kegiatan')
                                 ->columnSpan(1)

@@ -19,7 +19,7 @@ class MajorResource extends Resource
     protected static ?string $model = Major::class;
 
     // Pakai icon topi akademik
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::ListBullet;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::SquaresPlus;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Dudika;
 use App\Models\Journal;
 use Illuminate\Http\Request;
+use App\Models\PklPlacement;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 Route::get('/', function () {
     return view('welcome');
@@ -36,21 +39,28 @@ Route::get('/journal/download', function (Request $request) {
     return view('pdf.journal', compact('journals'));
 })->name('journal.download');
 
-Route::get('/journal/pdf', function (Illuminate\Http\Request $request) {
-    $ids = explode(',', $request->query('ids', ''));
-    $start = $request->query('start');
-    $end = $request->query('end');
+Route::get('/journal/pdf', function (Request $request) {
+    // Naikkan memory & waktu eksekusi untuk data besar
+    ini_set('memory_limit', '512M');
+    set_time_limit(300);
+
+    $ids      = array_filter(explode(',', $request->query('ids', '')));
+    $start    = $request->query('start');
+    $end      = $request->query('end');
     $studentId = $request->query('student_id');
 
-    $journals = App\Models\Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])
-        ->whereIn('id', $ids)->orderBy('date', 'asc')->get();
+    // ✅ Eager load lengkap + chunk-friendly query
+    $journals = Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])
+        ->whereIn('id', $ids)
+        ->orderBy('date', 'asc')
+        ->get();
 
-    // JIKA USER MEMFILTER 1 SISWA SPESIFIK & RANGE TANGGAL
     if ($start && $end && $studentId) {
-        $placement = App\Models\PklPlacement::with(['student', 'dudika'])->where('student_id', $studentId)->first();
-        $startDate = \Carbon\Carbon::parse($start);
-        $endDate = \Carbon\Carbon::parse($end);
-
+        $placement    = PklPlacement::with(['student', 'dudika'])
+            ->where('student_id', $studentId)
+            ->first();
+        $startDate    = Carbon::parse($start);
+        $endDate      = Carbon::parse($end);
         $journalsKeyed = $journals->keyBy('date');
         $studentJournals = collect();
 
@@ -59,22 +69,38 @@ Route::get('/journal/pdf', function (Illuminate\Http\Request $request) {
             if ($journalsKeyed->has($dateStr)) {
                 $studentJournals->push($journalsKeyed->get($dateStr));
             } else {
-                // REVISI DATA ALPHA UNTUK PDF
-                $dummy = new App\Models\Journal([
-                    'date' => $dateStr,
-                    'time' => null,
+                $dummy = new Journal([
+                    'date'         => $dateStr,
+                    'time'         => null,
                     'attend_status' => 'Alpha',
-                    'activity' => 'Tanpa Keterangan / Alpha', // REVISI TEKS
-                    'is_valid' => true, // REVISI: Dianggap Valid Default
+                    'activity'     => 'Tanpa Keterangan / Alpha',
+                    'is_valid'     => true,
                 ]);
                 $dummy->setRelation('pklPlacement', $placement);
                 $studentJournals->push($dummy);
             }
         }
+
         $journalsByStudent = collect([$placement->id => $studentJournals]);
     } else {
         $journalsByStudent = $journals->groupBy('pkl_placement_id');
     }
 
-    return view('pdf.journal', compact('journalsByStudent'));
+    // ✅ Generate PDF server-side — tidak perlu browser render
+    $pdf = Pdf::loadView('pdf.journal', compact('journalsByStudent'))
+        ->setPaper('a4', 'portrait')
+        ->setOptions([
+            'defaultFont'     => 'Arial',
+            'isRemoteEnabled' => true,   // izinkan gambar lokal
+            'isHtml5ParserEnabled' => true,
+            'dpi'             => 96,
+            'chroot'          => public_path(), // keamanan path lokal
+        ]);
+
+    $filename = 'Jurnal_PKL_' . now()->format('Ymd_His') . '.pdf';
+
+    // ✅ Stream langsung sebagai download — tidak perlu tab baru
+    return $pdf->stream($filename);
+    // Atau paksa download: return $pdf->download($filename);
+
 })->name('journal.pdf');
