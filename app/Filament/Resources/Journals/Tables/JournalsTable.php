@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Journals\Tables;
 
 use App\Models\Major;
 use App\Models\Student;
+use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -21,9 +22,18 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Enums\FiltersLayout;
+// Taruh di awal using() untuk debug
+\Illuminate\Support\Facades\Log::info('Summarizer wheres:', $query->wheres ?? []);
 
 class JournalsTable
 {
+    // ============================================================
+    // STATIC BRIDGE: Jembatan nilai filter → Summarizer
+    // ============================================================
+    public static ?string $filterStart      = null;
+    public static ?string $filterEnd        = null;
+    public static ?string $filterStudentId  = null;
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -33,8 +43,13 @@ class JournalsTable
             ->modifyQueryUsing(function (Builder $query, Table $table) {
                 $filters = $table->getLivewire()->tableFilters ?? [];
 
-                $hasMajorFilter = !empty($filters['major_id']['value']);
+                $hasMajorFilter   = !empty($filters['major_id']['value']);
                 $hasStudentFilter = !empty($filters['student_id']['value']);
+
+                // Simpan ke static property sebelum summarizer jalan
+                static::$filterStart     = $filters['date_range']['start'] ?? null;
+                static::$filterEnd       = $filters['date_range']['end']   ?? null;
+                static::$filterStudentId = $filters['student_id']['value'] ?? null;
 
                 if (!$hasMajorFilter && !$hasStudentFilter) {
                     $query->whereRaw('1 = 0');
@@ -71,24 +86,59 @@ class JournalsTable
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'Hadir' => 'success',
-                        'Izin' => 'warning',
+                        'Izin'  => 'warning',
                         'Sakit' => 'danger',
                         default => 'gray',
                     })
-
                     ->summarize([
                         Summarizer::make('rekap_kehadiran')
-                            ->label('Rekap')
+                            ->label('Rekap Kehadiran')
+                            ->visible(fn(): bool => !empty(static::$filterStudentId))
                             ->using(function (\Illuminate\Database\Query\Builder $query): string {
-                                // Wajib pakai (clone $query) agar query tidak tertumpuk
+                                if (empty(static::$filterStudentId)) {
+                                    return '';
+                                }
+
+                                // ============================================================
+                                // SKIP "Halaman Ini" — hanya tampilkan summary "Semua Data"
+                                // Filament menambahkan whereIn('{table}.id', [...]) saat
+                                // merender baris rekap per halaman (pagination context)
+                                // ============================================================
+                                $isPageContext = collect($query->wheres ?? [])->contains(
+                                    fn($w) => ($w['type'] ?? '') === 'In'
+                                        && str_contains($w['column'] ?? '', '.id')
+                                );
+
+                                if ($isPageContext) {
+                                    return ''; // Baris "Halaman Ini" → dikosongkan = tidak dirender Filament
+                                }
+
+                                // ============================================================
+                                // "Semua Data" context — hitung rekap lengkap
+                                // ============================================================
                                 $hadir = (clone $query)->where('attend_status', 'Hadir')->count();
                                 $izin  = (clone $query)->where('attend_status', 'Izin')->count();
                                 $sakit = (clone $query)->where('attend_status', 'Sakit')->count();
-                                $alpha = (clone $query)->where('attend_status', 'Alpha')->count();
                                 $libur = (clone $query)->where('attend_status', 'Libur')->count();
 
-                                // Gabungkan menjadi 1 baris string yang rapi
-                                return "Hadir: {$hadir} | Izin: {$izin} | Sakit: {$sakit} | Alpha: {$alpha} | Libur: {$libur}";
+                                $start = static::$filterStart;
+                                $end   = static::$filterEnd;
+
+                                if ($start && $end) {
+                                    $totalDays = Carbon::parse($start)->diffInDays(Carbon::parse($end)) + 1;
+
+                                    $daysWithRecord = (clone $query)
+                                        ->selectRaw('DATE(date) as tgl')
+                                        ->groupBy('tgl')
+                                        ->get()
+                                        ->count();
+
+                                    $alpha = max(0, $totalDays - $daysWithRecord);
+
+                                    return "Hadir: {$hadir} | Izin: {$izin} | Sakit: {$sakit} | Alpha: {$alpha} | Libur: {$libur}";
+                                }
+
+                                return "Hadir: {$hadir} | Izin: {$izin} | Sakit: {$sakit} | Libur: {$libur}";
                             }),
                     ]),
 
@@ -146,37 +196,29 @@ class JournalsTable
                         }
                     }),
 
-                // MANTRA SAKTI: FILTER RANGE TANGGAL
                 \Filament\Tables\Filters\Filter::make('date_range')
                     ->form([
                         Grid::make(2)->schema([
-                            DatePicker::make('start')
-                                ->label('Dari Tanggal'),
-                            DatePicker::make('end')
-                                ->label('Sampai Tanggal'),
+                            DatePicker::make('start')->label('Dari Tanggal'),
+                            DatePicker::make('end')->label('Sampai Tanggal'),
                         ])
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when($data['start'], fn(Builder $q, $date) => $q->whereDate('date', '>=', $date))
-                            ->when($data['end'], fn(Builder $q, $date) => $q->whereDate('date', '<=', $date));
+                            ->when($data['end'],   fn(Builder $q, $date) => $q->whereDate('date', '<=', $date));
                     })
             ])
-            // =======================================================
-            // UX MANTAP: TATA LETAK & TOMBOL KANAN
-            // =======================================================
             ->filtersLayout(FiltersLayout::AboveContent)
-            ->filtersFormColumns(3) // Dibagi 3 Kolom Biar Sejajar (Jurusan | Siswa | Tanggal)
+            ->filtersFormColumns(3)
             ->deferFilters()
             ->filtersApplyAction(
                 fn(Action $action) => $action
                     ->label('Cari Data')
                     ->icon('heroicon-m-magnifying-glass')
-                    // CSS Sakti membuang tombol ke pojok kanan
                     ->extraAttributes(['class' => 'ml-auto justify-end w-full sm:w-auto mt-4'])
                     ->button()
             )
-            // =======================================================
             ->recordActions([
                 ActionGroup::make([
                     ViewAction::make()->label('Detail'),
