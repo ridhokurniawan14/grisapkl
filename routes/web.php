@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PrintController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Dudika;
 use App\Models\Journal;
@@ -104,3 +105,5 @@ Route::get('/journal/pdf', function (Request $request) {
     // Atau paksa download: return $pdf->download($filename);
 
 })->name('journal.pdf');
+
+Route::get('/cetak/surat-pengantar/{dudika_id}', [PrintController::class, 'suratPengantar'])->name('cetak.surat-pengantar');

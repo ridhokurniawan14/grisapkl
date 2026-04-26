@@ -22,8 +22,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Enums\FiltersLayout;
-// Taruh di awal using() untuk debug
-\Illuminate\Support\Facades\Log::info('Summarizer wheres:', $query->wheres ?? []);
 
 class JournalsTable
 {
@@ -46,15 +44,18 @@ class JournalsTable
                 $hasMajorFilter   = !empty($filters['major_id']['value']);
                 $hasStudentFilter = !empty($filters['student_id']['value']);
 
-                // Simpan ke static property sebelum summarizer jalan
                 static::$filterStart     = $filters['date_range']['start'] ?? null;
-                static::$filterEnd       = $filters['date_range']['end']   ?? null;
+                static::$filterEnd       = $filters['date_range']['end'] ?? null;
                 static::$filterStudentId = $filters['student_id']['value'] ?? null;
 
                 if (!$hasMajorFilter && !$hasStudentFilter) {
                     $query->whereRaw('1 = 0');
                 }
             })
+            ->summaries(
+                pageCondition: false,   // hilangkan "Halaman ini"
+                allTableCondition: true // tetap tampilkan "Semua Jurnal Siswa"
+            )
             ->emptyStateHeading('Silakan Cari Data Terlebih Dahulu')
             ->emptyStateDescription('Pilih Jurusan atau Cari Nama Siswa, lalu klik tombol Cari Data.')
             ->emptyStateIcon('heroicon-o-magnifying-glass-circle')

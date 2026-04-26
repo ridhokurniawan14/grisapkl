@@ -112,6 +112,12 @@ class DudikasTable
                                 Notification::make()->title('Password berhasil direset ke 5 digit terakhir HP')->success()->send();
                             }
                         }),
+                    Action::make('cetak_surat')
+                        ->label('Cetak Pengantar')
+                        ->icon('heroicon-o-printer')
+                        ->color('info')
+                        ->url(fn($record) => route('cetak.surat-pengantar', $record->id))
+                        ->openUrlInNewTab(),
                 ])->label('Aksi')->button()->outlined(),
             ])
             ->toolbarActions([

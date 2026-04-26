@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PklAssessments\Pages;
 
 use App\Filament\Resources\PklAssessments\PklAssessmentResource;
 use Filament\Actions;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPklAssessment extends EditRecord
@@ -15,6 +16,11 @@ class EditPklAssessment extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('back')
+                ->label('Kembali')
+                ->url($this->getResource()::getUrl('index'))
+                ->icon('heroicon-m-arrow-left')
+                ->color('gray'),
             Actions\DeleteAction::make(),
         ];
     }

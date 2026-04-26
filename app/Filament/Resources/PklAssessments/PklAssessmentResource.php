@@ -6,6 +6,7 @@ use App\Filament\Resources\PklAssessments\Pages\CreatePklAssessment;
 use App\Filament\Resources\PklAssessments\Pages\EditPklAssessment;
 use App\Filament\Resources\PklAssessments\Pages\ListPklAssessments;
 use App\Filament\Resources\PklAssessments\Schemas\PklAssessmentForm;
+use App\Filament\Resources\PklAssessments\Schemas\PklAssessmentInfolist;
 use App\Filament\Resources\PklAssessments\Tables\PklAssessmentsTable;
 use App\Models\PklAssessment;
 use BackedEnum;
@@ -34,6 +35,11 @@ class PklAssessmentResource extends Resource
     public static function table(Table $table): Table
     {
         return PklAssessmentsTable::configure($table);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return PklAssessmentInfolist::configure($schema);
     }
 
     public static function getRelations(): array

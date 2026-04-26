@@ -74,8 +74,8 @@ class SchoolProfileForm
                                 ]),
                             ]),
 
-                        // TAB 3: KEPSEK & LOGO (UNTUK KOP SURAT)
-                        Tab::make('Pengesahan & Logo')
+                        // TAB 3: KEPSEK, LOGO & KOP SURAT
+                        Tab::make('Pengesahan & Surat')
                             ->icon('heroicon-m-check-badge')
                             ->schema([
                                 Grid::make(2)->schema([
@@ -88,13 +88,19 @@ class SchoolProfileForm
                                         ->placeholder('Contoh: 19700101 199512 1 001')
                                         ->helperText('Kosongkan jika bukan berstatus PNS.'),
 
-                                    // UPLOAD GAMBAR DENGAN PREVIEW BESAR & EDITOR
+                                    // TAMBAHAN: NOMOR SURAT PENGANTAR
+                                    TextInput::make('surat_pengantar_nomor')
+                                        ->label('Format Nomor Surat Pengantar')
+                                        ->placeholder('Contoh: 1437/M.3/SMK PGRI 1 GIRI/26/IX/2025')
+                                        ->columnSpanFull()
+                                        ->helperText('Nomor ini akan dipakai di semua cetakan Surat Pengantar PKL.'),
+
                                     FileUpload::make('logo_path')
                                         ->label('Logo Sekolah')
                                         ->image()
                                         ->disk('public')
-                                        ->imageEditor() // Bisa nge-crop langsung!
-                                        ->imagePreviewHeight('250') // Preview gambar lebih besar
+                                        ->imageEditor()
+                                        ->imagePreviewHeight('250')
                                         ->directory('logos')
                                         ->helperText('Format: JPG/PNG. Rekomendasi rasio kotak 1:1.'),
 
@@ -105,7 +111,18 @@ class SchoolProfileForm
                                         ->disk('public')
                                         ->imagePreviewHeight('250')
                                         ->directory('signatures')
-                                        ->helperText('Gunakan gambar tanda tangan berlatar transparan (.png) agar hasil cetak menyatu dengan kertas.'),
+                                        ->helperText('Gunakan gambar berlatar transparan (.png).'),
+
+                                    // TAMBAHAN: KOP SURAT
+                                    FileUpload::make('kop_surat_path')
+                                        ->label('Gambar KOP Surat Full')
+                                        ->image()
+                                        ->imageEditor()
+                                        ->disk('public')
+                                        ->imagePreviewHeight('250')
+                                        ->columnSpanFull()
+                                        ->directory('kopsurat')
+                                        ->helperText('Upload gambar KOP Surat memanjang (Rekomendasi rasio banner/header).'),
                                 ]),
                             ]),
                         // TAB 4: PENGATURAN APLIKASI
@@ -114,7 +131,7 @@ class SchoolProfileForm
                             ->schema([
                                 \Filament\Forms\Components\Toggle::make('is_radius_attendance_enabled')
                                     ->label('Aktifkan Validasi Radius Absensi')
-                                    ->helperText('Jika menyala, siswa WAJIB berada di dalam radius DUDIKA untuk bisa absen. Jika dimatikan, siswa bisa absen dari mana saja (Bebas Radius).')
+                                    ->helperText('Jika menyala, siswa WAJIB berada di dalam radius DUDIKA untuk bisa absen.')
                                     ->default(true)
                                     ->onColor('success')
                                     ->offColor('danger'),

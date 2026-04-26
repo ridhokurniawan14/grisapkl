@@ -4,14 +4,17 @@ namespace App\Filament\Resources\PklAssessments\Schemas;
 
 use App\Models\PklPlacement;
 use App\Models\AssessmentIndicator;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class PklAssessmentForm
 {
@@ -23,14 +26,13 @@ class PklAssessmentForm
             // =========================================================
             Section::make('Data Penilaian & Catatan DUDIKA')
                 ->icon('heroicon-m-clipboard-document-check')
+                ->columnSpanFull()
                 ->schema([
                     Select::make('pkl_placement_id')
                         ->label('Siswa PKL')
                         ->options(function (?\Illuminate\Database\Eloquent\Model $record) {
-                            // Ambil data penempatan yang SUDAH PUNYA SKEMA
                             $query = PklPlacement::whereNotNull('assessment_scheme_id')->with('student');
 
-                            // Logika: Jangan tampilkan siswa yang sudah dinilai di form Create
                             if (!$record) {
                                 $assessedIds = \App\Models\PklAssessment::pluck('pkl_placement_id')->toArray();
                                 $query->whereNotIn('id', $assessedIds);
@@ -43,7 +45,7 @@ class PklAssessmentForm
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->live() // MANTRA SAKTI: Wajib live agar form nilai di bawahnya langsung tergambar!
+                        ->live()
                         ->columnSpanFull(),
 
                     Grid::make(2)->schema([
@@ -60,59 +62,68 @@ class PklAssessmentForm
                 ]),
 
             // =========================================================
-            // CARD 2: FORM NILAI DINAMIS (AUTO-GENERATE)
+            // CARD 2: FORM NILAI DINAMIS (DENGAN TABS)
             // =========================================================
-            Section::make('Input Nilai Indikator (0 - 100)')
+            Section::make('Input Nilai Indikator (85 - 100)')
                 ->icon('heroicon-m-star')
-                ->description('Kolom penilaian di bawah ini otomatis menyesuaikan dengan Skema Penilaian siswa yang dipilih.')
+                ->columnSpanFull()
+                ->description('Pilih tab kategori elemen di bawah ini untuk mengisi nilai.')
                 ->schema(function (Get $get) {
                     $placementId = $get('pkl_placement_id');
 
-                    // Jika belum milih siswa, sembunyikan form nilainya
                     if (!$placementId) {
                         return [
-                            \Filament\Forms\Components\Placeholder::make('info')
+                            Placeholder::make('info')
                                 ->hiddenLabel()
                                 ->content('Silakan pilih Siswa PKL terlebih dahulu untuk memunculkan form nilai.')
                         ];
                     }
 
-                    // Cari skema yang dipakai siswa ini
                     $placement = PklPlacement::find($placementId);
                     if (!$placement || !$placement->assessment_scheme_id) return [];
 
-                    // Ambil indikator berdasarkan skema siswa tersebut, dan kelompokkan berdasarkan Elemen
                     $indicators = AssessmentIndicator::where('assessment_scheme_id', $placement->assessment_scheme_id)
                         ->where('is_active', true)
                         ->with('assessmentElement')
                         ->get()
                         ->groupBy('assessment_element_id');
 
-                    $schema = [];
+                    $tabsArray = [];
 
-                    // Loop setiap Elemen (Misal: Soft Skill, Hard Skill)
+                    // Loop setiap Elemen untuk dijadikan Tab
                     foreach ($indicators as $elementId => $inds) {
                         $element = $inds->first()->assessmentElement;
 
                         $indicatorInputs = [];
-                        // Loop indikatornya (Misal: Jujur, Disiplin)
                         foreach ($inds as $ind) {
-                            $indicatorInputs[] = TextInput::make("scores.{$ind->id}") // Simpan ke array 'scores[id]'
+                            $indicatorInputs[] = TextInput::make("scores.{$ind->id}")
                                 ->label($ind->name)
                                 ->numeric()
-                                ->minValue(0)
+                                // REVISI: Range Nilai Wajib 85 - 100
+                                ->minValue(85)
                                 ->maxValue(100)
+                                ->placeholder('85 - 100') // Bantuan visual untuk user
                                 ->required()
                                 ->columnSpan(['default' => 12, 'md' => 6]);
                         }
 
-                        // Bungkus inputan tadi ke dalam Fieldset berdasarkan nama Elemen
-                        $schema[] = Fieldset::make($element->name)
-                            ->schema($indicatorInputs)
-                            ->columns(12);
+                        // MANTRA SAKTI: Render HTML untuk Bintang Merah pada Judul Tab
+                        $tabTitle = new HtmlString($element->name . ' <span class="text-danger-600 font-bold" title="Wajib Diisi">*</span>');
+
+                        $tabsArray[] = Tab::make($element->name)
+                            ->label($tabTitle) // Masukkan label HTML-nya ke sini
+                            ->icon('heroicon-m-check-circle')
+                            ->schema([
+                                Grid::make(12)->schema($indicatorInputs)
+                            ]);
                     }
 
-                    return $schema;
+                    return [
+                        Tabs::make('Tabs Penilaian')
+                            ->tabs($tabsArray)
+                            ->contained(true)
+                            ->columnSpanFull()
+                    ];
                 }),
         ]);
     }
