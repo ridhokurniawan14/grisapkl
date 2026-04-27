@@ -137,12 +137,31 @@
             <strong>{{ $school->name ?? 'Sekolah' }}</strong> melaksanakan Praktik Kerja Lapangan (PKL) di tempat
             Bapak/Ibu.
         </p>
+        @php
+            $groupedByKonsentrasi = $placements->groupBy(fn($p) => $p->student->studentClass->major->name ?? '-');
+
+            $detailKonsentrasi = $groupedByKonsentrasi
+                ->map(fn($group, $konsentrasi) => $group->count() . ' siswa Konsentrasi Keahlian ' . $konsentrasi)
+                ->values();
+        @endphp
+
         <p style="text-align: justify;">
             Kami menyampaikan terima kasih atas kesempatan yang diberikan kepada siswa/siswi kami, dan secara resmi
-            dengan melalui surat ini kami memberangkatkan siswa/siswi sejumlah <strong>{{ $placements->count() }}
-                siswa</strong> untuk melaksanakan Praktik Kerja Lapangan (PKL) mulai tanggal
-            <strong>{{ \Carbon\Carbon::parse($placements->first()->start_date)->isoFormat('D MMMM') }} -
-                {{ \Carbon\Carbon::parse($placements->first()->end_date)->isoFormat('D MMMM Y') }}</strong>.
+            dengan melalui surat ini kami memberangkatkan siswa/siswi sejumlah
+
+            @if ($groupedByKonsentrasi->count() > 1)
+                <strong>{{ $placements->count() }} siswa</strong>
+                ({{ $detailKonsentrasi->join(', ', ', dan ') }})
+            @else
+                <strong>{{ $placements->count() }} siswa</strong>
+                Konsentrasi Keahlian <strong>{{ $groupedByKonsentrasi->keys()->first() }}</strong>
+            @endif
+
+            untuk melaksanakan Praktik Kerja Lapangan (PKL) mulai tanggal
+            <strong>
+                {{ \Carbon\Carbon::parse($placements->first()->start_date)->isoFormat('D MMMM') }} -
+                {{ \Carbon\Carbon::parse($placements->first()->end_date)->isoFormat('D MMMM Y') }}
+            </strong>.
         </p>
         <p style="text-align: justify;">
             Besar harapan bagi siswa kami mendapatkan pengetahuan dan pengalaman yang nantinya dapat membantu

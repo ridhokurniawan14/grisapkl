@@ -15,11 +15,9 @@ class CetakLaporanResource extends Resource
 {
     protected static ?string $model = PklPlacement::class;
 
-    // protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::Tv;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::DocumentDuplicate;
 
     protected static string | \UnitEnum | null $navigationGroup = 'Pencetakan';
-    // protected static ?string $navigationGroup = 'Pencetakan';
     protected static ?string $navigationLabel = 'Laporan Siswa';
     protected static ?string $modelLabel = 'Laporan Siswa';
     protected static ?string $pluralModelLabel = 'Cetak Laporan Lengkap';

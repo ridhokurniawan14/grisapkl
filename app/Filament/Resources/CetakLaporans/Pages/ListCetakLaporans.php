@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\CetakLaporans\Pages;
 
 use App\Filament\Resources\CetakLaporans\CetakLaporanResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListCetakLaporans extends ListRecords
@@ -12,8 +11,7 @@ class ListCetakLaporans extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-            CreateAction::make(),
-        ];
+        // Kosongkan agar tombol "Create" hilang
+        return [];
     }
 }
