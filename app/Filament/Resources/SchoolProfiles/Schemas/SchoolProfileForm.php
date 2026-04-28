@@ -113,16 +113,23 @@ class SchoolProfileForm
                                         ->directory('signatures')
                                         ->helperText('Gunakan gambar berlatar transparan (.png).'),
 
-                                    // TAMBAHAN: KOP SURAT
                                     FileUpload::make('kop_surat_path')
                                         ->label('Gambar KOP Surat Full')
                                         ->image()
                                         ->imageEditor()
                                         ->disk('public')
                                         ->imagePreviewHeight('250')
-                                        ->columnSpanFull()
                                         ->directory('kopsurat')
                                         ->helperText('Upload gambar KOP Surat memanjang (Rekomendasi rasio banner/header).'),
+
+                                    FileUpload::make('cover_laporan_path')
+                                        ->label('Gambar Cover Laporan PKL')
+                                        ->image()
+                                        ->imageEditor()
+                                        ->disk('public')
+                                        ->imagePreviewHeight('250')
+                                        ->directory('covers')
+                                        ->helperText('Upload gambar Cover Laporan PKL. Rekomendasi portrait A4 (PNG).'),
                                 ]),
                             ]),
                         // TAB 4: PENGATURAN APLIKASI

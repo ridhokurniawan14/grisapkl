@@ -189,7 +189,7 @@
         </div>
     </div>
 
-    <div class="page-break"></div>
+    {{-- <div class="page-break"></div>
 
     @if ($school && $school->kop_surat_path)
         <img src="{{ public_path('storage/' . $school->kop_surat_path) }}" class="kop-surat">
@@ -257,7 +257,7 @@
                 <br>NIP. {{ $school->headmaster_nip }}
             @endif
         </div>
-    </div>
+    </div> --}}
 
     <div class="page-break"></div>
 
@@ -279,7 +279,7 @@
                 <td>2.</td>
                 <td>JENIS KELAMIN</td>
                 <td>:</td>
-                <td>{{ $placement->student->gender == 'Laki-laki' ? 'L' : 'P' }}</td>
+                <td>{{ $placement->student->gender == 'L' ? 'Laki-Laki' : 'Perempuan' }}</td>
             </tr>
             <tr>
                 <td>3.</td>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\MonitoringResource\Pages;
+namespace App\Filament\Resources\Monitorings\Pages;
 
 use App\Exports\MonitoringExport;
 use App\Filament\Resources\Monitorings\MonitoringResource;

@@ -29,4 +29,8 @@ class PklPlacement extends Model
     {
         return $this->belongsTo(AssessmentScheme::class);
     }
+    public function journals()
+    {
+        return $this->hasMany(Journal::class, 'pkl_placement_id');
+    }
 }

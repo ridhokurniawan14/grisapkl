@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Monitorings;
 
-use App\Filament\Resources\MonitoringResource\Pages\ListMonitorings;
 use App\Filament\Resources\Monitorings\Pages\CreateMonitoring;
 use App\Filament\Resources\Monitorings\Pages\EditMonitoring;
+use App\Filament\Resources\Monitorings\Pages\ListMonitorings;
 use App\Filament\Resources\Monitorings\Pages\ViewMonitoring;
 use App\Filament\Resources\Monitorings\Schemas\MonitoringForm;
 use App\Filament\Resources\Monitorings\Schemas\MonitoringInfolist;

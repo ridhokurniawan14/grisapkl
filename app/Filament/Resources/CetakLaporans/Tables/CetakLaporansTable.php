@@ -298,11 +298,11 @@ class CetakLaporansTable
                         }),
 
                     Action::make('cetak_laporan_lengkap')
+                        ->url(fn($record) => route('cetak.laporan-siswa', $record->id))
                         ->label('Cetak Buku Laporan')
                         ->icon('heroicon-o-printer')
                         ->color('success')
                         ->visible(fn($record) => !empty($record->pengesah_ks_nama))
-                        ->url('#')
                         ->openUrlInNewTab(),
 
                 ])->label('Aksi Laporan')->button()->outlined(),

@@ -59,6 +59,7 @@ Route::get('/journal/pdf', function (Request $request) {
     if ($start && $end && $studentId) {
         $placement    = PklPlacement::with(['student', 'dudika'])
             ->where('student_id', $studentId)
+            ->where('status', 'Aktif')
             ->first();
         $startDate    = Carbon::parse($start);
         $endDate      = Carbon::parse($end);
@@ -107,3 +108,4 @@ Route::get('/journal/pdf', function (Request $request) {
 })->name('journal.pdf');
 
 Route::get('/cetak/surat-pengantar/{dudika_id}', [PrintController::class, 'suratPengantar'])->name('cetak.surat-pengantar');
+Route::get('/cetak/laporan-lengkap/{id}', [PrintController::class, 'cetakLaporanLengkap'])->name('cetak.laporan-siswa');
