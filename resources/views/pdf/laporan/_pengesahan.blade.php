@@ -1,42 +1,38 @@
-<div class="footer">
-    Praktik Kerja Lapangan (PKL) {{ $placement->academicYear->name ?? '2025/2026' }} | <span class="pagenum"></span>
-</div>
+<h2 style="font-size:22pt; margin-top:-20px;" class="text-center font-bold">LEMBAR PENGESAHAN</h2>
 
-<h2 class="text-center font-bold" style="margin-top: 10px;">LEMBAR PENGESAHAN</h2>
-
-<div class="text-center font-bold mt-4" style="margin-top: 30px; line-height: 1.8;">
+<div class="text-center font-bold mt-4" style="font-size:18pt; margin-top: 30px; line-height: 1.8;">
     Laporan Praktik Kerja Lapangan<br>
     Siswa {{ $school->name ?? 'SMK PGRI 1 GIRI BANYUWANGI' }}<br>
     Tahun Pelajaran {{ $placement->academicYear->name ?? '2025/2026' }}
 </div>
 
-<div style="margin-top: 40px; font-weight: bold;">
-    Pada Tanggal {{ \Carbon\Carbon::parse($placement->start_date)->isoFormat('D MMMM Y') }} s.d
+<div class="text-center font-bold" style="font-size:14pt; margin-top: 40px;">
+    Pada tanggal {{ \Carbon\Carbon::parse($placement->start_date)->isoFormat('D MMMM Y') }} s.d
     {{ \Carbon\Carbon::parse($placement->end_date)->isoFormat('D MMMM Y') }}
 </div>
 
-<table style="width: 100%; margin-top: 30px; font-weight: bold;">
+<table style="width: 100%; font-size:14pt; margin-top: 30px; font-weight: bold;">
     <tr>
         <td width="20%"></td>
-        <td width="25%">Ditetapkan di</td>
+        <td style="text-align: right" width="25%">Ditetapkan di</td>
         <td width="5%">:</td>
         <td width="50%">{{ $school->city ?? 'Banyuwangi' }}</td>
     </tr>
     <tr>
         <td></td>
-        <td>Pada Tanggal</td>
+        <td style="text-align: right">Pada Tanggal</td>
         <td>:</td>
         <td>{{ \Carbon\Carbon::parse($placement->end_date)->isoFormat('D MMMM Y') }}</td>
     </tr>
 </table>
 
-<table style="width: 100%; margin-top: 50px; text-align: center;">
+<table style="width: 100%; margin-top: 50px; font-size:14pt; text-align: center;">
     <tr>
         <td width="50%" class="font-bold">Kepala DUDIKA</td>
         <td width="50%" class="font-bold">Pembimbing PKL DUDIKA</td>
     </tr>
     <tr>
-        <td style="height: 100px;"></td>
+        <td style="height: 75px;"></td>
         <td></td>
     </tr>
     <tr>
@@ -57,20 +53,22 @@
     </tr>
 </table>
 
-<table style="width: 100%; margin-top: 50px; text-align: center;">
+<table style="width: 100%; margin-top: 50px; font-size:14pt; text-align: center;">
     <tr>
         <td width="50%" class="font-bold">
             Kepala<br>
             {{ $school->name ?? 'SMK PGRI 1 Giri Banyuwangi' }}
         </td>
         <td width="50%" class="font-bold">
+            &nbsp;<br>
+            &nbsp;<br>
             Pembimbing PKL SMK<br>
             <br>
         </td>
     </tr>
     <tr>
-        <td style="height: 120px; vertical-align: middle;">
-            <div style="width: 100px; height: 100px; margin: 0 auto;">
+        <td style="height: 50px; vertical-align: middle;">
+            <div style="width: 100px; height: 50px; margin: 0 auto;">
                 <img src="data:image/svg+xml;base64,{{ $qrCode }}"
                     style="width: 100px; height: 100px; display: block;">
                 @if ($logoBase64)
@@ -79,7 +77,7 @@
                 @endif
             </div>
         </td>
-        <td style="height: 120px; vertical-align: bottom;">
+        <td style="height: 50px; vertical-align: bottom;">
             @if ($ttdGuruBase64)
                 <img src="{{ $ttdGuruBase64 }}" style="height: 80px; margin-bottom: 10px;">
             @else

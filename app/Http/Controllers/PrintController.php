@@ -45,11 +45,14 @@ class PrintController extends Controller
 
         $school = \App\Models\SchoolProfile::first();
 
-        // URL tujuan saat QR di-scan
-        $qrUrl = url('/verifikasi/laporan/' . $placement->id);
+        // ===================================================================
+        // MANTRA SAKTI 1: ENKRIPSI ID AGAR TIDAK BISA DITEBAK (HASHING)
+        // ===================================================================
+        $hashedId = \Illuminate\Support\Facades\Crypt::encryptString($placement->id);
+        $qrUrl = url('/verifikasi/laporan/' . $hashedId);
 
-        // KITA KEMBALIKAN KE FORMAT SVG MURNI (Biar hasil cetak PDF Super HD)
         $qrCode = base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+            ->errorCorrection('H')
             ->size(90)
             ->margin(1)
             ->generate($qrUrl));
@@ -59,6 +62,10 @@ class PrintController extends Controller
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
                 'isRemoteEnabled' => true,
+                // ===================================================================
+                // MANTRA SAKTI 2: IZINKAN PHP AGAR FOOTER HALAMAN MUNCUL!
+                // ===================================================================
+                'isPhpEnabled' => true,
             ]);
 
         return $pdf->stream('Laporan_PKL_' . $placement->student->name . '.pdf');

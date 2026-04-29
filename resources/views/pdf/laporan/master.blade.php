@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <title>Laporan PKL - {{ $placement->student->name }}</title>
     <style>
-        /* Ukuran Kertas A4 & Margin Standar Laporan */
         @page {
             margin: 2.5cm 2cm;
         }
@@ -30,22 +29,6 @@
             font-weight: bold;
         }
 
-        /* Sihir Page Number Dinamis DOMPDF */
-        .pagenum:before {
-            content: counter(page);
-        }
-
-        /* Footer Posisi Fixed (Otomatis muncul di bawah setiap halaman yang diberi class ini) */
-        .footer {
-            position: fixed;
-            bottom: -1cm;
-            right: 0;
-            font-size: 10pt;
-            font-style: italic;
-            color: gray;
-        }
-
-        /* Cover Image Absolut (Tidak memakan spasi dokumen) */
         .cover-bg {
             position: absolute;
             top: -2.5cm;
@@ -59,7 +42,12 @@
             position: relative;
             width: 100%;
             text-align: center;
-            padding-top: 2cm;
+            padding-top: 0px;
+            /* Batasi tinggi cover agar tidak overflow ke halaman berikut */
+            max-height: 24.7cm;
+            /* 29.7cm - margin 2.5cm top - 2.5cm bottom */
+            overflow: hidden;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -67,13 +55,16 @@
 <body>
 
     @php
-        // =========================================================================
-        // MANTRA SAKTI: CONVERTER GAMBAR KE BASE64 (Anti-Bocor DOMPDF)
-        // =========================================================================
         function getBase64Image($path)
         {
+            if (!$path) {
+                return null;
+            }
+            if (str_starts_with($path, 'data:image')) {
+                return $path;
+            }
             $fullPath = public_path('storage/' . $path);
-            if ($path && file_exists($fullPath) && !is_dir($fullPath)) {
+            if (file_exists($fullPath) && !is_dir($fullPath)) {
                 $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
                 $data = file_get_contents($fullPath);
                 return 'data:image/' . $ext . ';base64,' . base64_encode($data);
@@ -92,6 +83,25 @@
     @include('pdf.laporan._pengesahan')
     <div class="page-break"></div>
 
+    <script type="text/php">
+        if (isset($pdf)) {
+            $pdf->page_script('
+                if ($PAGE_NUM > 1) {
+                    $font = $fontMetrics->get_font("serif", "italic");
+                    $size = 12;
+                    $text = "Praktik Kerja Lapangan (PKL) {{ $placement->academicYear->name ?? '2025/2026' }} | " . $PAGE_NUM;
+                    $width = $fontMetrics->get_text_width($text, $font, $size);
+                    
+                    // Koordinat X (kanan) dan Y (bawah)
+                    $x = $pdf->get_width() - $width - 50;
+                    $y = $pdf->get_height() - 35;
+                    
+                    // Cetak teks ke PDF
+                    $pdf->text($x, $y, $text, $font, $size, array(0.5, 0.5, 0.5));
+                }
+            ');
+        }
+    </script>
 </body>
 
 </html>

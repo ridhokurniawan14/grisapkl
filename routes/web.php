@@ -6,8 +6,12 @@ use App\Models\Dudika;
 use App\Models\Journal;
 use Illuminate\Http\Request;
 use App\Models\PklPlacement;
+use App\Models\SchoolProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Session;
 
 Route::get('/', function () {
     return view('welcome');
@@ -109,3 +113,45 @@ Route::get('/journal/pdf', function (Request $request) {
 
 Route::get('/cetak/surat-pengantar/{dudika_id}', [PrintController::class, 'suratPengantar'])->name('cetak.surat-pengantar');
 Route::get('/cetak/laporan-lengkap/{id}', [PrintController::class, 'cetakLaporanLengkap'])->name('cetak.laporan-siswa');
+
+// Tampilkan Halaman Verifikasi (Pakai Hash URL)
+Route::get('/verifikasi/laporan/{hash}', function ($hash) {
+    // MANTRA SAKTI: Dekripsi URL, kalau asal tebak langsung error 404
+    try {
+        $id = Crypt::decryptString($hash);
+    } catch (DecryptException $e) {
+        return abort(404, 'Link verifikasi tidak valid atau telah dimanipulasi.');
+    }
+
+    $placement = PklPlacement::with(['student.studentClass', 'dudika', 'teacher'])->findOrFail($id);
+    $school = SchoolProfile::first();
+
+    if (!Session::has('verified_laporan_' . $id)) {
+        $num1 = rand(1, 9);
+        $num2 = rand(1, 9);
+        Session::put('captcha_answer_' . $id, $num1 + $num2);
+        $captcha_question = "Berapa hasil dari $num1 + $num2 ?";
+    } else {
+        $captcha_question = "";
+    }
+
+    return view('verifikasi-laporan', compact('placement', 'school', 'captcha_question', 'hash'));
+});
+
+// Proses Submit Captcha
+Route::post('/verifikasi/laporan/{hash}', function (Request $request, $hash) {
+    try {
+        $id = Crypt::decryptString($hash);
+    } catch (DecryptException $e) {
+        return abort(404);
+    }
+
+    $request->validate(['captcha' => 'required|numeric']);
+
+    if ($request->captcha == Session::get('captcha_answer_' . $id)) {
+        Session::put('verified_laporan_' . $id, true);
+        return back()->with('success', 'Verifikasi berhasil!');
+    }
+
+    return back()->with('error', 'Jawaban matematika salah. Silakan coba lagi!');
+});
