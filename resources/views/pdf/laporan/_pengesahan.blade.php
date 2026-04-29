@@ -60,15 +60,14 @@
             {{ $school->name ?? 'SMK PGRI 1 Giri Banyuwangi' }}
         </td>
         <td width="50%" class="font-bold">
-            &nbsp;<br>
-            &nbsp;<br>
-            Pembimbing PKL SMK<br>
-            <br>
+            <br>{{-- Tambah 1 br agar sejajar dengan baris ke-2 kiri --}}
+            Pembimbing PKL SMK
         </td>
     </tr>
     <tr>
-        <td style="height: 50px; vertical-align: middle;">
-            <div style="width: 100px; height: 50px; margin: 0 auto;">
+        <td style="height: 120px; vertical-align: middle; padding-top: 10px;">
+            {{-- height 120px agar QR tidak nabrak nama di bawah --}}
+            <div style="width: 100px; height: 100px; margin: 0 auto;">
                 <img src="data:image/svg+xml;base64,{{ $qrCode }}"
                     style="width: 100px; height: 100px; display: block;">
                 @if ($logoBase64)
@@ -77,9 +76,10 @@
                 @endif
             </div>
         </td>
-        <td style="height: 50px; vertical-align: bottom;">
+        <td style="height: 120px; vertical-align: middle; text-align: center;">
+            {{-- vertical-align: middle + block margin auto agar TTD center --}}
             @if ($ttdGuruBase64)
-                <img src="{{ $ttdGuruBase64 }}" style="height: 80px; margin-bottom: 10px;">
+                <img src="{{ $ttdGuruBase64 }}" style="height: 80px; display: block; margin: 0 auto;">
             @else
                 <br><br><br>
             @endif
@@ -95,7 +95,7 @@
         </td>
         <td>
             <strong
-                style="text-decoration: underline;">{{ $placement->teacher->name ?? '.....................................' }}</strong>
+                style="text-decoration: underline;">{{ $placement->teacher->name . ', ' . $placement->teacher->title ?? '.....................................' }}</strong>
             @if (!empty($placement->teacher->nip) && trim($placement->teacher->nip) !== '-')
                 <br>NIP. {{ $placement->teacher->nip }}
             @endif
