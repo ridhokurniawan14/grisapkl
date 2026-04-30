@@ -77,10 +77,20 @@
         $ttdGuruBase64 = getBase64Image($placement->teacher->signature_path ?? '');
     @endphp
 
+    <!-- 1. COVER -->
     @include('pdf.laporan._cover')
     <div class="page-break"></div>
 
+    <!-- 2. LEMBAR PENGESAHAN -->
     @include('pdf.laporan._pengesahan')
+    <div class="page-break"></div>
+
+    <!-- 3. KETERANGAN DATA DIRI SISWA -->
+    @include('pdf.laporan._biodata')
+    <div class="page-break"></div>
+
+    <!-- 4. TATA TERTIB PKL -->
+    @include('pdf.laporan._tatatertib')
     <div class="page-break"></div>
 
     <script type="text/php">

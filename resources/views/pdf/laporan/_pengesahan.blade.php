@@ -65,14 +65,13 @@
         </td>
     </tr>
     <tr>
-        <td style="height: 120px; vertical-align: middle; padding-top: 10px;">
-            {{-- height 120px agar QR tidak nabrak nama di bawah --}}
-            <div style="width: 100px; height: 100px; margin: 0 auto;">
+        <td style="height: 120px; vertical-align: top; padding-top: 8px;">
+            <div style="width: 100px; height: 100px; margin: 0 auto; padding-bottom: 2px;">
                 <img src="data:image/svg+xml;base64,{{ $qrCode }}"
-                    style="width: 100px; height: 100px; display: block;">
+                    style="width: 125px; height: 125px; display: block;">
                 @if ($logoBase64)
                     <img src="{{ $logoBase64 }}"
-                        style="width: 26px; height: 26px; margin-top: -63px; background-color: white; padding: 2px; border-radius: 4px; display: inline-block;">
+                        style="width: 26px; height: 26px; margin-top: -75px; background-color: white; padding: 2px; border-radius: 4px; display: inline-block;">
                 @endif
             </div>
         </td>

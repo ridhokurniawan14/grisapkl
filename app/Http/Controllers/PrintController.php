@@ -6,7 +6,6 @@ use App\Models\Dudika;
 use App\Models\PklPlacement;
 use App\Models\SchoolProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PrintController extends Controller
 {
@@ -33,39 +32,46 @@ class PrintController extends Controller
     }
     public function cetakLaporanLengkap($id)
     {
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
+        // Alokasikan memori khusus untuk cetak laporan tebal
+        ini_set('memory_limit', '1024M'); // Naikkan jadi 1GB untuk amannya
+        set_time_limit(600); // 10 menit maksimal eksekusi
 
+        // MANTRA SAKTI OPTIMASI: Eager Load sedalam-dalamnya!
         $placement = \App\Models\PklPlacement::with([
             'student.studentClass.major',
             'dudika',
             'teacher',
-            'journals' => fn($q) => $q->orderBy('date', 'asc')
+            // Load jurnal sekaligus bawa relasi yang nempel di jurnal
+            'journals' => function ($q) {
+                $q->with(['pklPlacement.student', 'pklPlacement.dudika'])->orderBy('date', 'asc');
+            }
         ])->findOrFail($id);
 
+        // Render sekolah sekali saja (jangan di-query berulang-ulang)
         $school = \App\Models\SchoolProfile::first();
 
-        // ===================================================================
-        // MANTRA SAKTI 1: ENKRIPSI ID AGAR TIDAK BISA DITEBAK (HASHING)
-        // ===================================================================
+        // Enkripsi Hashed ID
         $hashedId = \Illuminate\Support\Facades\Crypt::encryptString($placement->id);
         $qrUrl = url('/verifikasi/laporan/' . $hashedId);
 
-        $qrCode = base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
-            ->errorCorrection('H')
-            ->size(90)
-            ->margin(1)
-            ->generate($qrUrl));
+        // Format QR SVG
+        $qrCode = base64_encode(
+            \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+                ->errorCorrection('M')
+                ->size(200)
+                ->margin(2)
+                ->generate($qrUrl)
+        );
 
+        // MANTRA SAKTI 2: Gunakan Cache untuk mempercepat DOMPDF
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan.master', compact('placement', 'school', 'qrCode'))
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
                 'isRemoteEnabled' => true,
-                // ===================================================================
-                // MANTRA SAKTI 2: IZINKAN PHP AGAR FOOTER HALAMAN MUNCUL!
-                // ===================================================================
                 'isPhpEnabled' => true,
+                'enable_font_subsetting' => true, // Mempercepat render font
+                'dpi' => 96 // Turunkan sedikit DPI agar render lebih cepat
             ]);
 
         return $pdf->stream('Laporan_PKL_' . $placement->student->name . '.pdf');
