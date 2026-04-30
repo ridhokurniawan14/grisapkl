@@ -1,11 +1,11 @@
-<h2 class="text-center font-bold" style="font-size: 14pt; margin-top: 10px; text-decoration: underline;">TATA TERTIB
+<h2 class="text-center font-bold" style="font-size: 14pt; margin-top:-25px; text-decoration: underline;">TATA TERTIB
     PESERTA PKL</h2>
 
-<ol style="font-size: 12pt; line-height: 1.5; margin-top: 20px; padding-left: 20px;">
+<ol style="font-size: 12pt; line-height: 1.4; margin-top: 20px; padding-left: 20px;">
 
     <!-- Bagian 1. Siswa Wajib -->
     <li class="font-bold" style="margin-bottom: 15px;">
-        <span style="font-style: italic;">Siswa Wajib</span>
+        <span>Siswa Wajib</span>
         <ol type="a" style="font-weight: normal; font-style: normal; padding-left: 20px; margin-top: 5px;">
             <li style="margin-bottom: 5px; text-align: justify;">Mematuhi peraturan yang berlaku di DUDIKA tempat PKL
             </li>
@@ -32,7 +32,7 @@
 
     <!-- Bagian 2. Siswa Dilarang -->
     <li class="font-bold">
-        <span style="font-style: italic;">Siswa Dilarang</span>
+        <span>Siswa Dilarang</span>
         <ol type="a" style="font-weight: normal; font-style: normal; padding-left: 20px; margin-top: 5px;">
             <li style="margin-bottom: 5px; text-align: justify;">Merokok di tempat PKL</li>
             <li style="margin-bottom: 5px; text-align: justify;">Membawa dan menggunakan obat-obatan terlarang di tempat
