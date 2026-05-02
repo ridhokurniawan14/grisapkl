@@ -113,6 +113,7 @@ Route::get('/journal/pdf', function (Request $request) {
 
 Route::get('/cetak/surat-pengantar/{dudika_id}', [PrintController::class, 'suratPengantar'])->name('cetak.surat-pengantar');
 Route::get('/cetak/laporan-lengkap/{id}', [PrintController::class, 'cetakLaporanLengkap'])->name('cetak.laporan-siswa');
+Route::get('/cetak/rekap-monitoring', [PrintController::class, 'cetakRekapMonitoring'])->name('cetak.rekap-monitoring');
 
 // Tampilkan Halaman Verifikasi (Pakai Hash URL)
 Route::get('/verifikasi/laporan/{hash}', function ($hash) {

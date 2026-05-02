@@ -1,7 +1,7 @@
 <h2 class="text-center font-bold" style="font-size: 14pt; margin-top:-25px; text-decoration: underline;">TATA TERTIB
     PESERTA PKL</h2>
 
-<ol style="font-size: 12pt; line-height: 1.4; margin-top: 20px; padding-left: 20px;">
+<ol style="font-size: 12pt; line-height: 1.3; margin-top: 20px; padding-left: 20px;">
 
     <!-- Bagian 1. Siswa Wajib -->
     <li class="font-bold" style="margin-bottom: 15px;">

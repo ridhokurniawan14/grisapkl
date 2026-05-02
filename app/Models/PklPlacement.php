@@ -33,4 +33,12 @@ class PklPlacement extends Model
     {
         return $this->hasMany(Journal::class, 'pkl_placement_id');
     }
+    public function monitorings()
+    {
+        return $this->hasMany(Monitoring::class, 'pkl_placement_id');
+    }
+    public function pklAssessment()
+    {
+        return $this->hasOne(PklAssessment::class);
+    }
 }

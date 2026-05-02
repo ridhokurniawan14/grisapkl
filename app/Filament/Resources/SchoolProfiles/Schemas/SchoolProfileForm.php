@@ -88,7 +88,6 @@ class SchoolProfileForm
                                         ->placeholder('Contoh: 19700101 199512 1 001')
                                         ->helperText('Kosongkan jika bukan berstatus PNS.'),
 
-                                    // TAMBAHAN: NOMOR SURAT PENGANTAR
                                     TextInput::make('surat_pengantar_nomor')
                                         ->label('Format Nomor Surat Pengantar')
                                         ->placeholder('Contoh: 1437/M.3/SMK PGRI 1 GIRI/26/IX/2025')
@@ -132,6 +131,7 @@ class SchoolProfileForm
                                         ->helperText('Upload gambar Cover Laporan PKL. Rekomendasi portrait A4 (PNG).'),
                                 ]),
                             ]),
+
                         // TAB 4: PENGATURAN APLIKASI
                         Tab::make('Pengaturan PKL')
                             ->icon('heroicon-m-cog-8-tooth')
@@ -139,6 +139,16 @@ class SchoolProfileForm
                                 \Filament\Forms\Components\Toggle::make('is_radius_attendance_enabled')
                                     ->label('Aktifkan Validasi Radius Absensi')
                                     ->helperText('Jika menyala, siswa WAJIB berada di dalam radius DUDIKA untuk bisa absen.')
+                                    ->default(true)
+                                    ->onColor('success')
+                                    ->offColor('danger'),
+
+                                // ==========================================
+                                // MANTRA SAKTI: TOGGLE TTD GURU PEMBIMBING
+                                // ==========================================
+                                \Filament\Forms\Components\Toggle::make('is_teacher_signature_enabled')
+                                    ->label('Tampilkan Tanda Tangan Guru Pembimbing')
+                                    ->helperText('Matikan (OFF) jika Anda mewajibkan Guru Pembimbing menggunakan Tanda Tangan Basah (Asli) pada cetakan PDF Laporan.')
                                     ->default(true)
                                     ->onColor('success')
                                     ->offColor('danger'),

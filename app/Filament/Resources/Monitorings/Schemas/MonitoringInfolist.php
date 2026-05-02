@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Monitorings\Schemas;
 
+use App\Models\Monitoring;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ImageEntry;
@@ -17,17 +18,38 @@ class MonitoringInfolist
     {
         return $schema
             ->components([
-                // ==========================================
-                // BARIS 1: IDENTITAS KUNJUNGAN (CARD)
-                // ==========================================
                 Section::make('Informasi Kunjungan Monitoring')
                     ->icon('heroicon-m-information-circle')
                     ->schema([
                         Grid::make(2)->schema([
-                            TextEntry::make('pklPlacement.student.name')
-                                ->label('Nama Siswa')
+
+                            TextEntry::make('students_in_visit')
+                                ->label('Siswa yang Tercakup')
                                 ->weight('bold')
                                 ->color('primary')
+                                ->columnSpanFull()
+                                ->html() // ✅ Wajib biar <br> ke-render
+                                ->state(function (Monitoring $record): string {
+                                    $students = Monitoring::where('date', $record->date)
+                                        ->where('monitoring_schedule_id', $record->monitoring_schedule_id)
+                                        ->whereHas('pklPlacement', fn($q) => $q->where(
+                                            'dudika_id',
+                                            $record->pklPlacement->dudika_id
+                                        ))
+                                        ->with('pklPlacement.student')
+                                        ->get()
+                                        ->map(fn($m) => $m->pklPlacement?->student?->name)
+                                        ->filter()
+                                        ->values();
+
+                                    if ($students->isEmpty()) {
+                                        return 'Data tidak ditemukan';
+                                    }
+
+                                    return $students
+                                        ->map(fn($name, $i) => ($i + 1) . '. ' . $name)
+                                        ->implode('<br>'); // ✅ Ini sudah benar
+                                })
                                 ->placeholder('Data tidak ditemukan'),
 
                             TextEntry::make('pklPlacement.teacher.name')
@@ -49,18 +71,14 @@ class MonitoringInfolist
                         ]),
                     ]),
 
-                // ==========================================
-                // BARIS 2: DESKRIPSI & FOTO BUKTI (CARD)
-                // ==========================================
                 Section::make('Laporan Kegiatan')
                     ->icon('heroicon-m-document-text')
                     ->schema([
                         TextEntry::make('activity')
                             ->label('Deskripsi Kegiatan / Hasil Monitoring')
                             ->columnSpanFull()
-                            ->prose(), // Biar teks panjang rapi berparagraf
+                            ->prose(),
 
-                        // BAGIAN FOTO DENGAN ZOOM MODAL SAKTI
                         ImageEntry::make('photo_path')
                             ->label('Foto Bukti Kunjungan')
                             ->columnSpanFull()
@@ -77,7 +95,9 @@ class MonitoringInfolist
                                     ->modalCancelActionLabel('Tutup')
                                     ->modalContent(fn($record) => new HtmlString('
                                         <div style="display: flex; justify-content: center; align-items: center;">
-                                            <img src="' . Storage::disk('public')->url($record->photo_path) . '" alt="Foto Kunjungan" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                                            <img src="' . Storage::disk('public')->url($record->photo_path) . '"
+                                                 alt="Foto Kunjungan"
+                                                 style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
                                         </div>
                                     '))
                             ),

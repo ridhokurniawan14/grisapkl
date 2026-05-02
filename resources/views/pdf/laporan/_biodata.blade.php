@@ -1,4 +1,5 @@
-<h2 class="text-center font-bold" style="font-size: 14pt; margin-top:-25px; margin-bottom: 30px;">KETERANGAN DATA DIRI
+<h2 class="text-center font-bold"
+    style="font-size: 14pt; margin-top:-25px; margin-bottom: 30px; text-decoration: underline;">KETERANGAN DATA DIRI
     SISWA</h2>
 
 <table style="width: 100%; font-size: 12pt; line-height: 1.8;">
@@ -6,7 +7,7 @@
         <td width="5%" style="vertical-align: top;">1.</td>
         <td width="35%" style="vertical-align: top;">Nama Siswa</td>
         <td width="3%" style="vertical-align: top;">:</td>
-        <td width="57%" style="vertical-align: top;">{{ $placement->student->name }}</td>
+        <td width="57%" style="vertical-align: top; font-weight: bold;">{{ $placement->student->name }}</td>
     </tr>
     <tr>
         <td style="vertical-align: top;">2.</td>
@@ -92,7 +93,7 @@
         <td width="45%" class="text-center">
             <!-- Tanggal menggunakan tanggal mulai PKL -->
             {{ $school->city ?? 'Banyuwangi' }},
-            {{ \Carbon\Carbon::parse($placement->end_date)->isoFormat('D MMMM Y') }}<br>
+            {{ \Carbon\Carbon::parse($placement->start_date)->isoFormat('D MMMM Y') }}<br>
             <br>
             Yang Membuat Keterangan
             <br><br><br><br>

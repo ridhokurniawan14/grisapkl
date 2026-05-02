@@ -93,6 +93,29 @@
     @include('pdf.laporan._tatatertib')
     <div class="page-break"></div>
 
+    <!-- 5. TUJUAN KHUSUS PKL -->
+    @include('pdf.laporan._tujuan')
+    <div class="page-break"></div>
+
+    <!-- 6. JURNAL KEGIATAN -->
+    @include('pdf.laporan._jurnal')
+    <div class="page-break"></div>
+
+    <!-- 7. LEMBAR MONITORING -->
+    @include('pdf.laporan._lembar_monitoring')
+    <div class="page-break"></div>
+
+    <!-- 8. FORMAT MONITORING -->
+    @include('pdf.laporan._format_monitoring')
+    <div class="page-break"></div>
+
+    <!-- 9. REKAPITULASI KEHADIRAN -->
+    @include('pdf.laporan._rekap_kehadiran')
+    <div class="page-break"></div>
+
+    <!-- 10. RAPORT NILAI SISWA -->
+    @include('pdf.laporan._raport')
+
     <script type="text/php">
         if (isset($pdf)) {
             $pdf->page_script('

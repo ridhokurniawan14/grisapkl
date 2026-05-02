@@ -11,6 +11,18 @@ class EditMonitoring extends EditRecord
 {
     protected static string $resource = MonitoringResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        unset($data['dudika_id']);
+
+        return $data;
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

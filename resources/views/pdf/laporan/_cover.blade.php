@@ -8,7 +8,7 @@
 
     <div style="margin-top: 20px;">
         <span style="font-size: 16pt;">Di:</span>
-        <strong style="font-size: 18pt; text-decoration: underline; word-break: break-word;">
+        <strong style="font-size: 16pt; text-decoration: underline; word-break: break-word;">
             {{ strtoupper($placement->dudika->name) }}
         </strong>
     </div>
@@ -22,7 +22,7 @@
 
     <div style="margin-top: 50px;">
         @if ($logoBase64)
-            <img src="{{ $logoBase64 }}" style="width: 250px; height: auto;">
+            <img src="{{ $logoBase64 }}" style="width: 150px; height: auto;">
         @else
             <div style="height: 80px;"></div>
         @endif
