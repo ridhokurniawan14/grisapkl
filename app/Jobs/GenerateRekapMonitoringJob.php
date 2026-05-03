@@ -15,7 +15,7 @@ class GenerateRekapMonitoringJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $userId;
-    public $timeout = 1200; // Beri waktu 20 menit agar aman dari timeout
+    public $timeout = 1200;
 
     public function __construct($userId)
     {
@@ -24,7 +24,6 @@ class GenerateRekapMonitoringJob implements ShouldQueue
 
     public function handle(): void
     {
-        // Beri nafas lega untuk RAM server
         ini_set('memory_limit', '2048M');
         set_time_limit(1200);
 
@@ -33,7 +32,8 @@ class GenerateRekapMonitoringJob implements ShouldQueue
 
         $schedules = \App\Models\MonitoringSchedule::orderBy('id', 'asc')->get();
 
-        $monitorings = \App\Models\Monitoring::with(['pklPlacement.teacher', 'monitoringSchedule'])
+        // MANTRA SAKTI: Tambahkan 'pklPlacement.dudika' biar query-nya nggak ngos-ngosan
+        $monitorings = \App\Models\Monitoring::with(['pklPlacement.teacher', 'pklPlacement.dudika', 'monitoringSchedule'])
             ->whereHas('pklPlacement', function ($q) use ($activeYear) {
                 $q->where('academic_year_id', $activeYear->id);
             })
@@ -43,35 +43,38 @@ class GenerateRekapMonitoringJob implements ShouldQueue
         $dataGuru = [];
         foreach ($monitorings as $mon) {
             $teacher = $mon->pklPlacement->teacher;
-            if (!$teacher) continue;
+            $dudika = $mon->pklPlacement->dudika; // Ambil DUDIKA-nya sekalian
+            if (!$teacher || !$dudika) continue;
 
             $teacherId = $teacher->id;
+            $dudikaId = $dudika->id;
             $schedId = $mon->monitoring_schedule_id;
 
-            if (!isset($dataGuru[$teacherId])) {
-                $dataGuru[$teacherId] = [
+            // MANTRA SAKTI: Kunci gabungan agar 1 Guru = Banyak Baris (Sesuai jumlah DUDIKA)
+            $key = $teacherId . '_' . $dudikaId;
+
+            if (!isset($dataGuru[$key])) {
+                $dataGuru[$key] = [
                     'nama_guru' => $teacher->name . (!empty($teacher->title) ? ', ' . $teacher->title : ''),
+                    'nama_dudika_utama' => $dudika->name, // Simpan nama dudika untuk kolom pertama
                     'kunjungan' => []
                 ];
             }
 
-            if (!isset($dataGuru[$teacherId]['kunjungan'][$schedId])) {
-                // =========================================================
-                // KEMBALI KE BASE64: Karena sudah di Job, ini 100% AMAN & ANTI-LEMOT!
-                // =========================================================
+            if (!isset($dataGuru[$key]['kunjungan'][$schedId])) {
                 $fotoPath = null;
                 if ($mon->photo_path) {
                     $fullPath = public_path('storage/' . $mon->photo_path);
                     if (file_exists($fullPath)) {
-                        // Ubah file fisik menjadi Base64 agar DOMPDF pasti bisa membacanya
                         $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
                         $fotoPath = 'data:image/' . $ext . ';base64,' . base64_encode(file_get_contents($fullPath));
                     }
                 }
 
-                $dataGuru[$teacherId]['kunjungan'][$schedId] = [
+                $dataGuru[$key]['kunjungan'][$schedId] = [
                     'tanggal' => \Carbon\Carbon::parse($mon->date)->isoFormat('D MMMM Y'),
-                    'foto' => $fotoPath
+                    'foto' => $fotoPath,
+                    'nama_dudika' => $dudika->name
                 ];
             }
         }
@@ -85,11 +88,9 @@ class GenerateRekapMonitoringJob implements ShouldQueue
                 'dpi' => 72
             ]);
 
-        // Simpan 1 file global untuk di-download
         $fileName = 'laporan_pkl/Rekap_Monitoring_Guru.pdf';
         Storage::disk('public')->put($fileName, $pdf->output());
 
-        // Kirim Notif ke Lonceng Filament!
         $user = \App\Models\User::find($this->userId);
         if ($user) {
             \Filament\Notifications\Notification::make()

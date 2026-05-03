@@ -12,7 +12,7 @@ class AttendanceChart extends ChartWidget
     protected ?string $heading = 'Rekap Kehadiran — 14 Hari Terakhir';
     protected ?string $description = 'Perbandingan kehadiran vs ketidakhadiran siswa PKL';
     protected static ?int $sort = 2;
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = '1';
     protected ?string $maxHeight = '280px';
 
     // Filter: bisa dipilih user di UI

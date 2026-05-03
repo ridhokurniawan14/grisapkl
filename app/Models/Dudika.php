@@ -3,19 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Dudika extends Model
 {
+    use LogsActivity;
+
     protected $guarded = [];
 
     protected static function booted(): void
     {
         static::deleting(function (Dudika $dudika) {
-            // Sekarang user_id sudah terisi, ini akan jalan dengan benar
             if ($dudika->user_id && $dudika->user) {
                 $dudika->user()->delete();
             }
         });
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logUnguarded()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 
     public function getIsCompleteAttribute(): bool
@@ -33,6 +44,7 @@ class Dudika extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function pklPlacements()
     {
         return $this->hasMany(PklPlacement::class);

@@ -3,10 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Student extends Model
 {
+    use LogsActivity;
+
     protected $guarded = [];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logUnguarded()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 
     public function studentClass()
     {
@@ -17,11 +29,12 @@ class Student extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
     }
-    // Logika pengecekan kelengkapan data
+
     public function getIsCompleteAttribute(): bool
     {
         return !empty($this->nisn) &&
@@ -33,6 +46,7 @@ class Student extends Model
             !empty($this->father_name) &&
             !empty($this->mother_name);
     }
+
     public function pklPlacements()
     {
         return $this->hasMany(PklPlacement::class);

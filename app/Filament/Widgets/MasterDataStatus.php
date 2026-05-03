@@ -7,7 +7,7 @@ use Filament\Widgets\Widget;
 class MasterDataStatus extends Widget
 {
     protected string $view = 'filament.widgets.master-data-status';
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 6;
     protected int|string|array $columnSpan = 'full';
 
     public function getViewData(): array

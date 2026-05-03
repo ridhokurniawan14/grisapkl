@@ -12,20 +12,20 @@ class CreateMonitoring extends CreateRecord
 {
     protected static string $resource = MonitoringResource::class;
 
-    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordCreation(array $data): Model
     {
-        $dudikaId = $data['dudika_id'];
-        $teacherId = $data['teacher_id']; // Tangkap ID Gurunya
+        // Pakai null coalescing (??) agar terhindar dari Undefined array key
+        $dudikaId = $data['dudika_id'] ?? null;
+        $teacherId = $data['teacher_id'] ?? null;
 
         // Buang dari array agar tidak error karena field ini tidak ada di tabel monitorings
-        unset($data['dudika_id']);
-        unset($data['teacher_id']);
+        unset($data['dudika_id'], $data['teacher_id']);
 
         // ==============================================================
         // MANTRA SAKTI 3: Ambil siswa di DUDIKA terpilih & GURU terpilih
         // ==============================================================
-        $placements = \App\Models\PklPlacement::where('dudika_id', $dudikaId)
-            ->where('teacher_id', $teacherId) // Filter super ketat!
+        $placements = PklPlacement::where('dudika_id', $dudikaId)
+            ->where('teacher_id', $teacherId)
             ->whereHas('academicYear', fn($q) => $q->where('is_active', true))
             ->get();
 
@@ -41,15 +41,25 @@ class CreateMonitoring extends CreateRecord
             }
         }
 
+        // SAFETY NET SAKTI: Batalkan simpan jika ternyata tidak ada siswa
+        if (! $firstRecord) {
+            Notification::make()
+                ->title('Gagal Disimpan!')
+                ->body('Tidak ada siswa aktif dari guru ini di DUDIKA tersebut.')
+                ->danger()
+                ->send();
+
+            $this->halt(); // Batalkan proses Filament
+        }
+
         // Notif sukses dengan info jumlah siswa yang tercatat
-        \Filament\Notifications\Notification::make()
+        Notification::make()
             ->title('Monitoring berhasil dicatat!')
             ->body("{$placements->count()} siswa bimbingan guru terkait di DUDIKA ini otomatis tercatat.")
             ->success()
             ->send();
 
-        // Fallback safety net
-        return $firstRecord ?? static::getModel()::create($data);
+        return $firstRecord;
     }
 
     protected function getSavedNotification(): ?Notification

@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Activitylog\LogOptions;           // ← tambah ini
-use Spatie\Activitylog\Traits\LogsActivity;  // ← tambah ini
+use Spatie\Activitylog\Models\Concerns\LogsActivity; // ← v5
+use Spatie\Activitylog\Support\LogOptions;            // ← v5
 
 class SchoolProfile extends Model
 {
-    use HasFactory, LogsActivity; // ← uncomment LogsActivity-nya
+    use HasFactory, LogsActivity;
 
     protected $guarded = [];
 
@@ -38,8 +38,8 @@ class SchoolProfile extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logAll()
+            ->logUnguarded()
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontLogEmptyChanges();
     }
 }
