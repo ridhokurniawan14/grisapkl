@@ -16,6 +16,7 @@
         "maatwebsite/excel": "^3.1",
         "saade/filament-autograph": "^4.1",
         "simplesoftwareio/simple-qrcode": "^4.2",
+        "spatie/db-dumper": "^4.1",
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-permission": "^6.25"
     },
