@@ -3,8 +3,24 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    {{-- MANTRA PWA: Cegah zoom paksa di iOS dengan maximum-scale=1.0 dan user-scalable=no --}}
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+
     <title>{{ $title ?? 'Grisa PKL' }}</title>
+
+    @php
+        $school = \App\Models\SchoolProfile::first();
+        $dynamicFavicon = $school && $school->logo_path ? asset('storage/' . $school->logo_path) : null;
+    @endphp
+
+    {{-- Dynamic Favicon dari logo sekolah --}}
+    @if ($dynamicFavicon)
+        <link rel="icon" type="image/png" href="{{ $dynamicFavicon }}">
+        <link rel="shortcut icon" href="{{ $dynamicFavicon }}">
+        <link rel="apple-touch-icon" href="{{ $dynamicFavicon }}">
+    @else
+        <link rel="icon" href="/favicon.ico">
+    @endif
 
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com" rel="preconnect" />
@@ -23,12 +39,20 @@
             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
 
+        /* MANTRA ANTI-SCROLL: Paksa body persis seukuran layar, tidak lebih 1 pixel pun! */
         body {
-            min-height: max(884px, 100dvh);
+            height: 100dvh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            /* Kunci scroll mutlak dari akar */
+            -webkit-tap-highlight-color: transparent;
+            /* Hilangkan efek blok biru saat tap di HP */
         }
     </style>
 
-    <!-- Tailwind CSS CDN (Sesuai desainmu) -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
         tailwind.config = {
@@ -98,8 +122,11 @@
     </script>
 </head>
 
+{{-- Hapus padding (p-4) agar kanvas benar-benar penuh dari ujung ke ujung --}}
+
 <body
-    class="bg-gradient-to-br from-surface-container-lowest via-surface-bright to-surface-container-high min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-body-md text-on-surface">
+    class="bg-gradient-to-br from-surface-container-lowest via-surface-bright to-surface-container-high font-body-md text-on-surface antialiased">
+
     <!-- Decorative Elements -->
     <div
         class="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-primary opacity-[0.05] rounded-full blur-[100px] pointer-events-none">
@@ -108,6 +135,7 @@
         class="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-secondary opacity-[0.05] rounded-full blur-[80px] pointer-events-none">
     </div>
 
+    {{-- Tempat Komponen Livewire Dimuat --}}
     {{ $slot }}
 
     @livewireScripts

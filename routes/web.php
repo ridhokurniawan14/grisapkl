@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PrintController;
+use App\Livewire\Auth\ForgotPasswordRequest;
 use App\Livewire\Auth\LoginUniversal;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,20 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
-Route::get('/login', LoginUniversal::class)->name('login');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', LoginUniversal::class)->name('login');
+    Route::get('/lupa-kata-sandi', ForgotPasswordRequest::class)->name('auth.forgot-password');
+});
+
+// ==========================================================
+// RUTE PWA SISWA
+// ==========================================================
+Route::get('/siswa/absen', \App\Livewire\Student\Absensi::class)->name('siswa.absen');
+
+// ==========================================================
+// RUTE PWA DUDIKA
+// ==========================================================
+// Route::get('/dudika/dashboard', \App\Livewire\Dudika\Dashboard::class)->name('dudika.dashboard');
 
 // ==========================================================
 // RUTE RAHASIA (WAJIB LOGIN UNTUK MENGAKSES)

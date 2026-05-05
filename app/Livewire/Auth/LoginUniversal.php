@@ -6,12 +6,13 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use App\Models\SchoolProfile;
 
-#[Layout('components.layouts.guest')] // MANTRA: Pakai cetakan Guest (tanpa nav bar)
+#[Layout('components.layouts.guest')]
 #[Title('Masuk - Grisa PKL')]
 class LoginUniversal extends Component
 {
-    public $identifier = ''; // Bisa email, NISN, atau NIP
+    public $identifier = '';
     public $password = '';
     public $remember = false;
 
@@ -25,6 +26,8 @@ class LoginUniversal extends Component
                 return redirect()->to('/admin');
             } elseif ($user->hasRole('siswa')) {
                 return redirect()->to('/siswa/absen');
+            } elseif ($user->hasRole('dudika')) {
+                return redirect()->to('/dudika/dashboard');
             } else {
                 return redirect()->to('/pembimbing/dashboard');
             }
@@ -41,28 +44,33 @@ class LoginUniversal extends Component
             'password.required' => 'Kata sandi wajib diisi.',
         ]);
 
-        // Coba login berdasarkan email (Nanti bisa di-expand buat cek NISN/NIP di database)
         if (Auth::attempt(['email' => $this->identifier, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
-            // Satpam mengecek Role dan mengarahkan
             $user = Auth::user();
 
             if ($user->hasRole(['super_admin', 'humas'])) {
                 return redirect()->to('/admin');
             } elseif ($user->hasRole('siswa')) {
-                return redirect()->to('/siswa/absen'); // Rute PWA Siswa
+                return redirect()->to('/siswa/absen');
+            } elseif ($user->hasRole('dudika')) {
+                return redirect()->to('/dudika/dashboard');
             } else {
-                return redirect()->to('/pembimbing/dashboard'); // Rute Guru/Dudika
+                return redirect()->to('/pembimbing/dashboard');
             }
         }
 
-        // Kalau gagal login
         $this->addError('identifier', 'Kredensial tidak cocok dengan data kami.');
     }
 
     public function render()
     {
-        return view('livewire.auth.login-universal');
+        $school   = SchoolProfile::first();
+        $logoUrl  = ($school && $school->logo_path) ? asset('storage/' . $school->logo_path) : null;
+
+        // Pass faviconUrl ke layout via share (pakai ViewComposer atau langsung)
+        view()->share('faviconUrl', $logoUrl);
+
+        return view('livewire.auth.login-universal', compact('logoUrl'));
     }
 }

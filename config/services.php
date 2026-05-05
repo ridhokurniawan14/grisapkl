@@ -22,6 +22,12 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    // Tambahkan di array services:
+    'fontee' => [
+        'api_key' => env('FONTEE_API_KEY'),
+        'sender'  => env('FONTEE_SENDER_ID'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
