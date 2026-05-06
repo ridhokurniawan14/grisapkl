@@ -66,7 +66,7 @@ class LoginUniversal extends Component
     public function render()
     {
         $school   = SchoolProfile::first();
-        $logoUrl  = ($school && $school->logo_path) ? asset('storage/' . $school->logo_path) : null;
+        $logoUrl  = ($school && $school->app_logo_path) ? asset('storage/' . $school->app_logo_path) : null;
 
         // Pass faviconUrl ke layout via share (pakai ViewComposer atau langsung)
         view()->share('faviconUrl', $logoUrl);

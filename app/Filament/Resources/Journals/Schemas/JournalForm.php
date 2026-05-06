@@ -63,11 +63,17 @@ class JournalForm
                 Textarea::make('activity')
                     ->label('Detail Kegiatan yang Dilakukan (Sore/Siang)')
                     ->placeholder('Contoh: Melakukan instalasi Windows 11 pada 5 PC Lab komputer...')
-                    // Kita buat nullable, karena saat absen pagi, kegiatan ini belum diisi oleh siswa
-                    ->nullable()
                     ->rows(4)
                     ->columnSpanFull()
-                    ->helperText('Jelaskan kegiatan secara rinci minimal 1 kalimat.'),
+                    // ->required(fn(Get $get) => $get('attend_status') !== 'Libur') // wajib kalau bukan libur
+                    ->default(fn(Get $get) => $get('attend_status') === 'Libur' ? 'Libur' : null)
+                    ->dehydrated(fn(Get $get, $state) => $get('attend_status') === 'Libur' ? true : filled($state))
+                    ->afterStateHydrated(function ($state, callable $set, Get $get) {
+                        if ($get('attend_status') === 'Libur' && empty($state)) {
+                            $set('activity', 'Libur');
+                        }
+                    })
+                    ->helperText('Tidak wajib diisi jika status Libur.'),
 
                 // =======================================================
                 // DUA FOTO BERSEBELAHAN (PAGI & SORE)

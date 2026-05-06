@@ -1,9 +1,10 @@
-<div class="flex flex-col w-full relative pb-10" x-data="absensiApp()">
+<div class="flex flex-col w-full relative pb-10" x-data="absensiApp()" x-init="startClock()">
 
-    <!-- Time & Status Section -->
+    <!-- Time & Status Section (REALTIME CLOCK) -->
     <div class="flex flex-col items-center justify-center mb-4 text-center">
-        <h2 class="text-3xl font-bold text-on-surface mb-1">{{ now()->format('H:i') }} WIB</h2>
-        <p class="text-sm text-outline">{{ now()->isoFormat('dddd, D MMMM YYYY') }}</p>
+        <!-- Teks Jam digerakkan oleh Alpine.js -->
+        <h2 class="text-4xl font-extrabold text-on-surface mb-1 tracking-tight" x-text="currentTime"></h2>
+        <p class="text-[13px] font-medium text-outline" x-text="currentDate"></p>
 
         @if (!$hasAttendedToday)
             <div
@@ -44,8 +45,7 @@
         @endif
     </div>
 
-    <!-- Secondary Actions Bento Grid (KUNCI MATI JIKA SUDAH ABSEN) -->
-    <!-- Dihilangkan wire:click dan wire:confirm bawaan, diganti ke @click AlpineJS -->
+    <!-- Secondary Actions Bento Grid -->
     <div class="grid grid-cols-3 gap-3 mb-8 relative z-20">
         <button @if (!$hasAttendedToday) @click="openConfirm('Izin')" @endif
             {{ $hasAttendedToday ? 'disabled' : '' }}
@@ -54,7 +54,6 @@
             <span class="material-symbols-outlined mb-1">assignment_late</span>
             <span class="text-xs font-medium">Izin</span>
         </button>
-
         <button @if (!$hasAttendedToday) @click="openConfirm('Sakit')" @endif
             {{ $hasAttendedToday ? 'disabled' : '' }}
             class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 
@@ -62,7 +61,6 @@
             <span class="material-symbols-outlined mb-1">medical_services</span>
             <span class="text-xs font-medium">Sakit</span>
         </button>
-
         <button @if (!$hasAttendedToday) @click="openConfirm('Libur')" @endif
             {{ $hasAttendedToday ? 'disabled' : '' }}
             class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 
@@ -70,104 +68,6 @@
             <span class="material-symbols-outlined mb-1">event_available</span>
             <span class="text-xs font-medium">Libur</span>
         </button>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- MODAL CUSTOM KONFIRMASI (IZIN/SAKIT/LIBUR) -->
-    <!-- ========================================== -->
-    <div x-show="showConfirmModal" x-cloak
-        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-        <div x-show="showConfirmModal" x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
-            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-            x-transition:leave-end="opacity-0 scale-90 translate-y-4" @click.away="showConfirmModal = false"
-            class="bg-surface-container-lowest w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-white/20 relative">
-
-            <!-- Ikon Dinamis -->
-            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner"
-                :class="confirmIconBg">
-                <span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;"
-                    :class="confirmIconColor" x-text="confirmIcon"></span>
-            </div>
-
-            <!-- Teks Pesan -->
-            <h3 class="text-[20px] font-bold text-on-surface mb-2" x-text="confirmTitle"></h3>
-            <p class="text-[13px] text-on-surface-variant mb-6 leading-relaxed" x-text="confirmMessage"></p>
-
-            <!-- Aksi Tombol -->
-            <div class="flex w-full gap-3">
-                <button @click="showConfirmModal = false"
-                    class="flex-1 h-[48px] bg-surface-container-highest hover:bg-surface-variant text-on-surface text-[14px] font-semibold rounded-[1.25rem] transition-all active:scale-95">
-                    Batal
-                </button>
-                <button @click="executeAttendance()"
-                    class="flex-1 h-[48px] text-white text-[14px] font-semibold rounded-[1.25rem] transition-all active:scale-95 shadow-md"
-                    :class="confirmBtnColor">
-                    Lanjutkan
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- MODAL CUSTOM ALERT PENOLAKAN RADIUS        -->
-    <!-- ========================================== -->
-    <div x-show="showErrorModal" x-cloak
-        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-        <div x-show="showErrorModal" x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
-            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-            x-transition:leave-end="opacity-0 scale-90 translate-y-4" @click.away="showErrorModal = false"
-            class="bg-surface-container-lowest w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-white/20 relative">
-
-            <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-4 shadow-inner">
-                <span class="material-symbols-outlined text-error text-[36px]"
-                    style="font-variation-settings: 'FILL' 1;">location_off</span>
-            </div>
-
-            <h3 class="text-[20px] font-bold text-on-surface mb-2">Akses Ditolak!</h3>
-            <p class="text-[13px] text-on-surface-variant mb-6 leading-relaxed" x-text="errorMessage"></p>
-
-            <button @click="showErrorModal = false"
-                class="w-full h-[48px] bg-error hover:bg-red-700 text-white text-[15px] font-semibold rounded-[1.25rem] transition-all active:scale-95 shadow-lg shadow-error/30">
-                Mengerti
-            </button>
-        </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- MODAL KAMERA                               -->
-    <!-- ========================================== -->
-    <div x-show="isCameraOpen" x-cloak class="fixed inset-0 z-[9999] bg-black flex flex-col justify-between">
-        <div class="p-4 flex justify-between items-center text-white bg-gradient-to-b from-black/80 to-transparent">
-            <h3 class="font-semibold">Verifikasi Wajah & Lokasi</h3>
-            <button @click="closeCamera()" class="p-2 bg-white/20 rounded-full active:scale-95"><span
-                    class="material-symbols-outlined">close</span></button>
-        </div>
-
-        <div class="relative flex-1 flex items-center justify-center overflow-hidden">
-            <video x-ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
-            <canvas x-ref="canvas" class="hidden"></canvas>
-
-            <div x-show="isLoading"
-                class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-20">
-                <span class="material-symbols-outlined animate-spin text-[48px] mb-3">refresh</span>
-                <p x-text="loadingText" class="text-sm font-semibold"></p>
-            </div>
-
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div class="w-64 h-64 border-2 border-dashed border-white/50 rounded-3xl"></div>
-            </div>
-        </div>
-
-        <div class="p-8 pb-12 flex justify-center items-center bg-black">
-            <button @click="takeSnapshot()" :disabled="isLoading"
-                class="w-20 h-20 bg-white rounded-full border-[6px] border-gray-400 active:scale-90 transition-transform disabled:opacity-50"></button>
-        </div>
     </div>
 
     <!-- FORM JURNAL -->
@@ -188,7 +88,6 @@
             </div>
 
             <form wire:submit="saveJournal">
-                <!-- INPUT FOTO KEGIATAN -->
                 <div class="mb-4">
                     <p class="text-[13px] font-medium text-on-surface-variant mb-1.5">Foto
                         {{ $todayJournal->attend_status === 'Hadir' ? 'Kegiatan' : 'Bukti (Surat Dokter/Ortu)' }}</p>
@@ -207,14 +106,12 @@
                         <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*"
                             capture="environment">
                     </label>
-                    <div wire:loading wire:target="activityPhoto" class="text-xs text-primary mt-1">Mengunggah...
-                    </div>
+                    <div wire:loading wire:target="activityPhoto" class="text-xs text-primary mt-1">Mengunggah...</div>
                     @error('activityPhoto')
                         <span class="text-xs text-error mt-1">{{ $message }}</span>
                     @enderror
                 </div>
 
-                <!-- INPUT TEKS KEGIATAN -->
                 <textarea wire:model="activity"
                     class="w-full bg-surface border {{ $errors->has('activity') ? 'border-error' : 'border-outline-variant' }} rounded-xl p-3 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none h-28 mb-4 placeholder:text-outline/60"
                     placeholder="{{ $todayJournal->attend_status === 'Hadir' ? 'Ceritakan apa saja yang kamu pelajari/kerjakan hari ini...' : 'Berikan keterangan detail...' }}"
@@ -234,69 +131,271 @@
         </div>
     @endif
 
-    <!-- History Absen Section -->
+    <!-- History Absen Section (5 Hari Terakhir & BISA DIKLIK) -->
     <div class="mb-4">
         <div class="flex items-center justify-between mb-3 px-1">
-            <h3 class="text-lg font-bold text-on-surface">History Absen</h3>
+            <h3 class="text-lg font-bold text-on-surface">History (5 Hari Terakhir)</h3>
         </div>
 
         <div class="flex flex-col gap-3">
-            @if ($todayJournal)
-                <div
-                    class="bg-white p-3.5 rounded-2xl border border-surface-container shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        @php
-                            $iconBg = 'bg-green-100';
-                            $iconColor = 'text-green-700';
-                            $iconName = 'login';
-                            if ($todayJournal->attend_status == 'Izin') {
-                                $iconBg = 'bg-amber-100';
-                                $iconColor = 'text-amber-700';
-                                $iconName = 'assignment_late';
-                            }
-                            if ($todayJournal->attend_status == 'Sakit') {
-                                $iconBg = 'bg-red-100';
-                                $iconColor = 'text-red-700';
-                                $iconName = 'medical_services';
-                            }
-                            if ($todayJournal->attend_status == 'Libur') {
-                                $iconBg = 'bg-blue-100';
-                                $iconColor = 'text-blue-700';
-                                $iconName = 'event_available';
-                            }
-                        @endphp
+            @forelse($recentJournals as $journal)
+                @if ($journal->attend_status === 'Libur')
+                    <!-- ===================================== -->
+                    <!-- DATA LIBUR (STATIS, TIDAK BISA DIKLIK)-->
+                    <!-- ===================================== -->
+                    <div
+                        class="bg-white p-3.5 rounded-2xl border border-surface-container shadow-sm flex items-center justify-between opacity-90">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-700 border border-white">
+                                <span class="material-symbols-outlined text-[20px]"
+                                    style="font-variation-settings: 'FILL' 1;">event_available</span>
+                            </div>
+                            <div>
+                                <p class="text-[14px] font-semibold text-on-surface">Libur</p>
+                                <p class="text-[11px] text-outline">{{ $journal->formatted_date }}</p>
+                            </div>
+                        </div>
+                        <span
+                            class="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1 rounded-full text-[10px] font-bold border">
+                            Hari Libur
+                        </span>
+                    </div>
+                @else
+                    <!-- ===================================== -->
+                    <!-- DATA NORMAL (BISA DIKLIK -> MODAL)    -->
+                    <!-- ===================================== -->
+                    <div @click="openDetail({{ $journal->toJson() }})"
+                        class="cursor-pointer bg-white p-3.5 rounded-2xl border border-surface-container shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]">
+                        <div class="flex items-center gap-3">
+                            @php
+                                $iconBg = 'bg-green-100';
+                                $iconColor = 'text-green-700';
+                                $iconName = 'login';
+                                if ($journal->attend_status == 'Izin') {
+                                    $iconBg = 'bg-amber-100';
+                                    $iconColor = 'text-amber-700';
+                                    $iconName = 'assignment_late';
+                                }
+                                if ($journal->attend_status == 'Sakit') {
+                                    $iconBg = 'bg-red-100';
+                                    $iconColor = 'text-red-700';
+                                    $iconName = 'medical_services';
+                                }
+                            @endphp
 
-                        <div
-                            class="{{ $iconBg }} w-10 h-10 rounded-full flex items-center justify-center {{ $iconColor }} overflow-hidden border border-white">
-                            @if ($todayJournal->attendance_photo_path)
-                                <img src="{{ asset('storage/' . $todayJournal->attendance_photo_path) }}"
-                                    class="w-full h-full object-cover">
-                            @else
+                            <div
+                                class="{{ $iconBg }} w-10 h-10 rounded-full flex items-center justify-center {{ $iconColor }} overflow-hidden border border-white">
                                 <span class="material-symbols-outlined text-[20px]"
                                     style="font-variation-settings: 'FILL' 1;">{{ $iconName }}</span>
-                            @endif
+                            </div>
+                            <div>
+                                <p class="text-[14px] font-semibold text-on-surface">{{ $journal->attend_status }}</p>
+                                <p class="text-[11px] text-outline">{{ $journal->formatted_date }} •
+                                    {{ $journal->formatted_time }}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-[14px] font-semibold text-on-surface">{{ $todayJournal->attend_status }}
-                            </p>
-                            <p class="text-[11px] text-outline">Hari ini •
-                                {{ \Carbon\Carbon::parse($todayJournal->time)->format('H:i') }}</p>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="{{ $journal->is_valid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200' }} px-3 py-1 rounded-full text-[10px] font-bold border">
+                                {{ $journal->is_valid ? 'Valid' : 'Invalid' }}
+                            </span>
+                            <span class="material-symbols-outlined text-outline text-[18px]">chevron_right</span>
                         </div>
                     </div>
-                    <span
-                        class="{{ $todayJournal->is_valid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200' }} px-3 py-1 rounded-full text-[10px] font-bold border">
-                        {{ $todayJournal->is_valid ? 'Valid' : 'Invalid' }}
-                    </span>
-                </div>
-            @endif
+                @endif
+            @empty
+                <p class="text-center text-sm text-outline py-4">Belum ada history absen.</p>
+            @endforelse
         </div>
     </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL DETAIL ABSENSI (MUNCUL SAAT DIKLIK)  -->
+    <!-- ========================================== -->
+    <div x-show="showDetailModal" x-cloak
+        class="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:px-4">
+        <div x-show="showDetailModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-full sm:scale-90 sm:translate-y-4"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100 sm:translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100 sm:translate-y-0"
+            x-transition:leave-end="opacity-0 translate-y-full sm:scale-90 sm:translate-y-4"
+            @click.away="showDetailModal = false"
+            class="bg-surface-bright w-full max-w-[400px] sm:rounded-[2rem] rounded-t-[2rem] p-6 pb-8 flex flex-col shadow-2xl relative max-h-[90vh] overflow-y-auto">
+
+            <!-- Garis Drag (Dekorasi Mobile) -->
+            <div class="w-12 h-1.5 bg-outline-variant/50 rounded-full mx-auto mb-4 sm:hidden"></div>
+
+            <template x-if="selectedJournal">
+                <div class="flex flex-col">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-on-surface"
+                                x-text="'Laporan ' + selectedJournal.attend_status"></h3>
+                            <p class="text-[13px] text-outline mt-0.5"
+                                x-text="selectedJournal.formatted_date + ' • ' + selectedJournal.formatted_time"></p>
+                        </div>
+                        <button @click="showDetailModal = false"
+                            class="p-2 bg-surface-variant rounded-full text-on-surface-variant active:scale-95"><span
+                                class="material-symbols-outlined text-[20px]">close</span></button>
+                    </div>
+
+                    <!-- FOTO WAJAH ABSEN -->
+                    <template x-if="selectedJournal.attendance_photo_url">
+                        <div class="mb-4">
+                            <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Absensi</p>
+                            <div
+                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm">
+                                <img :src="selectedJournal.attendance_photo_url" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- LOKASI KOORDINAT -->
+                    <template x-if="selectedJournal.latitude && selectedJournal.longitude">
+                        <div
+                            class="mb-4 bg-surface-container-low p-3 rounded-xl border border-surface-container-high flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary">location_on</span>
+                            <div class="flex-1">
+                                <p class="text-xs font-semibold text-on-surface">Koordinat Lokasi</p>
+                                <p class="text-[11px] text-on-surface-variant"
+                                    x-text="selectedJournal.latitude + ', ' + selectedJournal.longitude"></p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- FOTO KEGIATAN -->
+                    <template x-if="selectedJournal.activity_photo_url">
+                        <div class="mb-4">
+                            <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Kegiatan / Bukti</p>
+                            <div
+                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm">
+                                <img :src="selectedJournal.activity_photo_url" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- DESKRIPSI -->
+                    <div class="mb-2">
+                        <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Keterangan Jurnal</p>
+                        <div
+                            class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30 min-h-[60px]">
+                            <p class="text-[13px] text-on-surface leading-relaxed"
+                                x-text="selectedJournal.activity || 'Belum ada keterangan / jurnal belum diisi.'"></p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+    <!-- ========================================== -->
+
+
+    <!-- ========================================== -->
+    <!-- MODAL KAMERA (DENGAN FRAME OVAL)           -->
+    <!-- ========================================== -->
+    <div x-show="isCameraOpen" x-cloak class="fixed inset-0 z-[9999] bg-black flex flex-col justify-between">
+        <div
+            class="p-4 flex justify-between items-center text-white bg-gradient-to-b from-black/80 to-transparent z-30">
+            <h3 class="font-semibold">Verifikasi Wajah & Lokasi</h3>
+            <button @click="closeCamera()" class="p-2 bg-white/20 rounded-full active:scale-95"><span
+                    class="material-symbols-outlined">close</span></button>
+        </div>
+
+        <div class="relative flex-1 flex items-center justify-center overflow-hidden">
+            <video x-ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
+            <canvas x-ref="canvas" class="hidden"></canvas>
+
+            <div x-show="isLoading"
+                class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-40">
+                <span class="material-symbols-outlined animate-spin text-[48px] mb-3">refresh</span>
+                <p x-text="loadingText" class="text-sm font-semibold"></p>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- FRAME OVAL NATURAL DENGAN SHADOW RAKSASA   -->
+            <!-- ========================================== -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden">
+                <div class="relative flex items-center justify-center">
+                    <!-- Trik box-shadow raksasa (4000px) untuk menggelapkan luar oval, tapi membiarkan tengahnya terang dan bolong! -->
+                    <div
+                        class="w-[220px] h-[300px] border-2 border-dashed border-white/80 rounded-[110px/150px] shadow-[0_0_0_4000px_rgba(0,0,0,0.6)]">
+                    </div>
+                </div>
+                <div class="absolute bottom-16 w-full text-center text-white text-[14px] font-medium drop-shadow-md">
+                    Posisikan wajah di dalam frame
+                </div>
+            </div>
+            <!-- ========================================== -->
+        </div>
+
+        <div class="p-8 pb-12 flex justify-center items-center bg-black z-30">
+            <button @click="takeSnapshot()" :disabled="isLoading"
+                class="w-20 h-20 bg-white rounded-full border-[6px] border-gray-400 active:scale-90 transition-transform disabled:opacity-50"></button>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- MODAL CUSTOM KONFIRMASI & ALERT (Sama spt sebelumnya) -->
+    <!-- ========================================== -->
+    <!-- MODAL CONFIRM -->
+    <div x-show="showConfirmModal" x-cloak
+        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+        <div x-show="showConfirmModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-90 translate-y-4" @click.away="showConfirmModal = false"
+            class="bg-surface-container-lowest w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-white/20 relative">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner"
+                :class="confirmIconBg"><span class="material-symbols-outlined text-[36px]"
+                    style="font-variation-settings: 'FILL' 1;" :class="confirmIconColor" x-text="confirmIcon"></span>
+            </div>
+            <h3 class="text-[20px] font-bold text-on-surface mb-2" x-text="confirmTitle"></h3>
+            <p class="text-[13px] text-on-surface-variant mb-6 leading-relaxed" x-text="confirmMessage"></p>
+            <div class="flex w-full gap-3">
+                <button @click="showConfirmModal = false"
+                    class="flex-1 h-[48px] bg-surface-container-highest hover:bg-surface-variant text-on-surface text-[14px] font-semibold rounded-[1.25rem] transition-all active:scale-95">Batal</button>
+                <button @click="executeAttendance()"
+                    class="flex-1 h-[48px] text-white text-[14px] font-semibold rounded-[1.25rem] transition-all active:scale-95 shadow-md"
+                    :class="confirmBtnColor">Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ERROR RADIUS -->
+    <div x-show="showErrorModal" x-cloak
+        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+        <div x-show="showErrorModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-90 translate-y-4" @click.away="showErrorModal = false"
+            class="bg-surface-container-lowest w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-white/20 relative">
+            <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-4 shadow-inner"><span
+                    class="material-symbols-outlined text-error text-[36px]"
+                    style="font-variation-settings: 'FILL' 1;">location_off</span></div>
+            <h3 class="text-[20px] font-bold text-on-surface mb-2">Akses Ditolak!</h3>
+            <p class="text-[13px] text-on-surface-variant mb-6 leading-relaxed" x-text="errorMessage"></p>
+            <button @click="showErrorModal = false"
+                class="w-full h-[48px] bg-error hover:bg-red-700 text-white text-[15px] font-semibold rounded-[1.25rem] transition-all active:scale-95 shadow-lg shadow-error/30">Mengerti</button>
+        </div>
+    </div>
+
 
     <!-- SCRIPT ALPINE.JS -->
     <script>
         document.addEventListener('alpine:init', () => {
-            // Ubah nama root data agar lebih merepresentasikan seluruh page
             Alpine.data('absensiApp', () => ({
+                // CLOCK STATE
+                currentTime: 'Menunggu...',
+                currentDate: '',
+
+                // CAMERA STATE
                 isCameraOpen: false,
                 isLoading: false,
                 loadingText: '',
@@ -304,12 +403,9 @@
                 lat: null,
                 lng: null,
 
+                // ERROR & CONFIRM STATE
                 showErrorModal: false,
                 errorMessage: '',
-
-                // ===================================
-                // STATE UNTUK MODAL KONFIRMASI
-                // ===================================
                 showConfirmModal: false,
                 confirmType: '',
                 confirmTitle: '',
@@ -319,14 +415,40 @@
                 confirmIconColor: '',
                 confirmBtnColor: '',
 
+                // DETAIL HISTORY STATE
+                showDetailModal: false,
+                selectedJournal: null,
+
+                startClock() {
+                    const updateTime = () => {
+                        const now = new Date();
+                        this.currentTime = now.toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) + ' WIB';
+                        this.currentDate = now.toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    };
+                    updateTime();
+                    setInterval(updateTime, 1000); // Update setiap 1 detik
+                },
+
+                openDetail(journal) {
+                    this.selectedJournal = journal;
+                    this.showDetailModal = true;
+                },
+
                 openConfirm(type) {
                     this.confirmType = type;
                     this.showConfirmModal = true;
-
                     if (type === 'Izin') {
                         this.confirmTitle = 'Ajukan Izin';
                         this.confirmMessage =
-                            'Anda yakin ingin mengajukan izin hari ini? Anda tetap diwajibkan mengunggah foto bukti / surat keterangan.';
+                            'Anda yakin ingin mengajukan izin hari ini? Anda tetap diwajibkan mengunggah foto bukti.';
                         this.confirmIcon = 'assignment_late';
                         this.confirmIconBg = 'bg-amber-100';
                         this.confirmIconColor = 'text-amber-600';
@@ -334,7 +456,7 @@
                     } else if (type === 'Sakit') {
                         this.confirmTitle = 'Lapor Sakit';
                         this.confirmMessage =
-                            'Semoga cepat sembuh! Yakin ingin lapor sakit? Jangan lupa lampirkan foto surat dokter atau bukti lain pada form.';
+                            'Yakin ingin lapor sakit? Jangan lupa lampirkan foto surat dokter atau bukti lain pada form.';
                         this.confirmIcon = 'medical_services';
                         this.confirmIconBg = 'bg-red-100';
                         this.confirmIconColor = 'text-red-600';
@@ -342,7 +464,7 @@
                     } else if (type === 'Libur') {
                         this.confirmTitle = 'Lapor Libur';
                         this.confirmMessage =
-                            'Tandai hari ini sebagai tanggal merah atau hari libur DUDIKA? Anda tidak perlu mengisi jurnal hari ini.';
+                            'Tandai hari ini sebagai tanggal merah atau libur? Anda tidak perlu mengisi jurnal.';
                         this.confirmIcon = 'event_available';
                         this.confirmIconBg = 'bg-blue-100';
                         this.confirmIconColor = 'text-blue-600';
@@ -351,15 +473,10 @@
                 },
 
                 executeAttendance() {
-                    // Tutup modal
                     this.showConfirmModal = false;
-                    // Tembak fungsi backend Livewire
                     this.$wire.markAttendance(this.confirmType);
                 },
 
-                // ===================================
-                // FUNGSI KAMERA (Tetap)
-                // ===================================
                 async openCamera() {
                     this.isCameraOpen = true;
                     this.isLoading = true;

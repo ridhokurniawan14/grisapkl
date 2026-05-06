@@ -40,6 +40,11 @@ class PklPlacementResource extends Resource
         return PklPlacementInfolist::configure($schema);
     }
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['student.name'];
+    }
+
     public static function table(Table $table): Table
     {
         return PklPlacementsTable::configure($table);

@@ -7,6 +7,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -19,6 +20,16 @@ class StudentForm
     {
         return $schema
             ->components([
+                FileUpload::make('avatar')
+                    ->label('Foto Profil')
+                    ->image()
+                    ->avatar()
+                    ->disk('public')
+                    ->directory('students/avatars')
+                    ->maxSize(2048)
+                    ->columnSpanFull()
+                    ->alignCenter(),
+
                 // SECTION 1: BIODATA DIRI
                 Section::make('Biodata Diri')
                     ->description('Masukkan informasi pribadi dan data akademik siswa.')

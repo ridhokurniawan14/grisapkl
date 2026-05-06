@@ -133,21 +133,23 @@
                     </div>
 
                     {{-- Submit Button --}}
+                    {{-- Submit Button (Loading Spinner Murni Tengah) --}}
                     <button type="submit"
-                        class="w-full h-[50px] mt-1 bg-primary hover:bg-primary-fixed-variant text-on-primary
-                               text-[15px] font-semibold rounded-2xl flex items-center justify-center gap-2
+                        class="w-full h-[52px] mt-1 bg-primary hover:bg-primary-fixed-variant text-on-primary
+                               text-[16px] font-semibold rounded-[1.25rem] flex items-center justify-center gap-2
                                transition-all active:scale-[0.98] shadow-lg hover:shadow-primary/30">
+
+                        {{-- Teks (Hilang otomatis saat loading) --}}
                         <span wire:loading.remove wire:target="authenticate">Masuk Sekarang</span>
-                        <span wire:loading wire:target="authenticate" class="flex items-center gap-2">
-                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
-                                fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4" />
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Memeriksa...
-                        </span>
+
+                        {{-- Spinner (Muncul otomatis di tengah saat loading) --}}
+                        <svg wire:loading wire:target="authenticate" class="animate-spin h-6 w-6 text-white"
+                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
                     </button>
                 </form>
 

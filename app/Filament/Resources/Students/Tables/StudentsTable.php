@@ -14,6 +14,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -28,6 +29,13 @@ class StudentsTable
             ->poll('5s')
             ->defaultSort('created_at', 'desc')
             ->columns([
+                // ImageColumn::make('avatar')
+                //     ->label('Foto Profil')
+                //     ->circular()
+                //     ->disk('public')
+                //     ->defaultImageUrl(fn($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->name) . '&color=FFFFFF&background=10b981')
+                //     ->grow(false),
+
                 TextColumn::make('name')
                     ->label('Nama Lengkap')
                     ->searchable()

@@ -10,7 +10,7 @@
 
     @php
         $school = \App\Models\SchoolProfile::first();
-        $dynamicFavicon = $school && $school->logo_path ? asset('storage/' . $school->logo_path) : null;
+        $dynamicFavicon = $school && $school->app_logo_path ? asset('storage/' . $school->app_logo_path) : null;
     @endphp
 
     {{-- Dynamic Favicon dari logo sekolah --}}

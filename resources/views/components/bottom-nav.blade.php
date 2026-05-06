@@ -21,11 +21,12 @@
             <span class="material-symbols-outlined mb-1 text-[24px]">description</span>
             <span class="text-[10px] font-medium">Jurnal</span>
         </a>
-        <!-- 3. Absen (Center Active) -->
+        <!-- 3. Absen -->
+        @php $isAbsen = request()->routeIs('siswa.absen'); @endphp
         <a href="{{ route('siswa.absen') }}"
-            class="flex flex-col items-center justify-center text-primary font-bold bg-primary/10 rounded-xl px-4 py-1.5 -mt-3 shadow-sm">
+            class="flex flex-col items-center justify-center {{ $isAbsen ? 'text-primary font-bold bg-primary/10' : 'text-outline hover:text-primary bg-transparent' }} rounded-xl px-4 py-1.5 -mt-3 shadow-sm transition-all">
             <span class="material-symbols-outlined mb-0.5 text-[24px]"
-                style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+                style="font-variation-settings: 'FILL' {{ $isAbsen ? '1' : '0' }};">fingerprint</span>
             <span class="text-[11px] font-medium">Absen</span>
         </a>
         <!-- 4. Dudika -->
@@ -35,9 +36,11 @@
             <span class="text-[10px] font-medium">DUDIKA</span>
         </a>
         <!-- 5. Profile -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">person</span>
+        @php $isProfile = request()->routeIs('siswa.profil'); @endphp
+        <a href="{{ route('siswa.profil') }}"
+            class="flex flex-col items-center justify-center {{ $isProfile ? 'text-primary font-bold bg-primary/10' : 'text-outline hover:text-primary bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isProfile ? '1' : '0' }};">person</span>
             <span class="text-[10px] font-medium">Profil</span>
         </a>
 

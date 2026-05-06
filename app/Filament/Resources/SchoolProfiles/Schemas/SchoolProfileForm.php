@@ -136,6 +136,17 @@ class SchoolProfileForm
                         Tab::make('Pengaturan PKL')
                             ->icon('heroicon-m-cog-8-tooth')
                             ->schema([
+                                // Upload Logo Aplikasi
+                                FileUpload::make('app_logo_path')
+                                    ->label('Logo Aplikasi PKL')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->disk('public')
+                                    ->imagePreviewHeight('250')
+                                    ->directory('app_logos')
+                                    ->helperText('Upload logo khusus untuk aplikasi (akan muncul di halaman login atau sidebar aplikasi).')
+                                    ->columnSpanFull(),
+
                                 \Filament\Forms\Components\Toggle::make('is_radius_attendance_enabled')
                                     ->label('Aktifkan Validasi Radius Absensi')
                                     ->helperText('Jika menyala, siswa WAJIB berada di dalam radius DUDIKA untuk bisa absen.')

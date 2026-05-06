@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Students\Schemas;
 
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -15,6 +16,14 @@ class StudentInfolist
             ->components([
                 Section::make('Biodata Diri')
                     ->schema([
+                        ImageEntry::make('avatar')
+                            ->label('Foto Profil')
+                            ->circular()
+                            ->disk('public')
+                            ->defaultImageUrl(fn($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->name) . '&color=FFFFFF&background=10b981')
+                            ->columnSpanFull()
+                            ->alignCenter(),
+
                         Grid::make(2)->schema([
                             TextEntry::make('name')->label('Nama Lengkap Siswa'),
                             TextEntry::make('nis')->label('NIS (Nomor Induk Siswa)'),

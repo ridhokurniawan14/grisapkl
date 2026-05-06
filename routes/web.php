@@ -38,6 +38,8 @@ Route::middleware('guest')->group(function () {
 // RUTE PWA SISWA
 // ==========================================================
 Route::get('/siswa/absen', \App\Livewire\Student\Absensi::class)->name('siswa.absen');
+Route::get('/siswa/profil', \App\Livewire\Student\Profil::class)->name('siswa.profil');
+Route::get('/siswa/profil/edit', \App\Livewire\Student\ProfilEdit::class)->name('siswa.profil.edit'); // TAMBAHKAN INI
 
 // ==========================================================
 // RUTE PWA DUDIKA

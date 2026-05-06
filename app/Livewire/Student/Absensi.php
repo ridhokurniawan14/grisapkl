@@ -5,16 +5,17 @@ namespace App\Livewire\Student;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
-use Livewire\WithFileUploads; // WAJIB UNTUK UPLOAD FOTO
+use Livewire\WithFileUploads;
 use App\Models\Journal;
 use App\Models\PklPlacement;
 use App\Models\SchoolProfile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 #[Layout('components.layouts.app')]
-#[Title('Absensi - PKL Connect')]
+#[Title('Absensi - GrisaPKL')]
 class Absensi extends Component
 {
     use WithFileUploads;
@@ -23,9 +24,8 @@ class Absensi extends Component
     public $hasAttendedToday = false;
     public $todayJournal;
 
-    // Properti Form Jurnal
     public $activity = '';
-    public $activityPhoto; // Properti untuk foto kegiatan
+    public $activityPhoto;
 
     public function mount()
     {
@@ -47,39 +47,27 @@ class Absensi extends Component
         $this->hasAttendedToday = $this->todayJournal ? true : false;
     }
 
-    // ==========================================
-    // 1. FUNGSI CEK RADIUS DARI ALPINE.JS
-    // ==========================================
     public function verifyLocation($lat, $lng)
     {
         $school = SchoolProfile::first();
 
-        // Jika fitur radius aktif dari Humas
         if ($school && $school->is_radius_attendance_enabled) {
             $placementLat = $this->placement->latitude;
             $placementLng = $this->placement->longitude;
             $maxRadius = $this->placement->radius ?? 50;
 
-            // Jika koordinat PKL belum diatur, izinkan saja (bypass)
             if (!$placementLat || !$placementLng) return true;
 
             $distance = $this->calculateDistance($lat, $lng, $placementLat, $placementLng);
-
-            // Jika lebih dari radius, kembalikan FALSE (Ditolak)
             if ($distance > $maxRadius) return false;
         }
 
-        return true; // Valid / Dalam Radius
+        return true;
     }
 
-    // ==========================================
-    // 2. FUNGSI ABSEN MASUK (HADIR) FOTO WAJAH
-    // ==========================================
     public function submitAttendance($photoBase64, $lat, $lng)
     {
         if (!$this->placement || $this->hasAttendedToday) return;
-
-        // Validasi keamanan lapis dua di backend
         if (!$this->verifyLocation($lat, $lng)) return;
 
         $imageParts = explode(";base64,", $photoBase64);
@@ -99,21 +87,16 @@ class Absensi extends Component
             'latitude'              => $lat,
             'longitude'             => $lng,
             'is_valid'              => true,
-            'activity'              => '', // Kosong agar memicu Form Jurnal
+            'activity'              => '',
         ]);
 
         $this->checkAttendanceStatus();
     }
 
-    // ==========================================
-    // 3. FUNGSI TOMBOL IZIN / SAKIT / LIBUR
-    // ==========================================
     public function markAttendance($status)
     {
         if (!$this->placement || $this->hasAttendedToday) return;
 
-        // Jika Libur, langsung isi activity dengan 'Libur' agar form jurnal TIDAK MUNCUL
-        // Jika Izin/Sakit, isi dengan '' (string kosong) agar form jurnal MUNCUL
         $activityText = ($status === 'Libur') ? 'Libur / Tanggal Merah' : '';
 
         Journal::create([
@@ -128,18 +111,14 @@ class Absensi extends Component
         $this->checkAttendanceStatus();
     }
 
-    // ==========================================
-    // 4. FUNGSI SIMPAN JURNAL (TEKS + FOTO KEGIATAN)
-    // ==========================================
     public function saveJournal()
     {
         $this->validate([
             'activity'      => 'required|min:10',
-            'activityPhoto' => 'required|image|max:5120', // Wajib Foto, max 5MB
+            'activityPhoto' => 'required|image|max:5120',
         ]);
 
         if ($this->todayJournal) {
-            // Upload Foto Kegiatan
             $photoPath = $this->activityPhoto->store('journal_photos', 'public');
 
             $this->todayJournal->update([
@@ -147,7 +126,6 @@ class Absensi extends Component
                 'photo_path' => $photoPath,
             ]);
 
-            // Bersihkan form
             $this->activity = '';
             $this->activityPhoto = null;
             $this->checkAttendanceStatus();
@@ -166,6 +144,25 @@ class Absensi extends Component
 
     public function render()
     {
-        return view('livewire.student.absensi');
+        // AMBIL 5 DATA HISTORY TERAKHIR & SIAPKAN URL FOTO UNTUK MODAL
+        $recentJournals = collect();
+        if ($this->placement) {
+            $recentJournals = Journal::where('pkl_placement_id', $this->placement->id)
+                ->orderBy('date', 'desc')
+                ->orderBy('time', 'desc')
+                ->take(5)
+                ->get()
+                ->map(function ($j) {
+                    $j->attendance_photo_url = $j->attendance_photo_path ? asset('storage/' . $j->attendance_photo_path) : null;
+                    $j->activity_photo_url = $j->photo_path ? asset('storage/' . $j->photo_path) : null;
+                    $j->formatted_date = Carbon::parse($j->date)->isoFormat('dddd, D MMM YYYY');
+                    $j->formatted_time = Carbon::parse($j->time)->format('H:i');
+                    return $j;
+                });
+        }
+
+        return view('livewire.student.absensi', [
+            'recentJournals' => $recentJournals
+        ]);
     }
 }
