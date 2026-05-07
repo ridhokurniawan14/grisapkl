@@ -158,22 +158,27 @@
             $initials = strtoupper($initials);
         @endphp
 
-        {{-- ============================================================ --}}
-        {{-- HEADER — tanpa nama aplikasi agar tidak tertutup poni iPhone  --}}
-        {{-- ============================================================ --}}
         <header
             class="{{ $headerBg }} absolute top-0 w-full z-50 flex justify-between items-center px-4 h-16 transition-colors duration-300">
 
-            {{-- Avatar kiri (disembunyikan di halaman Profil) --}}
+            {{-- Avatar & Sapaan (disembunyikan di halaman Profil) --}}
             @if (!$isProfile)
-                <div
-                    class="flex items-center justify-center w-10 h-10 rounded-full bg-[#e2dfff] overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
-                    {{-- Jika foto ada, tampilkan. Jika kosong, tampilkan inisial --}}
-                    @if (!empty($avatarPath))
-                        <img src="{{ asset('storage/' . $avatarPath) }}" class="w-full h-full object-cover" />
-                    @else
-                        <span class="text-[#3525cd] font-bold text-[15px]">{{ $initials }}</span>
-                    @endif
+                <div class="flex items-center gap-3">
+                    <div
+                        class="flex items-center justify-center w-10 h-10 rounded-full bg-[#e2dfff] overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
+                        {{-- Jika foto ada, tampilkan. Jika kosong, tampilkan inisial --}}
+                        @if (!empty($avatarPath))
+                            <img src="{{ asset('storage/' . $avatarPath) }}" class="w-full h-full object-cover" />
+                        @else
+                            <span class="text-[#3525cd] font-bold text-[15px]">{{ $initials }}</span>
+                        @endif
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <span class="text-[11px] font-medium text-slate-500 leading-tight">Hai,</span>
+                        <span class="text-[14px] font-bold text-slate-800 leading-tight truncate max-w-[120px]">
+                            {{ ucfirst(explode(' ', auth()->user()->name ?? 'Siswa')[0]) }}
+                        </span>
+                    </div>
                 </div>
             @else
                 <a href="{{ route('siswa.absen') }}"
@@ -185,14 +190,33 @@
 
             <div class="flex-grow"></div>
 
+            {{-- Tombol notifikasi kanan --}}
             <button
                 class="w-10 h-10 flex items-center justify-center rounded-full {{ $headerIcon }} transition-all active:scale-95 flex-shrink-0">
                 <span class="material-symbols-outlined">notifications</span>
             </button>
         </header>
 
-        <!-- Area Konten (Livewire slot) -->
-        <main class="flex-grow pt-20 pb-24 px-4 overflow-y-auto w-full">
+        @php
+            // Hapus padding atas (pt-20) khusus untuk Profil dan Dudika agar Background bisa mentok ke atas
+            $isProfileOrDudika = request()->routeIs('siswa.dudika');
+            $mainPadding = $isProfileOrDudika ? 'pt-0' : 'pt-20';
+        @endphp
+
+        <main class="flex-grow {{ $mainPadding }} pb-24 px-4 overflow-y-auto w-full">
+            <div class="absolute -inset-x-4 inset-y-0 z-0 pointer-events-none overflow-hidden">
+                <div class="absolute -top-10 -left-10 w-72 h-72 bg-blue-500/15 rounded-full blur-[80px] animate-pulse">
+                </div>
+                <div class="absolute top-[30%] -right-10 w-80 h-80 bg-purple-500/15 rounded-full blur-[80px]"
+                    style="animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
+                <div
+                    class="absolute bottom-10 left-1/3 w-64 h-64 bg-teal-400/15 rounded-full blur-[80px] animate-pulse">
+                </div>
+                {{-- tambah satu blob di pojok kanan bawah biar makin balanced --}}
+                <div
+                    class="absolute -bottom-10 -right-10 w-60 h-60 bg-indigo-400/10 rounded-full blur-[70px] animate-pulse">
+                </div>
+            </div>
             {{ $slot }}
         </main>
 

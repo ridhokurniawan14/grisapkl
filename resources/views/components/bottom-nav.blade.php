@@ -16,11 +16,14 @@
             <span class="text-[10px] font-medium">Beranda</span>
         </a>
         <!-- 2. Jurnal -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">description</span>
+        @php $isJurnal = request()->routeIs('siswa.jurnal'); @endphp
+        <a href="{{ route('siswa.jurnal') }}"
+            class="flex flex-col items-center justify-center {{ $isJurnal ? 'text-primary font-bold bg-primary/10' : 'text-outline hover:text-primary bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isJurnal ? '1' : '0' }};">description</span>
             <span class="text-[10px] font-medium">Jurnal</span>
         </a>
+
         <!-- 3. Absen -->
         @php $isAbsen = request()->routeIs('siswa.absen'); @endphp
         <a href="{{ route('siswa.absen') }}"
@@ -30,9 +33,11 @@
             <span class="text-[11px] font-medium">Absen</span>
         </a>
         <!-- 4. Dudika -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">business</span>
+        @php $isDudika = request()->routeIs('siswa.dudika'); @endphp
+        <a href="{{ route('siswa.dudika') }}"
+            class="flex flex-col items-center justify-center {{ $isDudika ? 'text-primary font-bold bg-primary/10' : 'text-outline hover:text-primary bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isDudika ? '1' : '0' }};">business</span>
             <span class="text-[10px] font-medium">DUDIKA</span>
         </a>
         <!-- 5. Profile -->

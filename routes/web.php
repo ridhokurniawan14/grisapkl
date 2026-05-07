@@ -37,9 +37,14 @@ Route::middleware('guest')->group(function () {
 // ==========================================================
 // RUTE PWA SISWA
 // ==========================================================
-Route::get('/siswa/absen', \App\Livewire\Student\Absensi::class)->name('siswa.absen');
-Route::get('/siswa/profil', \App\Livewire\Student\Profil::class)->name('siswa.profil');
-Route::get('/siswa/profil/edit', \App\Livewire\Student\ProfilEdit::class)->name('siswa.profil.edit'); // TAMBAHKAN INI
+Route::middleware(['auth', 'role:siswa'])->group(function () {
+    Route::get('/siswa/absen', \App\Livewire\Student\Absensi::class)->name('siswa.absen');
+    Route::get('/siswa/profil', \App\Livewire\Student\Profil::class)->name('siswa.profil');
+    Route::get('/siswa/profil/edit', \App\Livewire\Student\ProfilEdit::class)->name('siswa.profil.edit');
+    Route::get('/siswa/dudika', \App\Livewire\Student\Dudika::class)->name('siswa.dudika');
+    Route::get('/siswa/jurnal', \App\Livewire\Student\Jurnal::class)->name('siswa.jurnal');
+    Route::get('/siswa/jurnal/{id}/edit', \App\Livewire\Student\JurnalEdit::class)->name('siswa.jurnal.edit');
+});
 
 // ==========================================================
 // RUTE PWA DUDIKA

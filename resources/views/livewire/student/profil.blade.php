@@ -34,7 +34,7 @@
     $initials = collect(explode(' ', $name))->map(fn($s) => substr($s, 0, 1))->take(2)->join('');
 @endphp
 
-<div class="relative w-full pb-10">
+<div class="relative w-full pb-3">
 
     {{-- Background biru --}}
     <div class="absolute top-[-80px] -left-4 -right-4 h-[280px] bg-[#3525cd] z-0 rounded-b-[2.5rem]"></div>

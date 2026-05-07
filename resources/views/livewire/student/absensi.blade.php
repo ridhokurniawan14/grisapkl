@@ -1,218 +1,253 @@
-<div class="flex flex-col w-full relative pb-10" x-data="absensiApp()" x-init="startClock()">
+<div class="flex flex-col w-full relative pb-2 overflow-hidden min-h-[calc(100vh-4rem)]" x-data="absensiApp()"
+    x-init="startClock()">
 
-    <!-- Time & Status Section (REALTIME CLOCK) -->
-    <div class="flex flex-col items-center justify-center mb-4 text-center">
-        <!-- Teks Jam digerakkan oleh Alpine.js -->
-        <h2 class="text-4xl font-extrabold text-on-surface mb-1 tracking-tight" x-text="currentTime"></h2>
-        <p class="text-[13px] font-medium text-outline" x-text="currentDate"></p>
+    <div class="relative z-10 w-full flex flex-col">
 
-        @if (!$hasAttendedToday)
-            <div
-                class="mt-4 bg-surface-container-low px-4 py-2 rounded-full border border-surface-container-high flex items-center gap-2 shadow-sm">
-                <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-                <span class="text-xs font-medium text-on-surface-variant">Siap untuk Absen</span>
-            </div>
-        @else
-            <div
-                class="mt-4 bg-surface-container-low px-4 py-2 rounded-full border border-surface-container-high flex items-center gap-2 shadow-sm opacity-80">
-                <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
-                <span class="text-xs font-medium text-on-surface-variant">Sudah Absen Hari Ini</span>
-            </div>
-        @endif
-    </div>
+        <div class="flex flex-col items-center justify-center mb-4 text-center mt-2">
+            <h2 class="text-4xl font-extrabold text-on-surface mb-1 tracking-tight" x-text="currentTime"></h2>
+            <p class="text-[13px] font-medium text-outline" x-text="currentDate"></p>
 
-    <!-- Primary Action: Huge Check-in Button -->
-    <div class="flex justify-center my-6 relative h-[260px] items-center">
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div class="w-[230px] h-[230px] rounded-full border-[3px] border-primary/20"></div>
-            <div class="w-[270px] h-[270px] rounded-full border border-primary/10 absolute"></div>
-        </div>
-
-        @if (!$hasAttendedToday)
-            <button @click="openCamera()"
-                class="w-[160px] h-[160px] rounded-full bg-primary text-white flex flex-col items-center justify-center shadow-xl active:scale-95 transition-transform z-10 animate-subtle-pulse border-4 border-surface">
-                <span class="material-symbols-outlined text-[56px] mb-1"
-                    style="font-variation-settings: 'FILL' 1;">fingerprint</span>
-                <span class="text-[15px] font-semibold tracking-wide">Absen Masuk</span>
-            </button>
-        @else
-            <div
-                class="w-[160px] h-[160px] rounded-full bg-surface-variant text-outline flex flex-col items-center justify-center shadow-inner z-10 border-4 border-surface">
-                <span class="material-symbols-outlined text-[56px] mb-1"
-                    style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                <span class="text-[15px] font-semibold tracking-wide">Selesai</span>
-            </div>
-        @endif
-    </div>
-
-    <!-- Secondary Actions Bento Grid -->
-    <div class="grid grid-cols-3 gap-3 mb-8 relative z-20">
-        <button @if (!$hasAttendedToday) @click="openConfirm('Izin')" @endif
-            {{ $hasAttendedToday ? 'disabled' : '' }}
-            class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 
-            {{ $hasAttendedToday ? 'bg-surface-variant text-outline border-transparent' : 'bg-white text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
-            <span class="material-symbols-outlined mb-1">assignment_late</span>
-            <span class="text-xs font-medium">Izin</span>
-        </button>
-        <button @if (!$hasAttendedToday) @click="openConfirm('Sakit')" @endif
-            {{ $hasAttendedToday ? 'disabled' : '' }}
-            class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 
-            {{ $hasAttendedToday ? 'bg-surface-variant text-outline border-transparent' : 'bg-white text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
-            <span class="material-symbols-outlined mb-1">medical_services</span>
-            <span class="text-xs font-medium">Sakit</span>
-        </button>
-        <button @if (!$hasAttendedToday) @click="openConfirm('Libur')" @endif
-            {{ $hasAttendedToday ? 'disabled' : '' }}
-            class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 
-            {{ $hasAttendedToday ? 'bg-surface-variant text-outline border-transparent' : 'bg-white text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
-            <span class="material-symbols-outlined mb-1">event_available</span>
-            <span class="text-xs font-medium">Libur</span>
-        </button>
-    </div>
-
-    <!-- FORM JURNAL -->
-    @if (
-        $hasAttendedToday &&
-            $todayJournal &&
-            $todayJournal->activity === '' &&
-            in_array($todayJournal->attend_status, ['Hadir', 'Izin', 'Sakit']))
-        <div
-            class="bg-surface-container-lowest rounded-2xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/30 mb-8 animate-fade-in-up">
-            <div class="flex items-center gap-3 mb-4">
+            @if (!$hasAttendedToday)
                 <div
-                    class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
-                    <span class="material-symbols-outlined text-[18px]"
-                        style="font-variation-settings: 'FILL' 1;">edit_document</span>
+                    class="mt-4 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-surface-container-high flex items-center gap-2 shadow-sm">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-xs font-medium text-on-surface-variant">Siap untuk Absen</span>
                 </div>
-                <h3 class="text-lg font-bold text-on-surface">Lengkapi Bukti & Jurnal</h3>
+            @else
+                <div
+                    class="mt-4 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-surface-container-high flex items-center gap-2 shadow-sm opacity-80">
+                    <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                    <span class="text-xs font-medium text-on-surface-variant">Sudah Absen Hari Ini</span>
+                </div>
+            @endif
+        </div>
+
+        <div class="flex justify-center my-6 relative h-[260px] items-center">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-[230px] h-[230px] rounded-full border-[3px] border-primary/20"></div>
+                <div class="w-[270px] h-[270px] rounded-full border border-primary/10 absolute"></div>
             </div>
 
-            <form wire:submit="saveJournal">
-                <div class="mb-4">
-                    <p class="text-[13px] font-medium text-on-surface-variant mb-1.5">Foto
-                        {{ $todayJournal->attend_status === 'Hadir' ? 'Kegiatan' : 'Bukti (Surat Dokter/Ortu)' }}</p>
-                    <label
-                        class="w-full h-36 bg-surface rounded-xl border border-dashed border-outline-variant/60 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:bg-surface-container transition-colors">
-                        @if ($activityPhoto)
-                            <img src="{{ $activityPhoto->temporaryUrl() }}" class="w-full h-full object-cover">
-                            <div
-                                class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                <span class="text-white text-xs font-semibold">Ganti Foto</span>
-                            </div>
-                        @else
-                            <span class="material-symbols-outlined text-[32px] text-outline mb-1">add_a_photo</span>
-                            <span class="text-[12px] font-medium text-outline">Ambil atau pilih foto</span>
-                        @endif
-                        <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*"
-                            capture="environment">
-                    </label>
-                    <div wire:loading wire:target="activityPhoto" class="text-xs text-primary mt-1">Mengunggah...</div>
-                    @error('activityPhoto')
-                        <span class="text-xs text-error mt-1">{{ $message }}</span>
-                    @enderror
+            @if (!$hasAttendedToday)
+                <button @click="openCamera()"
+                    class="w-[160px] h-[160px] rounded-full bg-primary text-white flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(53,37,205,0.4)] active:scale-95 transition-transform z-10 animate-subtle-pulse border-4 border-white">
+                    <span class="material-symbols-outlined text-[56px] mb-1"
+                        style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+                    <span class="text-[15px] font-semibold tracking-wide">Absen Masuk</span>
+                </button>
+            @else
+                <div
+                    class="w-[160px] h-[160px] rounded-full bg-surface-variant text-outline flex flex-col items-center justify-center shadow-inner z-10 border-4 border-white backdrop-blur-md bg-white/50">
+                    <span class="material-symbols-outlined text-[56px] mb-1"
+                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                    <span class="text-[15px] font-semibold tracking-wide">Selesai</span>
                 </div>
-
-                <textarea wire:model="activity"
-                    class="w-full bg-surface border {{ $errors->has('activity') ? 'border-error' : 'border-outline-variant' }} rounded-xl p-3 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none h-28 mb-4 placeholder:text-outline/60"
-                    placeholder="{{ $todayJournal->attend_status === 'Hadir' ? 'Ceritakan apa saja yang kamu pelajari/kerjakan hari ini...' : 'Berikan keterangan detail...' }}"
-                    required></textarea>
-                @error('activity')
-                    <span class="text-xs text-error mt-[-10px] block mb-3">{{ $message }}</span>
-                @enderror
-
-                <div class="flex justify-end">
-                    <button type="submit"
-                        class="bg-primary hover:bg-primary-fixed-variant text-white h-12 px-6 rounded-xl font-semibold flex items-center justify-center shadow-md active:scale-95 transition-all">
-                        <span wire:loading.remove wire:target="saveJournal">Simpan Laporan</span>
-                        <span wire:loading wire:target="saveJournal">Menyimpan...</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    @endif
-
-    <!-- History Absen Section (5 Hari Terakhir & BISA DIKLIK) -->
-    <div class="mb-4">
-        <div class="flex items-center justify-between mb-3 px-1">
-            <h3 class="text-lg font-bold text-on-surface">History (5 Hari Terakhir)</h3>
+            @endif
         </div>
 
-        <div class="flex flex-col gap-3">
-            @forelse($recentJournals as $journal)
-                @if ($journal->attend_status === 'Libur')
-                    <!-- ===================================== -->
-                    <!-- DATA LIBUR (STATIS, TIDAK BISA DIKLIK)-->
-                    <!-- ===================================== -->
-                    <div
-                        class="bg-white p-3.5 rounded-2xl border border-surface-container shadow-sm flex items-center justify-between opacity-90">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-700 border border-white">
-                                <span class="material-symbols-outlined text-[20px]"
-                                    style="font-variation-settings: 'FILL' 1;">event_available</span>
-                            </div>
-                            <div>
-                                <p class="text-[14px] font-semibold text-on-surface">Libur</p>
-                                <p class="text-[11px] text-outline">{{ $journal->formatted_date }}</p>
-                            </div>
-                        </div>
-                        <span
-                            class="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1 rounded-full text-[10px] font-bold border">
-                            Hari Libur
-                        </span>
-                    </div>
-                @else
-                    <!-- ===================================== -->
-                    <!-- DATA NORMAL (BISA DIKLIK -> MODAL)    -->
-                    <!-- ===================================== -->
-                    <div @click="openDetail({{ $journal->toJson() }})"
-                        class="cursor-pointer bg-white p-3.5 rounded-2xl border border-surface-container shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]">
-                        <div class="flex items-center gap-3">
-                            @php
-                                $iconBg = 'bg-green-100';
-                                $iconColor = 'text-green-700';
-                                $iconName = 'login';
-                                if ($journal->attend_status == 'Izin') {
-                                    $iconBg = 'bg-amber-100';
-                                    $iconColor = 'text-amber-700';
-                                    $iconName = 'assignment_late';
-                                }
-                                if ($journal->attend_status == 'Sakit') {
-                                    $iconBg = 'bg-red-100';
-                                    $iconColor = 'text-red-700';
-                                    $iconName = 'medical_services';
-                                }
-                            @endphp
+        <div class="grid grid-cols-3 gap-3 mb-8 relative z-20">
+            <button @if (!$hasAttendedToday) @click="openConfirm('Izin')" @endif
+                {{ $hasAttendedToday ? 'disabled' : '' }}
+                class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 bg-white/90 backdrop-blur-sm
+                {{ $hasAttendedToday ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
+                <span class="material-symbols-outlined mb-1 text-amber-600">assignment_late</span>
+                <span class="text-xs font-medium">Izin</span>
+            </button>
+            <button @if (!$hasAttendedToday) @click="openConfirm('Sakit')" @endif
+                {{ $hasAttendedToday ? 'disabled' : '' }}
+                class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 bg-white/90 backdrop-blur-sm
+                {{ $hasAttendedToday ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
+                <span class="material-symbols-outlined mb-1 text-red-500">medical_services</span>
+                <span class="text-xs font-medium">Sakit</span>
+            </button>
+            <button @if (!$hasAttendedToday) @click="openConfirm('Libur')" @endif
+                {{ $hasAttendedToday ? 'disabled' : '' }}
+                class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 bg-white/90 backdrop-blur-sm
+                {{ $hasAttendedToday ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
+                <span class="material-symbols-outlined mb-1 text-blue-500">event_available</span>
+                <span class="text-xs font-medium">Libur</span>
+            </button>
+        </div>
 
-                            <div
-                                class="{{ $iconBg }} w-10 h-10 rounded-full flex items-center justify-center {{ $iconColor }} overflow-hidden border border-white">
-                                <span class="material-symbols-outlined text-[20px]"
-                                    style="font-variation-settings: 'FILL' 1;">{{ $iconName }}</span>
-                            </div>
-                            <div>
-                                <p class="text-[14px] font-semibold text-on-surface">{{ $journal->attend_status }}</p>
-                                <p class="text-[11px] text-outline">{{ $journal->formatted_date }} •
-                                    {{ $journal->formatted_time }}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="{{ $journal->is_valid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200' }} px-3 py-1 rounded-full text-[10px] font-bold border">
-                                {{ $journal->is_valid ? 'Valid' : 'Invalid' }}
-                            </span>
-                            <span class="material-symbols-outlined text-outline text-[18px]">chevron_right</span>
-                        </div>
-                    </div>
+        <div class="mb-6 relative z-20">
+            <div class="flex flex-col mb-3 px-1">
+                <h3 class="text-lg font-bold text-slate-800">Rekap Kehadiran PKL</h3>
+                @if ($placement && $placement->start_date && $placement->end_date)
+                    <p class="text-[11px] font-semibold text-[#3525cd] mt-0.5">
+                        <span class="material-symbols-outlined text-[12px] align-middle mr-0.5">calendar_month</span>
+                        {{ \Carbon\Carbon::parse($placement->start_date)->isoFormat('D MMM YYYY') }} s.d.
+                        {{ \Carbon\Carbon::parse($placement->end_date)->isoFormat('D MMM YYYY') }}
+                    </p>
                 @endif
-            @empty
-                <p class="text-center text-sm text-outline py-4">Belum ada history absen.</p>
-            @endforelse
-        </div>
-    </div>
+            </div>
 
-    <!-- ========================================== -->
-    <!-- MODAL DETAIL ABSENSI (MUNCUL SAAT DIKLIK)  -->
-    <!-- ========================================== -->
+            <div class="grid grid-cols-5 gap-2">
+                <div
+                    class="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-sm border border-green-100 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-semibold text-slate-400 mb-0.5">Hadir</span>
+                    <span class="text-[16px] font-extrabold text-green-600">{{ $recap['Hadir'] }}</span>
+                </div>
+                <div
+                    class="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-sm border border-amber-100 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-semibold text-slate-400 mb-0.5">Izin</span>
+                    <span class="text-[16px] font-extrabold text-amber-500">{{ $recap['Izin'] }}</span>
+                </div>
+                <div
+                    class="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-sm border border-red-100 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-semibold text-slate-400 mb-0.5">Sakit</span>
+                    <span class="text-[16px] font-extrabold text-red-500">{{ $recap['Sakit'] }}</span>
+                </div>
+                <div
+                    class="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-sm border border-blue-100 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-semibold text-slate-400 mb-0.5">Libur</span>
+                    <span class="text-[16px] font-extrabold text-blue-500">{{ $recap['Libur'] }}</span>
+                </div>
+                <div
+                    class="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-semibold text-slate-400 mb-0.5">Alpha</span>
+                    <span class="text-[16px] font-extrabold text-slate-700">{{ $recap['Alpha'] }}</span>
+                </div>
+            </div>
+        </div>
+
+        @if (
+            $hasAttendedToday &&
+                $todayJournal &&
+                $todayJournal->activity === '' &&
+                in_array($todayJournal->attend_status, ['Hadir', 'Izin', 'Sakit']))
+            <div
+                class="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-outline-variant/30 mb-8 animate-fade-in-up relative z-20">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+                        <span class="material-symbols-outlined text-[18px]"
+                            style="font-variation-settings: 'FILL' 1;">edit_document</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-on-surface">Lengkapi Bukti & Jurnal</h3>
+                </div>
+
+                <form wire:submit="saveJournal">
+                    <div class="mb-4">
+                        <p class="text-[13px] font-medium text-on-surface-variant mb-1.5">Foto
+                            {{ $todayJournal->attend_status === 'Hadir' ? 'Kegiatan' : 'Bukti (Surat Dokter/Ortu)' }}
+                        </p>
+                        <label
+                            class="w-full h-36 bg-surface rounded-xl border border-dashed border-outline-variant/60 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:bg-surface-container transition-colors">
+                            @if ($activityPhoto)
+                                <img src="{{ $activityPhoto->temporaryUrl() }}" class="w-full h-full object-cover">
+                                <div
+                                    class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                    <span class="text-white text-xs font-semibold">Ganti Foto</span>
+                                </div>
+                            @else
+                                <span class="material-symbols-outlined text-[32px] text-outline mb-1">add_a_photo</span>
+                                <span class="text-[12px] font-medium text-outline">Ambil atau pilih foto</span>
+                            @endif
+                            <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*"
+                                capture="environment">
+                        </label>
+                        <div wire:loading wire:target="activityPhoto" class="text-xs text-primary mt-1">Mengunggah...
+                        </div>
+                        @error('activityPhoto')
+                            <span class="text-xs text-error mt-1">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <textarea wire:model="activity"
+                        class="w-full bg-surface border {{ $errors->has('activity') ? 'border-error' : 'border-outline-variant' }} rounded-xl p-3 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none h-28 mb-4 placeholder:text-outline/60"
+                        placeholder="{{ $todayJournal->attend_status === 'Hadir' ? 'Ceritakan apa saja yang kamu pelajari/kerjakan hari ini...' : 'Berikan keterangan detail...' }}"
+                        required></textarea>
+                    @error('activity')
+                        <span class="text-xs text-error mt-[-10px] block mb-3">{{ $message }}</span>
+                    @enderror
+
+                    <div class="flex justify-end">
+                        <button type="submit"
+                            class="bg-primary hover:bg-primary-fixed-variant text-white h-12 px-6 rounded-xl font-semibold flex items-center justify-center shadow-md active:scale-95 transition-all">
+                            <span wire:loading.remove wire:target="saveJournal">Simpan Laporan</span>
+                            <span wire:loading wire:target="saveJournal">Menyimpan...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        <div class="mb-4 relative z-20">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="text-lg font-bold text-on-surface">History Absen</h3>
+                <p class="text-[11px] font-semibold text-[#3525cd]">
+                    1 Minggu
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                @forelse($recentJournals as $journal)
+                    @if ($journal->attend_status === 'Libur')
+                        <div
+                            class="bg-white/90 backdrop-blur-sm p-3.5 rounded-2xl border border-surface-container shadow-sm flex items-center justify-between opacity-90">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-700 border border-white">
+                                    <span class="material-symbols-outlined text-[20px]"
+                                        style="font-variation-settings: 'FILL' 1;">event_available</span>
+                                </div>
+                                <div>
+                                    <p class="text-[14px] font-semibold text-on-surface">Libur</p>
+                                    <p class="text-[11px] text-outline">{{ $journal->formatted_date }}</p>
+                                </div>
+                            </div>
+                            <span
+                                class="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1 rounded-full text-[10px] font-bold border">
+                                Hari Libur
+                            </span>
+                        </div>
+                    @else
+                        <div @click="openDetail({{ $journal->toJson() }})"
+                            class="cursor-pointer bg-white/90 backdrop-blur-sm p-3.5 rounded-2xl border border-surface-container shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]">
+                            <div class="flex items-center gap-3">
+                                @php
+                                    $iconBg = 'bg-green-100';
+                                    $iconColor = 'text-green-700';
+                                    $iconName = 'login';
+                                    if ($journal->attend_status == 'Izin') {
+                                        $iconBg = 'bg-amber-100';
+                                        $iconColor = 'text-amber-700';
+                                        $iconName = 'assignment_late';
+                                    }
+                                    if ($journal->attend_status == 'Sakit') {
+                                        $iconBg = 'bg-red-100';
+                                        $iconColor = 'text-red-700';
+                                        $iconName = 'medical_services';
+                                    }
+                                @endphp
+                                <div
+                                    class="{{ $iconBg }} w-10 h-10 rounded-full flex items-center justify-center {{ $iconColor }} overflow-hidden border border-white">
+                                    <span class="material-symbols-outlined text-[20px]"
+                                        style="font-variation-settings: 'FILL' 1;">{{ $iconName }}</span>
+                                </div>
+                                <div>
+                                    <p class="text-[14px] font-semibold text-on-surface">{{ $journal->attend_status }}
+                                    </p>
+                                    <p class="text-[11px] text-outline">{{ $journal->formatted_date }} •
+                                        {{ $journal->formatted_time }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="{{ $journal->is_valid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200' }} px-3 py-1 rounded-full text-[10px] font-bold border">
+                                    {{ $journal->is_valid ? 'Valid' : 'Invalid' }}
+                                </span>
+                                <span class="material-symbols-outlined text-outline text-[18px]">chevron_right</span>
+                            </div>
+                        </div>
+                    @endif
+                @empty
+                    <p class="text-center text-sm text-outline py-4">Belum ada history absen.</p>
+                @endforelse
+            </div>
+        </div>
+
+    </div>
     <div x-show="showDetailModal" x-cloak
         class="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:px-4">
         <div x-show="showDetailModal" x-transition:enter="transition ease-out duration-300"
@@ -223,10 +258,7 @@
             x-transition:leave-end="opacity-0 translate-y-full sm:scale-90 sm:translate-y-4"
             @click.away="showDetailModal = false"
             class="bg-surface-bright w-full max-w-[400px] sm:rounded-[2rem] rounded-t-[2rem] p-6 pb-8 flex flex-col shadow-2xl relative max-h-[90vh] overflow-y-auto">
-
-            <!-- Garis Drag (Dekorasi Mobile) -->
             <div class="w-12 h-1.5 bg-outline-variant/50 rounded-full mx-auto mb-4 sm:hidden"></div>
-
             <template x-if="selectedJournal">
                 <div class="flex flex-col">
                     <div class="flex justify-between items-start mb-4">
@@ -240,8 +272,6 @@
                             class="p-2 bg-surface-variant rounded-full text-on-surface-variant active:scale-95"><span
                                 class="material-symbols-outlined text-[20px]">close</span></button>
                     </div>
-
-                    <!-- FOTO WAJAH ABSEN -->
                     <template x-if="selectedJournal.attendance_photo_url">
                         <div class="mb-4">
                             <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Absensi</p>
@@ -251,8 +281,6 @@
                             </div>
                         </div>
                     </template>
-
-                    <!-- LOKASI KOORDINAT -->
                     <template x-if="selectedJournal.latitude && selectedJournal.longitude">
                         <div
                             class="mb-4 bg-surface-container-low p-3 rounded-xl border border-surface-container-high flex items-center gap-3">
@@ -264,8 +292,6 @@
                             </div>
                         </div>
                     </template>
-
-                    <!-- FOTO KEGIATAN -->
                     <template x-if="selectedJournal.activity_photo_url">
                         <div class="mb-4">
                             <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Kegiatan / Bukti</p>
@@ -275,8 +301,6 @@
                             </div>
                         </div>
                     </template>
-
-                    <!-- DESKRIPSI -->
                     <div class="mb-2">
                         <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Keterangan Jurnal</p>
                         <div
@@ -289,12 +313,7 @@
             </template>
         </div>
     </div>
-    <!-- ========================================== -->
 
-
-    <!-- ========================================== -->
-    <!-- MODAL KAMERA (DENGAN FRAME OVAL)           -->
-    <!-- ========================================== -->
     <div x-show="isCameraOpen" x-cloak class="fixed inset-0 z-[9999] bg-black flex flex-col justify-between">
         <div
             class="p-4 flex justify-between items-center text-white bg-gradient-to-b from-black/80 to-transparent z-30">
@@ -302,23 +321,16 @@
             <button @click="closeCamera()" class="p-2 bg-white/20 rounded-full active:scale-95"><span
                     class="material-symbols-outlined">close</span></button>
         </div>
-
         <div class="relative flex-1 flex items-center justify-center overflow-hidden">
             <video x-ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
             <canvas x-ref="canvas" class="hidden"></canvas>
-
             <div x-show="isLoading"
                 class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-40">
                 <span class="material-symbols-outlined animate-spin text-[48px] mb-3">refresh</span>
                 <p x-text="loadingText" class="text-sm font-semibold"></p>
             </div>
-
-            <!-- ========================================== -->
-            <!-- FRAME OVAL NATURAL DENGAN SHADOW RAKSASA   -->
-            <!-- ========================================== -->
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden">
                 <div class="relative flex items-center justify-center">
-                    <!-- Trik box-shadow raksasa (4000px) untuk menggelapkan luar oval, tapi membiarkan tengahnya terang dan bolong! -->
                     <div
                         class="w-[220px] h-[300px] border-2 border-dashed border-white/80 rounded-[110px/150px] shadow-[0_0_0_4000px_rgba(0,0,0,0.6)]">
                     </div>
@@ -327,20 +339,13 @@
                     Posisikan wajah di dalam frame
                 </div>
             </div>
-            <!-- ========================================== -->
         </div>
-
         <div class="p-8 pb-12 flex justify-center items-center bg-black z-30">
             <button @click="takeSnapshot()" :disabled="isLoading"
                 class="w-20 h-20 bg-white rounded-full border-[6px] border-gray-400 active:scale-90 transition-transform disabled:opacity-50"></button>
         </div>
     </div>
 
-
-    <!-- ========================================== -->
-    <!-- MODAL CUSTOM KONFIRMASI & ALERT (Sama spt sebelumnya) -->
-    <!-- ========================================== -->
-    <!-- MODAL CONFIRM -->
     <div x-show="showConfirmModal" x-cloak
         class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
         <div x-show="showConfirmModal" x-transition:enter="transition ease-out duration-300"
@@ -366,7 +371,6 @@
         </div>
     </div>
 
-    <!-- MODAL ERROR RADIUS -->
     <div x-show="showErrorModal" x-cloak
         class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
         <div x-show="showErrorModal" x-transition:enter="transition ease-out duration-300"
@@ -386,24 +390,17 @@
         </div>
     </div>
 
-
-    <!-- SCRIPT ALPINE.JS -->
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('absensiApp', () => ({
-                // CLOCK STATE
                 currentTime: 'Menunggu...',
                 currentDate: '',
-
-                // CAMERA STATE
                 isCameraOpen: false,
                 isLoading: false,
                 loadingText: '',
                 stream: null,
                 lat: null,
                 lng: null,
-
-                // ERROR & CONFIRM STATE
                 showErrorModal: false,
                 errorMessage: '',
                 showConfirmModal: false,
@@ -414,8 +411,6 @@
                 confirmIconBg: '',
                 confirmIconColor: '',
                 confirmBtnColor: '',
-
-                // DETAIL HISTORY STATE
                 showDetailModal: false,
                 selectedJournal: null,
 
@@ -434,7 +429,7 @@
                         });
                     };
                     updateTime();
-                    setInterval(updateTime, 1000); // Update setiap 1 detik
+                    setInterval(updateTime, 1000);
                 },
 
                 openDetail(journal) {
@@ -481,18 +476,24 @@
                     this.isCameraOpen = true;
                     this.isLoading = true;
                     this.loadingText = 'Mengecek Radius & Lokasi...';
-
                     try {
                         const pos = await new Promise((resolve, reject) => {
                             navigator.geolocation.getCurrentPosition(resolve, reject, {
-                                enableHighAccuracy: true
+                                enableHighAccuracy: true,
+                                timeout: 10000,
+                                maximumAge: 0
                             });
                         });
+                        if (pos.coords.accuracy > 150) {
+                            this.errorMessage =
+                                'Akurasi GPS bermasalah atau terdeteksi aplikasi Fake GPS. Pastikan Anda berada di luar ruangan dan mematikan aplikasi pihak ketiga!';
+                            this.showErrorModal = true;
+                            this.closeCamera();
+                            return;
+                        }
                         this.lat = pos.coords.latitude;
                         this.lng = pos.coords.longitude;
-
                         let isWithinRadius = await this.$wire.verifyLocation(this.lat, this.lng);
-
                         if (!isWithinRadius) {
                             this.errorMessage =
                                 'Lokasi Anda saat ini berada di luar radius DUDIKA yang diizinkan sekolah. Silakan masuk ke area tempat PKL untuk melakukan absensi.';
@@ -500,7 +501,6 @@
                             this.closeCamera();
                             return;
                         }
-
                         this.loadingText = 'Membuka Kamera...';
                         this.stream = await navigator.mediaDevices.getUserMedia({
                             video: {
@@ -508,7 +508,6 @@
                             }
                         });
                         this.$refs.video.srcObject = this.stream;
-
                         this.isLoading = false;
                     } catch (error) {
                         this.errorMessage =
@@ -529,21 +528,16 @@
                 takeSnapshot() {
                     this.isLoading = true;
                     this.loadingText = 'Menyimpan Absensi...';
-
                     const video = this.$refs.video;
                     const canvas = this.$refs.canvas;
                     const ctx = canvas.getContext('2d');
-
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
                     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
                     ctx.fillRect(10, canvas.height - 110, canvas.width - 20, 100);
-
                     ctx.font = "bold 24px Arial";
                     ctx.fillStyle = "white";
-
                     const dateObj = new Date();
                     const timeStr = dateObj.toLocaleTimeString('id-ID');
                     const dateStr = dateObj.toLocaleDateString('id-ID', {
@@ -552,15 +546,12 @@
                         month: 'long',
                         day: 'numeric'
                     });
-
                     ctx.fillText("SMK PGRI 1 GIRI - GRISA PKL", 20, canvas.height - 80);
                     ctx.font = "20px Arial";
                     ctx.fillText(`Waktu: ${dateStr} - ${timeStr}`, 20, canvas.height - 50);
                     ctx.fillText(`Lokasi: ${this.lat.toFixed(5)}, ${this.lng.toFixed(5)}`, 20, canvas
                         .height - 20);
-
                     const base64Photo = canvas.toDataURL('image/jpeg', 0.8);
-
                     this.$wire.submitAttendance(base64Photo, this.lat, this.lng).then(() => {
                         this.closeCamera();
                     });

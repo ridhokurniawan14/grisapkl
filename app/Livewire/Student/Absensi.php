@@ -144,13 +144,48 @@ class Absensi extends Component
 
     public function render()
     {
-        // AMBIL 5 DATA HISTORY TERAKHIR & SIAPKAN URL FOTO UNTUK MODAL
+        $recap = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Libur' => 0, 'Alpha' => 0];
         $recentJournals = collect();
+
         if ($this->placement) {
+            $startDate = Carbon::parse($this->placement->start_date);
+            $endDate = Carbon::parse($this->placement->end_date);
+
+            // =========================================================
+            // REVISI: Ambil data jurnal HANYA selama rentang waktu PKL
+            // =========================================================
+            $allJournals = Journal::where('pkl_placement_id', $this->placement->id)
+                ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->get();
+
+            $recap['Hadir'] = $allJournals->where('attend_status', 'Hadir')->where('is_valid', true)->count();
+            $recap['Izin']  = $allJournals->where('attend_status', 'Izin')->count();
+            $recap['Sakit'] = $allJournals->where('attend_status', 'Sakit')->count();
+            $recap['Libur'] = $allJournals->where('attend_status', 'Libur')->count();
+
+            // Hitung ALPHA (Hari Kerja Senin-Jumat dalam rentang PKL)
+            $today = today();
+            $limitDate = $today->lessThan($endDate) ? $today : $endDate;
+
+            $workingDays = 0;
+            if ($startDate->lessThanOrEqualTo($limitDate)) {
+                $workingDays = $startDate->diffInDaysFiltered(function (Carbon $date) {
+                    return !$date->isWeekend(); // Hitung hari Senin-Jumat saja
+                }, $limitDate) + 1; // +1 untuk include hari ini
+            }
+
+            // Karena $allJournals sudah di-filter based on PKL dates,
+            // $loggedDays tidak akan bocor ngitung absen di luar jadwal PKL!
+            $loggedDays = $recap['Hadir'] + $recap['Izin'] + $recap['Sakit'] + $recap['Libur'];
+            $recap['Alpha'] = max(0, $workingDays - $loggedDays);
+
+            // =========================================================
+            // AMBIL 5 DATA HISTORY TERAKHIR (Tetap tampilkan semua data terbaru)
+            // =========================================================
             $recentJournals = Journal::where('pkl_placement_id', $this->placement->id)
                 ->orderBy('date', 'desc')
                 ->orderBy('time', 'desc')
-                ->take(5)
+                ->take(7)
                 ->get()
                 ->map(function ($j) {
                     $j->attendance_photo_url = $j->attendance_photo_path ? asset('storage/' . $j->attendance_photo_path) : null;
@@ -162,7 +197,8 @@ class Absensi extends Component
         }
 
         return view('livewire.student.absensi', [
-            'recentJournals' => $recentJournals
+            'recentJournals' => $recentJournals,
+            'recap' => $recap // Kirim data rekapan ke frontend
         ]);
     }
 }

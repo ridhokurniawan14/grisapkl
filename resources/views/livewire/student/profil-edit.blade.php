@@ -1,5 +1,5 @@
 {{-- Background diubah jadi bg-slate-100 agar lebih abu-abu. State openPribadi diubah jadi true --}}
-<div class="pb-10 -mx-4 px-4 bg-slate-100 min-h-[calc(100vh-4rem)] pt-2" x-data="{ openPribadi: true, openOrtu: false }">
+<div class="pb-3 -mx-4 px-4 min-h-[calc(100vh-4rem)] pt-0" x-data="{ openPribadi: true, openOrtu: false }">
 
     <!-- Header Halaman -->
     <div class="flex items-center gap-3 mb-6 pt-2">
