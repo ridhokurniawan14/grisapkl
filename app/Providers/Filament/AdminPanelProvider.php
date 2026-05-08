@@ -91,7 +91,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                \App\Filament\Widgets\LatestActivityLog::class,
+                \App\Filament\Resources\ActivityLogs\Widgets\LatestActivityLog::class,
                 \App\Filament\Widgets\TeacherMonitoringRecap::class,
             ])
             ->middleware([

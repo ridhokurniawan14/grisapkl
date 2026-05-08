@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Widgets;
+namespace App\Filament\Resources\ActivityLogs\Widgets;
 
 use Filament\Tables;
 use Filament\Tables\Table;
