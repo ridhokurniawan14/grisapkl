@@ -141,18 +141,18 @@
 
         @php
             $isProfile = request()->routeIs('siswa.profil');
+            $isBeranda = request()->routeIs('siswa.beranda'); // Cek apakah di Beranda
+
             $headerBg = $isProfile
                 ? 'bg-gradient-to-b from-[#1c10a0] via-[#2d1fc5] to-[#3525cd]'
                 : 'bg-white/80 backdrop-blur-md border-b border-slate-200/60';
             $headerText = $isProfile ? 'text-white' : 'text-primary';
             $headerIcon = $isProfile ? 'text-white hover:bg-white/10' : 'text-primary hover:bg-slate-50';
 
-            // 1. CARI FOTO DARI TABEL STUDENT (KARENA DISIMPAN DI SANA)
             $user = auth()->user();
             $studentData = \App\Models\Student::where('user_id', $user->id ?? 0)->first();
             $avatarPath = $studentData->avatar ?? ($user->avatar ?? null);
 
-            // 2. BIKIN INISIAL SAMA PERSIS SEPERTI DI PROFIL (Agista Cahyani = AC)
             $name = $user->name ?? 'Siswa';
             $initials = collect(explode(' ', $name))->map(fn($s) => substr($s, 0, 1))->take(2)->join('');
             $initials = strtoupper($initials);
@@ -161,12 +161,16 @@
         <header
             class="{{ $headerBg }} absolute top-0 w-full z-50 flex justify-between items-center px-4 h-16 transition-colors duration-300">
 
-            {{-- Avatar & Sapaan (disembunyikan di halaman Profil) --}}
-            @if (!$isProfile)
+            @if ($isBeranda)
+                {{-- KHUSUS BERANDA: Tampilkan Nama Aplikasi --}}
+                <div class="flex items-center">
+                    <h1 class="text-xl font-extrabold text-[#3525cd] font-['Lexend'] tracking-tight">GrisaPKL</h1>
+                </div>
+            @elseif (!$isProfile)
+                {{-- HALAMAN LAIN: Tampilkan Avatar & Sapaan --}}
                 <div class="flex items-center gap-3">
                     <div
                         class="flex items-center justify-center w-10 h-10 rounded-full bg-[#e2dfff] overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
-                        {{-- Jika foto ada, tampilkan. Jika kosong, tampilkan inisial --}}
                         @if (!empty($avatarPath))
                             <img src="{{ asset('storage/' . $avatarPath) }}" class="w-full h-full object-cover" />
                         @else
@@ -181,16 +185,16 @@
                     </div>
                 </div>
             @else
+                {{-- HALAMAN PROFIL: Tampilkan Back Button --}}
                 <a href="{{ route('siswa.absen') }}"
                     class="w-10 h-10 flex items-center justify-center rounded-full text-white hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
-                    title="Kembali ke Beranda">
+                    title="Kembali">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </a>
             @endif
 
             <div class="flex-grow"></div>
 
-            {{-- Tombol notifikasi kanan --}}
             <button
                 class="w-10 h-10 flex items-center justify-center rounded-full {{ $headerIcon }} transition-all active:scale-95 flex-shrink-0">
                 <span class="material-symbols-outlined">notifications</span>

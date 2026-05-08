@@ -44,6 +44,8 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/siswa/dudika', \App\Livewire\Student\Dudika::class)->name('siswa.dudika');
     Route::get('/siswa/jurnal', \App\Livewire\Student\Jurnal::class)->name('siswa.jurnal');
     Route::get('/siswa/jurnal/{id}/edit', \App\Livewire\Student\JurnalEdit::class)->name('siswa.jurnal.edit');
+    Route::get('/siswa/beranda', \App\Livewire\Student\Beranda::class)->name('siswa.beranda');
+    Route::get('/siswa/bot', \App\Livewire\Student\ChatBot::class)->name('siswa.bot');
 });
 
 // ==========================================================

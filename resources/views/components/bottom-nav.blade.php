@@ -9,10 +9,12 @@
     {{-- MENU KHUSUS SISWA                          --}}
     {{-- ========================================== --}}
     @if ($user && $user->hasRole('siswa'))
-        <!-- 1. Beranda -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">home</span>
+        <!-- Beranda -->
+        @php $isBeranda = request()->routeIs('siswa.beranda'); @endphp
+        <a href="{{ route('siswa.beranda') }}"
+            class="flex flex-col items-center justify-center {{ $isBeranda ? 'text-primary font-bold bg-primary/10' : 'text-outline hover:text-primary bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isBeranda ? '1' : '0' }};">home</span>
             <span class="text-[10px] font-medium">Beranda</span>
         </a>
         <!-- 2. Jurnal -->

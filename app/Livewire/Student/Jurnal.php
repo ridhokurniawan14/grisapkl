@@ -14,16 +14,19 @@ use Carbon\Carbon;
 #[Title('Jurnal Siswa - GrisaPKL')]
 class Jurnal extends Component
 {
-    public $placement;
-    public $search = '';
-    public $selectedMonth = '';
-    public $selectedStatus = ''; // Filter Absen, Sakit, Izin, Libur, Revisi
+    // ✅ Simpan ID saja, bukan full model — hindari hydration failure
+    public ?int $placementId = null;
+    public string $search = '';
+    public string $selectedMonth = '';
+    public string $selectedStatus = '';
 
-    public function mount()
+    public function mount(): void
     {
-        $this->placement = PklPlacement::whereHas('student', function ($q) {
+        $placement = PklPlacement::whereHas('student', function ($q) {
             $q->where('user_id', Auth::id());
         })->where('status', 'Aktif')->first();
+
+        $this->placementId = $placement?->id;
     }
 
     public function render()
@@ -33,56 +36,87 @@ class Jurnal extends Component
         $totalRevisi = 0;
         $months = [];
 
-        if ($this->placement) {
-            $baseQuery = Journal::where('pkl_placement_id', $this->placement->id);
+        if ($this->placementId) {
 
-            // Statistik
-            $totalJurnal = (clone $baseQuery)->count();
-            // Asumsi is_valid = false artinya Perlu Revisi
-            $totalRevisi = (clone $baseQuery)->where('is_valid', false)->count();
+            $placement = PklPlacement::find($this->placementId);
 
-            // GENERATE BULAN BERDASARKAN RENTANG PKL
-            if ($this->placement->start_date && $this->placement->end_date) {
-                $start = Carbon::parse($this->placement->start_date)->startOfMonth();
-                $end = Carbon::parse($this->placement->end_date)->startOfMonth();
+            if ($placement) {
 
-                while ($start->lte($end)) {
-                    $months[$start->format('Y-m')] = $start->isoFormat('MMMM YYYY');
-                    $start->addMonth();
-                }
-            }
+                $baseQuery = Journal::where('pkl_placement_id', $placement->id);
 
-            // HANYA AMBIL DATA JIKA FILTER BULAN ATAU STATUS DIPILIH
-            if (!empty($this->selectedMonth) || !empty($this->selectedStatus) || !empty($this->search)) {
-                $query = clone $baseQuery;
+                $totalJurnal = (clone $baseQuery)->count();
 
-                // Filter Bulan (Format Y-m)
-                if (!empty($this->selectedMonth)) {
-                    $year = substr($this->selectedMonth, 0, 4);
-                    $month = substr($this->selectedMonth, 5, 2);
-                    $query->whereYear('date', $year)->whereMonth('date', $month);
+                $totalRevisi = (clone $baseQuery)
+                    ->where('is_valid', 0)
+                    ->count();
+
+                // Generate bulan
+                if ($placement->start_date && $placement->end_date) {
+
+                    $start = Carbon::parse($placement->start_date)->startOfMonth();
+                    $end = Carbon::parse($placement->end_date)->startOfMonth();
+
+                    while ($start->lte($end)) {
+
+                        $months[$start->format('Y-m')] = $start->isoFormat('MMMM YYYY');
+
+                        $start->addMonth();
+                    }
                 }
 
-                // Filter Status
-                if (!empty($this->selectedStatus)) {
+                // QUERY FILTER
+                $query = Journal::where('pkl_placement_id', $placement->id);
+
+                // FILTER BULAN
+                if (filled($this->selectedMonth) && str_contains($this->selectedMonth, '-')) {
+
+                    [$year, $month] = explode('-', $this->selectedMonth);
+
+                    $query->whereYear('date', $year)
+                        ->whereMonth('date', $month);
+                }
+
+                // FILTER STATUS
+                if (filled($this->selectedStatus)) {
+
                     if ($this->selectedStatus === 'Revisi') {
-                        $query->where('is_valid', false);
+
+                        $query->where('is_valid', 0);
                     } else {
+
                         $query->where('attend_status', $this->selectedStatus);
                     }
                 }
 
-                // Filter Pencarian
-                if (!empty($this->search)) {
-                    $query->where('activity', 'like', '%' . $this->search . '%');
+                // SEARCH
+                if (filled($this->search)) {
+
+                    $query->whereNotNull('activity')
+                        ->where('activity', 'like', '%' . $this->search . '%');
                 }
 
-                $journals = $query->orderBy('date', 'desc')->orderBy('time', 'desc')->get()->map(function ($j) {
-                    $j->is_editable = Carbon::parse($j->date)->diffInDays(now()) <= 30; // Maksimal edit 30 hari
-                    $j->attendance_photo_url = $j->attendance_photo_path ? asset('storage/' . $j->attendance_photo_path) : null;
-                    $j->activity_photo_url = $j->photo_path ? asset('storage/' . $j->photo_path) : null;
-                    return $j;
-                });
+                $journals = $query
+                    ->orderByDesc('date')
+                    ->orderByDesc('time')
+                    ->get()
+                    ->map(function ($j) {
+
+                        $j->formatted_date = Carbon::parse($j->date)->isoFormat('D MMM YYYY');
+
+                        $j->formatted_time = Carbon::parse($j->time)->format('H:i');
+
+                        $j->is_editable = Carbon::parse($j->date)->diffInDays(now()) <= 30;
+
+                        $j->attendance_photo_url = $j->attendance_photo_path
+                            ? asset('storage/' . $j->attendance_photo_path)
+                            : null;
+
+                        $j->activity_photo_url = $j->photo_path
+                            ? asset('storage/' . $j->photo_path)
+                            : null;
+
+                        return $j;
+                    });
             }
         }
 
@@ -90,7 +124,7 @@ class Jurnal extends Component
             'journals' => $journals,
             'totalJurnal' => $totalJurnal,
             'totalRevisi' => $totalRevisi,
-            'months' => $months
+            'months' => $months,
         ]);
     }
 }

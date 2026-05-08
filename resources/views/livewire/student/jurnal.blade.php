@@ -38,7 +38,7 @@
         <div class="flex gap-2 w-full">
             <div class="relative flex-1 group">
                 <select wire:model.live="selectedMonth"
-                    class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] pl-4 pr-10 text-[13px] font-bold text-slate-700 appearance-none focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm cursor-pointer hover:bg-slate-50">
+                    class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] pl-4 pr-10 text-[13px] font-bold text-slate-700 appearance-none !bg-none focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm cursor-pointer hover:bg-slate-50">
                     <option value="">Pilih Bulan...</option>
                     @foreach ($months as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
@@ -52,7 +52,7 @@
 
             <div class="relative flex-1 group">
                 <select wire:model.live="selectedStatus"
-                    class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] pl-4 pr-10 text-[13px] font-bold text-slate-700 appearance-none focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm cursor-pointer hover:bg-slate-50">
+                    class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] pl-4 pr-10 text-[13px] font-bold text-slate-700 appearance-none !bg-none focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm cursor-pointer hover:bg-slate-50">
                     <option value="">Semua Status...</option>
                     <option value="Hadir">Hadir</option>
                     <option value="Izin">Izin</option>

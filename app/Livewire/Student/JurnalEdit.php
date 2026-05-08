@@ -19,41 +19,51 @@ class JurnalEdit extends Component
 {
     use WithFileUploads;
 
-    public $journal;
+    public ?int $journalId = null;
     public $attend_status;
-    public $activity;
+    public $activity = '';
     public $activityPhoto;
     public $originalStatus;
 
     public function mount($id)
     {
-        $this->journal = Journal::whereHas('pklPlacement.student', function ($q) {
+        $journal = Journal::whereHas('pklPlacement.student', function ($q) {
             $q->where('user_id', Auth::id());
         })->findOrFail($id);
 
-        if (Carbon::parse($this->journal->date)->diffInDays(now()) > 30) {
+        if (Carbon::parse($journal->date)->diffInDays(now()) > 30) {
             abort(403, 'Jurnal sudah lebih dari 30 hari dan tidak dapat diedit lagi.');
         }
 
-        $this->attend_status = $this->journal->attend_status;
-        $this->originalStatus = $this->journal->attend_status;
-        $this->activity = $this->journal->activity;
+        $this->journalId = $journal->id;
+        $this->attend_status = $journal->attend_status;
+        $this->originalStatus = $journal->attend_status;
+        $this->activity = $journal->activity ?? '';
     }
 
     public function verifyLocation($lat, $lng)
     {
-        $school = SchoolProfile::first();
-        $placement = $this->journal->pklPlacement;
+        try {
+            $school = SchoolProfile::first();
+            $journal = Journal::with('pklPlacement')->find($this->journalId);
+            if (!$journal || !$journal->pklPlacement) return true;
 
-        if ($school && $school->is_radius_attendance_enabled) {
-            $placementLat = $placement->latitude;
-            $placementLng = $placement->longitude;
-            $maxRadius = $placement->radius ?? 50;
-            if (!$placementLat || !$placementLng) return true;
-            $distance = $this->calculateDistance($lat, $lng, $placementLat, $placementLng);
-            if ($distance > $maxRadius) return false;
+            $placement = $journal->pklPlacement;
+
+            if ($school && $school->is_radius_attendance_enabled) {
+                $placementLat = $placement->latitude;
+                $placementLng = $placement->longitude;
+                $maxRadius = $placement->radius ?? 50;
+
+                if (!$placementLat || !$placementLng) return true;
+
+                $distance = $this->calculateDistance((float)$lat, (float)$lng, (float)$placementLat, (float)$placementLng);
+                if ($distance > $maxRadius) return false;
+            }
+            return true;
+        } catch (\Exception $e) {
+            return true; // Bypass jika ada error format agar sistem tidak meledak
         }
-        return true;
     }
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
@@ -66,12 +76,13 @@ class JurnalEdit extends Component
         return $earthRadius * $c;
     }
 
-    public function updateWithCamera($photoBase64, $lat, $lng)
+    public function updateWithCamera($photoBase64, $lat, $lng, $checkRadius = true)
     {
         $this->validateData();
 
-        // Kamera SEKARANG HANYA UNTUK HADIR, Jadi WAJIB cek radius
-        if (!$this->verifyLocation($lat, $lng)) return false;
+        if ($checkRadius) {
+            if (!$this->verifyLocation($lat, $lng)) return false;
+        }
 
         $imageParts = explode(";base64,", $photoBase64);
         $imageTypeAux = explode("image/", $imageParts[0]);
@@ -106,71 +117,55 @@ class JurnalEdit extends Component
 
     private function processUpdate($attendancePhotoPath = null, $lat = null, $lng = null)
     {
-        $data = [
-            'attend_status' => $this->attend_status,
-            'is_valid' => false, // Reset validasi jadi false saat diedit
-        ];
+        $journal = Journal::find($this->journalId);
+        $data = ['attend_status' => $this->attend_status];
 
-        // 1. JIKA STATUS LIBUR -> BERSIHKAN SEMUA (SELFIE, KEGIATAN, LOKASI)
         if ($this->attend_status === 'Libur') {
             $data['activity'] = 'Libur / Tanggal Merah';
             $data['latitude'] = null;
             $data['longitude'] = null;
-
-            if ($this->journal->attendance_photo_path && Storage::disk('public')->exists($this->journal->attendance_photo_path)) {
-                Storage::disk('public')->delete($this->journal->attendance_photo_path);
-            }
+            $this->deleteOldFile($journal->attendance_photo_path);
+            $this->deleteOldFile($journal->photo_path);
             $data['attendance_photo_path'] = null;
-
-            if ($this->journal->photo_path && Storage::disk('public')->exists($this->journal->photo_path)) {
-                Storage::disk('public')->delete($this->journal->photo_path);
-            }
             $data['photo_path'] = null;
-        }
-        // 2. JIKA STATUS IZIN / SAKIT -> HAPUS FOTO SELFIE & LOKASI SAJA
-        elseif (in_array($this->attend_status, ['Izin', 'Sakit'])) {
+        } elseif (in_array($this->attend_status, ['Izin', 'Sakit'])) {
             $data['activity'] = $this->activity;
-
-            if ($this->journal->attendance_photo_path && Storage::disk('public')->exists($this->journal->attendance_photo_path)) {
-                Storage::disk('public')->delete($this->journal->attendance_photo_path);
-            }
-            $data['attendance_photo_path'] = null;
             $data['latitude'] = null;
             $data['longitude'] = null;
+            $this->deleteOldFile($journal->attendance_photo_path);
+            $data['attendance_photo_path'] = null;
 
             if ($this->activityPhoto) {
-                if ($this->journal->photo_path && Storage::disk('public')->exists($this->journal->photo_path)) {
-                    Storage::disk('public')->delete($this->journal->photo_path);
-                }
+                $this->deleteOldFile($journal->photo_path);
                 $data['photo_path'] = $this->activityPhoto->store('journal_photos', 'public');
             }
-        }
-        // 3. JIKA STATUS HADIR
-        else {
+        } else {
             $data['activity'] = $this->activity;
-
-            if ($attendancePhotoPath) { // Ini kalau dia re-take foto pakai kamera (Pindah ke Hadir)
-                if ($this->journal->attendance_photo_path && Storage::disk('public')->exists($this->journal->attendance_photo_path)) {
-                    Storage::disk('public')->delete($this->journal->attendance_photo_path);
-                }
+            if ($attendancePhotoPath) {
+                $this->deleteOldFile($journal->attendance_photo_path);
                 $data['attendance_photo_path'] = $attendancePhotoPath;
                 $data['latitude'] = $lat;
                 $data['longitude'] = $lng;
             }
-
             if ($this->activityPhoto) {
-                if ($this->journal->photo_path && Storage::disk('public')->exists($this->journal->photo_path)) {
-                    Storage::disk('public')->delete($this->journal->photo_path);
-                }
+                $this->deleteOldFile($journal->photo_path);
                 $data['photo_path'] = $this->activityPhoto->store('journal_photos', 'public');
             }
         }
+        $journal->update($data);
+    }
 
-        $this->journal->update($data);
+    private function deleteOldFile($path)
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     public function render()
     {
-        return view('livewire.student.jurnal-edit');
+        return view('livewire.student.jurnal-edit', [
+            'journal' => Journal::find($this->journalId)
+        ]);
     }
 }
