@@ -22,26 +22,21 @@ class TeacherMonitoringRecap extends BaseWidget
             ->query(
                 Teacher::query()
                     ->with(['pklPlacements.monitorings', 'pklPlacements.dudika'])
+
                     ->addSelect([
                         'teachers.*',
 
-                        // Subquery unique_visits_count (tetap sama)
+                        // Total kunjungan unik
                         'unique_visits_count' => DB::table('monitorings as m')
-                            ->selectRaw('COALESCE(SUM(per_dudika.cnt), 0)')
-                            ->fromSub(
-                                DB::table('monitorings as m2')
-                                    ->selectRaw('COUNT(DISTINCT m2.date) as cnt')
-                                    ->join('pkl_placements as pp', 'pp.id', '=', 'm2.pkl_placement_id')
-                                    ->whereColumn('pp.teacher_id', 'teachers.id')
-                                    ->groupBy('pp.dudika_id'),
-                                'per_dudika'
-                            ),
-
-                        // FIX: Tambah subquery latest_monitoring_date untuk sorting
-                        'latest_monitoring_date' => DB::table('monitorings as m')
-                            ->selectRaw('MAX(m.date)')
                             ->join('pkl_placements as pp', 'pp.id', '=', 'm.pkl_placement_id')
-                            ->whereColumn('pp.teacher_id', 'teachers.id'),
+                            ->whereColumn('pp.teacher_id', 'teachers.id')
+                            ->selectRaw('COUNT(DISTINCT CONCAT(pp.dudika_id, "-", m.date))'),
+
+                        // Monitoring terakhir
+                        'latest_monitoring_date' => DB::table('monitorings as m')
+                            ->join('pkl_placements as pp', 'pp.id', '=', 'm.pkl_placement_id')
+                            ->whereColumn('pp.teacher_id', 'teachers.id')
+                            ->selectRaw('MAX(m.date)'),
                     ])
             )
             ->defaultSort('latest_monitoring_date', 'desc')

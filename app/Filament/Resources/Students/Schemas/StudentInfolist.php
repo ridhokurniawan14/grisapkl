@@ -53,6 +53,10 @@ class StudentInfolist
                                 ->openUrlInNewTab()
                                 ->placeholder('-'),
                         ]),
+                        TextEntry::make('user.email')
+                            ->label('Email / Username')
+                            ->columnSpanFull()
+                            ->placeholder('-'),
                         TextEntry::make('address')
                             ->label('Alamat Lengkap')
                             ->columnSpanFull()
