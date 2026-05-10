@@ -8,6 +8,7 @@ use Livewire\Attributes\Title;
 use App\Models\Student;
 use App\Models\PklPlacement;
 use App\Models\Journal;
+use App\Models\Announcement;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -25,7 +26,7 @@ class Beranda extends Component
             ->where('status', 'Aktif')
             ->first();
 
-        // 1. Logika Sapaan Berdasarkan Waktu Lokal (Asia/Jakarta)
+        // 1. Sapaan Berdasarkan Jam Lokal (WIB / Asia/Jakarta)
         $hour = Carbon::now('Asia/Jakarta')->format('H');
         if ($hour >= 4 && $hour < 11) {
             $greeting = 'Selamat Pagi,';
@@ -37,14 +38,18 @@ class Beranda extends Component
             $greeting = 'Selamat Malam,';
         }
 
-        // 2. Logika Pengecekan Kelengkapan Data
+        // 2. Cek Kelengkapan Data
         $isBiodataComplete = $student && $student->nisn && $student->address;
-        $isParentComplete = $student && $student->parent_name && $student->parent_phone;
+        $isParentComplete = $student &&
+            !empty($student->father_name) &&
+            !empty($student->father_job) &&
+            !empty($student->mother_name) &&
+            !empty($student->mother_job) &&
+            !empty($student->parent_phone) &&
+            (!empty($student->parent_address) || !empty($student->address));
+        $isDudikaComplete = $placement && !empty($placement->pkl_field);
 
-        // DUDIKA Lengkap = Jika ada placement DAN bidang_pekerjaan sudah diisi
-        $isDudikaComplete = $placement && !empty($placement->bidang_pekerjaan);
-
-        // Jurnal Revisi
+        // 3. Cek Jurnal Revisi
         $revisiCount = 0;
         if ($placement) {
             $revisiCount = Journal::where('pkl_placement_id', $placement->id)
@@ -53,9 +58,8 @@ class Beranda extends Component
         }
         $isJurnalRevisiClean = $revisiCount === 0;
 
-        // 3. Logika Rekap Absensi (Khusus Bulan Ini)
+        // 4. Rekap Absensi
         $recap = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alpha' => 0];
-
         if ($placement) {
             $journalsThisMonth = Journal::where('pkl_placement_id', $placement->id)
                 ->whereMonth('date', now()->month)
@@ -66,7 +70,6 @@ class Beranda extends Component
             $recap['Izin']  = $journalsThisMonth->where('attend_status', 'Izin')->count();
             $recap['Sakit'] = $journalsThisMonth->where('attend_status', 'Sakit')->count();
 
-            // Hitung Alpha (Hari kerja Senin-Jumat bulan ini)
             $startOfMonth = now()->startOfMonth();
             $today = now();
 
@@ -86,6 +89,12 @@ class Beranda extends Component
             $recap['Alpha'] = max(0, $workingDays - $loggedDays);
         }
 
+        // 5. Tarik Data Pengumuman (Aktif, Khusus Siswa & Umum)
+        $announcements = Announcement::where('is_active', 1)
+            ->whereIn('target_audience', ['Umum', 'Siswa'])
+            ->latest()
+            ->get();
+
         return view('livewire.student.beranda', [
             'user' => $user,
             'student' => $student,
@@ -97,6 +106,7 @@ class Beranda extends Component
             'isJurnalRevisiClean' => $isJurnalRevisiClean,
             'revisiCount' => $revisiCount,
             'recap' => $recap,
+            'announcements' => $announcements, // Kirim ke View
         ]);
     }
 }

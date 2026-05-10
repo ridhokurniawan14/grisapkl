@@ -27,10 +27,41 @@ class TeacherInfolist
                     ->label('Mata Pelajaran')
                     ->placeholder('-'),
 
-                // Merender TTD Base64 menjadi Gambar dengan background putih
                 TextEntry::make('signature_path')
                     ->label('Tanda Tangan')
-                    ->formatStateUsing(fn($state) => $state ? new HtmlString('<img src="' . $state . '" style="height: 100px; background-color: #ffffff; border-radius: 8px; padding: 5px; border: 1px solid #ccc;" />') : '-'),
+                    ->formatStateUsing(function ($state) {
+
+                        if (!$state) {
+                            return '-';
+                        }
+
+                        $src = str_starts_with($state, 'data:image')
+                            ? $state
+                            : asset('storage/' . $state);
+
+                        return new HtmlString("
+            <img 
+                src='{$src}'
+                style='
+                    height:100px;
+                    background:#fff;
+                    border-radius:8px;
+                    padding:5px;
+                    border:1px solid #ccc;
+                    object-fit:contain;
+                '
+            />
+        ");
+                    })
+                    ->html(),
+
+                TextEntry::make('user.email')
+                    ->label('Email / Username')
+                    ->icon('heroicon-m-envelope')
+                    ->color('gray')
+                    ->copyable()
+                    ->copyMessage('Email berhasil disalin!')
+                    ->copyMessageDuration(1500),
 
                 TextEntry::make('created_at')
                     ->label('Tanggal Terdaftar')

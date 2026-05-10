@@ -27,9 +27,9 @@ class LoginUniversal extends Component
             } elseif ($user->hasRole('siswa')) {
                 return redirect()->to('/siswa/absen');
             } elseif ($user->hasRole('dudika')) {
-                return redirect()->to('/dudika/dashboard');
+                return redirect()->to('/dudika/beranda');
             } else {
-                return redirect()->to('/pembimbing/dashboard');
+                return redirect()->to('/pembimbing/beranda');
             }
         }
     }
@@ -44,23 +44,67 @@ class LoginUniversal extends Component
             'password.required' => 'Kata sandi wajib diisi.',
         ]);
 
-        if (Auth::attempt(['email' => $this->identifier, 'password' => $this->password], $this->remember)) {
-            session()->regenerate();
+        // Login dulu
+        if (!Auth::attempt([
+            'email' => $this->identifier,
+            'password' => $this->password,
+        ], $this->remember)) {
 
-            $user = Auth::user();
-
-            if ($user->hasRole(['super_admin', 'humas'])) {
-                return redirect()->to('/admin');
-            } elseif ($user->hasRole('siswa')) {
-                return redirect()->to('/siswa/absen');
-            } elseif ($user->hasRole('dudika')) {
-                return redirect()->to('/dudika/dashboard');
-            } else {
-                return redirect()->to('/pembimbing/dashboard');
-            }
+            $this->addError('identifier', 'Kredensial tidak cocok dengan data kami.');
+            return;
         }
 
-        $this->addError('identifier', 'Kredensial tidak cocok dengan data kami.');
+        session()->regenerate();
+
+        $user = Auth::user();
+
+        /*
+    |--------------------------------------------------------------------------
+    | CEK AKSES SISWA
+    |--------------------------------------------------------------------------
+    */
+        if ($user->hasRole('siswa')) {
+
+            $student = $user->student;
+
+            // Kalau data student tidak ada
+            if (!$student) {
+                Auth::logout();
+
+                $this->addError('identifier', 'Data siswa tidak ditemukan.');
+                return;
+            }
+
+            // Kalau akses dimatikan
+            if (!$student->is_active) {
+
+                Auth::logout();
+
+                $this->addError(
+                    'identifier',
+                    'Akses login siswa dinonaktifkan oleh admin.'
+                );
+
+                return;
+            }
+
+            return redirect()->to('/siswa/absen');
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | ROLE LAIN
+    |--------------------------------------------------------------------------
+    */
+        if ($user->hasRole(['super_admin', 'humas'])) {
+            return redirect()->to('/admin');
+        }
+
+        if ($user->hasRole('dudika')) {
+            return redirect()->to('/dudika/beranda');
+        }
+
+        return redirect()->to('/pembimbing/beranda');
     }
 
     public function render()

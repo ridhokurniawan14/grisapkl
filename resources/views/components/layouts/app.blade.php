@@ -131,6 +131,7 @@
         }
     </style>
 </head>
+@stack('scripts')
 
 <body
     class="antialiased flex flex-col font-body-md text-[14px] w-full min-h-[100dvh] bg-slate-100 sm:items-center sm:justify-center m-0 p-0">
@@ -140,8 +141,8 @@
         class="relative w-full h-[100dvh] sm:w-[390px] sm:h-[800px] sm:max-h-[90dvh] bg-background flex flex-col overflow-hidden sm:rounded-[2.5rem] sm:shadow-2xl sm:border-[8px] sm:border-slate-800">
 
         @php
-            $isProfile = request()->routeIs('siswa.profil');
-            $isBeranda = request()->routeIs('siswa.beranda'); // Cek apakah di Beranda
+            $isProfile = request()->routeIs('siswa.profil') || request()->routeIs('pembimbing.profil');
+            $isBeranda = request()->routeIs('siswa.beranda') || request()->routeIs('pembimbing.beranda');
 
             $headerBg = $isProfile
                 ? 'bg-gradient-to-b from-[#1c10a0] via-[#2d1fc5] to-[#3525cd]'
@@ -180,13 +181,31 @@
                     <div class="flex flex-col justify-center">
                         <span class="text-[11px] font-medium text-slate-500 leading-tight">Hai,</span>
                         <span class="text-[14px] font-bold text-slate-800 leading-tight truncate max-w-[120px]">
-                            {{ ucfirst(explode(' ', auth()->user()->name ?? 'Siswa')[0]) }}
-                        </span>
+                            @php
+                                $fullName = auth()->user()->name ?? 'Siswa';
+                                $nameParts = explode(' ', trim($fullName));
+
+                                $displayName = $nameParts[0] ?? 'Siswa';
+
+                                // Kalau kata pertama <= 2 karakter, ambil kata kedua
+                                if (strlen($displayName) <= 2 && isset($nameParts[1])) {
+                                    $displayName .= ' ' . $nameParts[1];
+                                }
+                            @endphp
+
+                            {{ ucfirst($displayName) }} </span>
                     </div>
                 </div>
             @else
-                {{-- HALAMAN PROFIL: Tampilkan Back Button --}}
-                <a href="{{ route('siswa.absen') }}"
+                {{-- HALAMAN PROFIL: Tampilkan Back Button Dinamis --}}
+                @php
+                    // Cek role user, kalau guru/pembimbing arahkan ke beranda guru, kalau siswa ke absen siswa
+                    $backRoute =
+                        auth()->user()->hasRole('guru') || auth()->user()->hasRole('pembimbing')
+                            ? route('pembimbing.beranda')
+                            : route('siswa.absen');
+                @endphp
+                <a href="{{ $backRoute }}"
                     class="w-10 h-10 flex items-center justify-center rounded-full text-white hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
                     title="Kembali">
                     <span class="material-symbols-outlined">arrow_back</span>

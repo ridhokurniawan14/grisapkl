@@ -423,10 +423,26 @@
                 <span class="material-symbols-outlined text-[20px]">edit</span> Edit Profil
             </a>
 
-            <button
-                class="w-full h-12 bg-[#e2dfff] hover:bg-[#d0ccff] text-[#3525cd] text-[14px] font-bold rounded-[1rem] shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
-                <span class="material-symbols-outlined text-[20px]">print</span> Cetak Laporan Seluruh Kegiatan
-            </button>
+            <a href="{{ route('siswa.profil.password') }}" wire:navigate
+                class="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[14px] font-bold rounded-[1rem] shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-[20px] text-orange-500">lock_reset</span> Ubah Password
+            </a>
+
+            @if ($pklPlacement?->file_laporan_path && $pklPlacement?->pengesah_ks_nama)
+                <a href="{{ route('siswa.laporan.download') }}"
+                    class="w-full h-12 bg-[#e2dfff] hover:bg-[#d0ccff] text-[#3525cd] text-[14px] font-bold rounded-[1rem] shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
+
+                    <span class="material-symbols-outlined text-[20px]">print</span>
+                    Cetak Laporan Seluruh Kegiatan
+                </a>
+            @else
+                <button disabled
+                    class="w-full h-12 bg-gray-300 text-gray-500 cursor-not-allowed text-[14px] font-bold rounded-[1rem] shadow-sm flex items-center justify-center gap-2">
+
+                    <span class="material-symbols-outlined text-[20px]">print</span>
+                    Laporan Belum Diverifikasi
+                </button>
+            @endif
         </section>
 
         {{-- Logout --}}

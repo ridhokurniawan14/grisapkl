@@ -56,7 +56,12 @@ class StudentInfolist
                         TextEntry::make('user.email')
                             ->label('Email / Username')
                             ->columnSpanFull()
-                            ->placeholder('-'),
+                            ->icon('heroicon-m-envelope')
+                            ->color('gray')
+                            ->copyable()
+                            ->copyMessage('Email berhasil disalin!')
+                            ->copyMessageDuration(1500),
+
                         TextEntry::make('address')
                             ->label('Alamat Lengkap')
                             ->columnSpanFull()

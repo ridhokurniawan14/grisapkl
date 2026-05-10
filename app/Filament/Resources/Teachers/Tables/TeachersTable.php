@@ -67,10 +67,32 @@ class TeachersTable
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                // TTD Persegi Panjang dengan Background Putih
                 TextColumn::make('signature_path')
                     ->label('Tanda Tangan')
-                    ->formatStateUsing(fn($state) => $state ? new HtmlString('<img src="' . $state . '" style="height: 40px; background-color: #ffffff; border-radius: 4px; padding: 2px; border: 1px solid #ccc;" />') : '-')
+                    ->formatStateUsing(function ($state) {
+
+                        if (!$state) {
+                            return '-';
+                        }
+
+                        $src = str_starts_with($state, 'data:image')
+                            ? $state
+                            : asset('storage/' . $state);
+
+                        return new HtmlString("
+            <img 
+                src='{$src}'
+                style='
+                    height:40px;
+                    background:#fff;
+                    border-radius:4px;
+                    padding:2px;
+                    border:1px solid #ccc;
+                    object-fit:contain;
+                '
+            />
+        ");
+                    })
                     ->html(),
             ])
             ->recordActions([

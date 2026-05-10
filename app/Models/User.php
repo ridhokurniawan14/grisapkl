@@ -52,4 +52,12 @@ class User extends Authenticatable implements FilamentUser
         // Hanya yang punya role super_admin atau humas yang boleh masuk /admin
         return $this->hasRole(['super_admin', 'humas']);
     }
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class);
+    }
 }

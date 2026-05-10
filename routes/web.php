@@ -3,6 +3,14 @@
 use App\Http\Controllers\PrintController;
 use App\Livewire\Auth\ForgotPasswordRequest;
 use App\Livewire\Auth\LoginUniversal;
+use App\Livewire\Pembimbing\Beranda;
+use App\Livewire\Pembimbing\Profil;
+use App\Livewire\Pembimbing\ProfilEdit;
+use App\Livewire\Pembimbing\Siswa;
+use App\Livewire\Pembimbing\UbahPassword;
+use App\Livewire\Pembimbing\Data;
+use App\Livewire\Pembimbing\Lapor;
+use App\Livewire\Pembimbing\LaporEdit;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Dudika;
@@ -24,7 +32,7 @@ Route::get('/', function () {
         $user = Auth::user();
         if ($user->hasRole(['super_admin', 'humas'])) return redirect('/admin');
         if ($user->hasRole('siswa')) return redirect('/siswa/absen');
-        return redirect('/pembimbing/dashboard');
+        return redirect('/pembimbing/beranda');
     }
     return redirect('/login');
 });
@@ -46,6 +54,42 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/siswa/jurnal/{id}/edit', \App\Livewire\Student\JurnalEdit::class)->name('siswa.jurnal.edit');
     Route::get('/siswa/beranda', \App\Livewire\Student\Beranda::class)->name('siswa.beranda');
     Route::get('/siswa/bot', \App\Livewire\Student\ChatBot::class)->name('siswa.bot');
+    Route::get('/siswa/profil/password', \App\Livewire\Student\UbahPassword::class)->name('siswa.profil.password');
+    Route::get('/siswa/laporan/download', function () {
+
+        $student = \App\Models\Student::where('user_id', auth()->id())->first();
+
+        abort_if(!$student, 403, 'Data siswa tidak ditemukan.');
+
+        $pklPlacement = \App\Models\PklPlacement::where(
+            'student_id',
+            $student->id
+        )->firstOrFail();
+
+        abort_if(
+            empty($pklPlacement->file_laporan_path),
+            404,
+            'File laporan belum tersedia.'
+        );
+
+        return response()->download(
+            storage_path('app/public/' . $pklPlacement->file_laporan_path)
+        );
+    })->middleware(['auth'])->name('siswa.laporan.download');
+});
+
+// ==========================================================
+// RUTE PWA PEMBIMBING (GURU)
+// ==========================================================
+Route::middleware(['auth', 'role:guru'])->group(function () {
+    Route::get('/pembimbing/beranda', Beranda::class)->name('pembimbing.beranda');
+    Route::get('/pembimbing/siswa', Siswa::class)->name('pembimbing.siswa');
+    Route::get('/pembimbing/profil', Profil::class)->name('pembimbing.profil');
+    Route::get('/pembimbing/profil/edit', ProfilEdit::class)->name('pembimbing.profil.edit');
+    Route::get('/pembimbing/profil/password', UbahPassword::class)->name('pembimbing.profil.password');
+    Route::get('/pembimbing/data', Data::class)->name('pembimbing.data');
+    Route::get('/pembimbing/lapor', Lapor::class)->name('pembimbing.lapor');
+    Route::get('/pembimbing/lapor/edit', LaporEdit::class)->name('pembimbing.lapor.edit');
 });
 
 // ==========================================================

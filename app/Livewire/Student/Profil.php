@@ -8,6 +8,7 @@ use Livewire\Attributes\Title;
 use Livewire\WithFileUploads; // WAJIB UNTUK UPLOAD
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Models\PklPlacement;
 
 #[Layout('components.layouts.app')]
 #[Title('Profil Siswa - PKL Connect')]
@@ -15,12 +16,21 @@ class Profil extends Component
 {
     use WithFileUploads;
 
+    public $pklPlacement;
     public $student;
     public $newProfilePhoto; // Penampung foto baru
 
     public function mount()
     {
-        $this->student = \App\Models\Student::with('studentClass')->where('user_id', Auth::id())->first();
+        $this->student = \App\Models\Student::with('studentClass')
+            ->where('user_id', Auth::id())
+            ->first();
+
+        // Ambil data PKL placement siswa login
+        $this->pklPlacement = PklPlacement::where(
+            'student_id',
+            $this->student?->id
+        )->first();
     }
 
     // Fungsi otomatis berjalan saat siswa memilih foto baru

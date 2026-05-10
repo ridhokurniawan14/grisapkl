@@ -52,76 +52,86 @@
         </a>
 
         {{-- ========================================== --}}
-        {{-- MENU KHUSUS DUDIKA                         --}}
+        {{-- MENU KHUSUS GURU PEMBIMBING / GURU           --}}
         {{-- ========================================== --}}
-    @elseif($user && $user->hasRole('dudika'))
-        <!-- 1. Beranda -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">home</span>
+    @elseif($user && $user->hasRole('guru'))
+        @php $isBerandaGuru = request()->routeIs('pembimbing.beranda'); @endphp
+        <a href="{{ route('pembimbing.beranda') }}"
+            class="flex flex-col items-center justify-center {{ $isBerandaGuru ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isBerandaGuru ? '1' : '0' }};">home</span>
             <span class="text-[10px] font-medium">Beranda</span>
         </a>
-        <!-- 2. Nilai -->
+
+        @php $isSiswaGuru = request()->routeIs('pembimbing.siswa'); @endphp
+        <a href="{{ route('pembimbing.siswa') }}"
+            class="flex flex-col items-center justify-center {{ $isSiswaGuru ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isSiswaGuru ? '1' : '0' }};">groups</span>
+            <span class="text-[10px] font-medium">Siswa</span>
+        </a>
+
+        @php $isLaporGuru = request()->routeIs('pembimbing.lapor'); @endphp
+        <a href="{{ route('pembimbing.lapor') }}"
+            class="flex flex-col items-center justify-center {{ $isLaporGuru ? 'text-[#3525cd] font-bold bg-[#e2dfff]' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} rounded-xl px-4 py-1.5 -mt-3 shadow-sm border border-white transition-transform active:scale-95">
+            <span class="material-symbols-outlined mb-0.5 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isLaporGuru ? '1' : '0' }};">assignment_turned_in</span>
+            <span class="text-[11px] font-medium">Lapor</span>
+        </a>
+
+        @php $isDataGuru = request()->routeIs('pembimbing.data'); @endphp
+        <a href="{{ route('pembimbing.data') }}"
+            class="flex flex-col items-center justify-center {{ $isDataGuru ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isDataGuru ? '1' : '0' }};">folder_shared</span>
+            <span class="text-[10px] font-medium">Data</span>
+        </a>
+
+        @php $isProfileGuru = request()->routeIs('pembimbing.profil'); @endphp
+        <a href="{{ route('pembimbing.profil') }}"
+            class="flex flex-col items-center justify-center {{ $isProfileGuru ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isProfileGuru ? '1' : '0' }};">person</span>
+            <span class="text-[10px] font-medium">Profil</span>
+        </a>
+        {{-- ========================================== --}}
+        {{-- MENU KHUSUS DUDIKA                         --}}
+        {{-- ========================================== --}}
+        {{-- ========================================== --}}
+    @elseif($user && $user->hasRole('dudika'))
+        {{-- Pastikan route 'dudika.beranda' sudah di-uncomment di web.php ya bro! --}}
+        @php $isBerandaDudika = request()->routeIs('dudika.beranda'); @endphp
+        <a href="{{ Route::has('dudika.beranda') ? route('dudika.beranda') : '#' }}"
+            class="flex flex-col items-center justify-center {{ $isBerandaDudika ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isBerandaDudika ? '1' : '0' }};">home</span>
+            <span class="text-[10px] font-medium">Beranda</span>
+        </a>
+
         <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
+            class="flex flex-col items-center justify-center text-slate-400 hover:text-[#3525cd] w-14 transition-colors bg-transparent py-1 rounded-xl">
             <span class="material-symbols-outlined mb-1 text-[24px]">fact_check</span>
             <span class="text-[10px] font-medium">Nilai</span>
         </a>
-        <!-- 3. Jurnal Siswa (Center Active) -->
+
         <a href="#"
-            class="flex flex-col items-center justify-center text-primary font-bold bg-primary/10 rounded-xl px-4 py-1.5 -mt-3 shadow-sm">
+            class="flex flex-col items-center justify-center text-[#3525cd] font-bold bg-[#e2dfff] rounded-xl px-4 py-1.5 -mt-3 shadow-sm border border-white">
             <span class="material-symbols-outlined mb-0.5 text-[24px]"
                 style="font-variation-settings: 'FILL' 1;">menu_book</span>
             <span class="text-[11px] font-medium">Jurnal</span>
         </a>
-        <!-- 4. Profil Dudika -->
+
         <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
+            class="flex flex-col items-center justify-center text-slate-400 hover:text-[#3525cd] w-14 transition-colors bg-transparent py-1 rounded-xl">
             <span class="material-symbols-outlined mb-1 text-[24px]">domain</span>
             <span class="text-[10px] font-medium">Instansi</span>
         </a>
-        <!-- 5. Profile Akun -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">person</span>
-            <span class="text-[10px] font-medium">Profil</span>
-        </a>
 
-        {{-- ========================================== --}}
-        {{-- MENU KHUSUS GURU PEMBIMBING                --}}
-        {{-- ========================================== --}}
-    @elseif($user && $user->hasRole('pembimbing'))
-        {{-- Pastikan nama role guru di DB-mu apa, misal 'pembimbing' atau 'guru' --}}
-        <!-- 1. Beranda -->
         <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">home</span>
-            <span class="text-[10px] font-medium">Beranda</span>
-        </a>
-        <!-- 2. Siswa Bimbingan -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">groups</span>
-            <span class="text-[10px] font-medium">Siswa</span>
-        </a>
-        <!-- 3. Laporan Monitoring (Center Active) -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-primary font-bold bg-primary/10 rounded-xl px-4 py-1.5 -mt-3 shadow-sm">
-            <span class="material-symbols-outlined mb-0.5 text-[24px]"
-                style="font-variation-settings: 'FILL' 1;">assignment_turned_in</span>
-            <span class="text-[11px] font-medium">Lapor</span>
-        </a>
-        <!-- 4. Data Kelengkapan -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
-            <span class="material-symbols-outlined mb-1 text-[24px]">folder_shared</span>
-            <span class="text-[10px] font-medium">Data</span>
-        </a>
-        <!-- 5. Profile -->
-        <a href="#"
-            class="flex flex-col items-center justify-center text-outline hover:text-primary w-14 transition-colors">
+            class="flex flex-col items-center justify-center text-slate-400 hover:text-[#3525cd] w-14 transition-colors bg-transparent py-1 rounded-xl">
             <span class="material-symbols-outlined mb-1 text-[24px]">person</span>
             <span class="text-[10px] font-medium">Profil</span>
         </a>
     @endif
+
 </nav>
