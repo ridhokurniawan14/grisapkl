@@ -122,9 +122,10 @@
             </a>
 
             <button wire:click="logout"
-                class="w-full h-[52px] bg-red-50 text-red-600 border border-red-100 rounded-[1.25rem] font-extrabold text-[14px] active:scale-95 transition-transform flex items-center justify-center gap-2 mt-2">
+                class="w-full h-[52px] bg-red-50 text-red-600 border border-red-100 rounded-[1.25rem] font-extrabold text-[14px] active:scale-95 transition-transform flex items-center justify-center gap-2 mt-2 hover:bg-red-100 shadow-sm">
                 <span class="material-symbols-outlined text-[20px]">logout</span> Logout
             </button>
+
         </div>
 
         <div class="text-center mt-4 mb-2">

@@ -99,8 +99,16 @@
         {{-- ========================================== --}}
         {{-- ========================================== --}}
     @elseif($user && $user->hasRole('dudika'))
-        {{-- Pastikan route 'dudika.beranda' sudah di-uncomment di web.php ya bro! --}}
-        @php $isBerandaDudika = request()->routeIs('dudika.beranda'); @endphp
+        @php
+            $isBerandaDudika = request()->routeIs('dudika.beranda');
+            $isJurnalDudika = request()->routeIs('dudika.jurnal');
+            $isNilaiDudika = request()->routeIs('dudika.nilai'); // Sesuaikan kalau nama routenya beda
+            $isProfilDudika =
+                request()->routeIs('dudika.profil') ||
+                request()->routeIs('dudika.profil.edit') ||
+                request()->routeIs('dudika.profil.password');
+        @endphp
+
         <a href="{{ Route::has('dudika.beranda') ? route('dudika.beranda') : '#' }}"
             class="flex flex-col items-center justify-center {{ $isBerandaDudika ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
             <span class="material-symbols-outlined mb-1 text-[24px]"
@@ -108,28 +116,24 @@
             <span class="text-[10px] font-medium">Beranda</span>
         </a>
 
-        <a href="#"
-            class="flex flex-col items-center justify-center text-slate-400 hover:text-[#3525cd] w-14 transition-colors bg-transparent py-1 rounded-xl">
-            <span class="material-symbols-outlined mb-1 text-[24px]">fact_check</span>
+        <a href="{{ Route::has('dudika.jurnal') ? route('dudika.jurnal') : '#' }}"
+            class="flex flex-col items-center justify-center {{ $isJurnalDudika ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isJurnalDudika ? '1' : '0' }};">menu_book</span>
+            <span class="text-[10px] font-medium">Jurnal</span>
+        </a>
+
+        <a href="{{ Route::has('dudika.nilai') ? route('dudika.nilai') : '#' }}"
+            class="flex flex-col items-center justify-center {{ $isNilaiDudika ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 transition-colors py-1 rounded-xl">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isNilaiDudika ? '1' : '0' }};">fact_check</span>
             <span class="text-[10px] font-medium">Nilai</span>
         </a>
 
-        <a href="#"
-            class="flex flex-col items-center justify-center text-[#3525cd] font-bold bg-[#e2dfff] rounded-xl px-4 py-1.5 -mt-3 shadow-sm border border-white">
-            <span class="material-symbols-outlined mb-0.5 text-[24px]"
-                style="font-variation-settings: 'FILL' 1;">menu_book</span>
-            <span class="text-[11px] font-medium">Jurnal</span>
-        </a>
-
-        <a href="#"
-            class="flex flex-col items-center justify-center text-slate-400 hover:text-[#3525cd] w-14 transition-colors bg-transparent py-1 rounded-xl">
-            <span class="material-symbols-outlined mb-1 text-[24px]">domain</span>
-            <span class="text-[10px] font-medium">Instansi</span>
-        </a>
-
-        <a href="#"
-            class="flex flex-col items-center justify-center text-slate-400 hover:text-[#3525cd] w-14 transition-colors bg-transparent py-1 rounded-xl">
-            <span class="material-symbols-outlined mb-1 text-[24px]">person</span>
+        <a href="{{ Route::has('dudika.profil') ? route('dudika.profil') : '#' }}"
+            class="flex flex-col items-center justify-center {{ $isProfilDudika ? 'text-[#3525cd] font-bold bg-[#3525cd]/10' : 'text-slate-400 hover:text-[#3525cd] bg-transparent' }} w-14 rounded-xl py-1 transition-colors">
+            <span class="material-symbols-outlined mb-1 text-[24px]"
+                style="font-variation-settings: 'FILL' {{ $isProfilDudika ? '1' : '0' }};">person</span>
             <span class="text-[10px] font-medium">Profil</span>
         </a>
     @endif

@@ -327,7 +327,7 @@
             <div x-show="isLoading"
                 class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-40">
                 <span class="material-symbols-outlined animate-spin text-[48px] mb-3">refresh</span>
-                <p x-text="loadingText" class="text-sm font-semibold"></p>
+                <p x-text="loadingText" class="text-sm font-semibold text-center px-4"></p>
             </div>
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden">
                 <div class="relative flex items-center justify-center">
@@ -383,7 +383,7 @@
             <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-4 shadow-inner"><span
                     class="material-symbols-outlined text-error text-[36px]"
                     style="font-variation-settings: 'FILL' 1;">location_off</span></div>
-            <h3 class="text-[20px] font-bold text-on-surface mb-2">Akses Ditolak!</h3>
+            <h3 class="text-[20px] font-bold text-on-surface mb-2">Perhatian!</h3>
             <p class="text-[13px] text-on-surface-variant mb-6 leading-relaxed" x-text="errorMessage"></p>
             <button @click="showErrorModal = false"
                 class="w-full h-[48px] bg-error hover:bg-red-700 text-white text-[15px] font-semibold rounded-[1.25rem] transition-all active:scale-95 shadow-lg shadow-error/30">Mengerti</button>
@@ -475,32 +475,75 @@
                 async openCamera() {
                     this.isCameraOpen = true;
                     this.isLoading = true;
-                    this.loadingText = 'Mengecek Radius & Lokasi...';
-                    try {
-                        const pos = await new Promise((resolve, reject) => {
-                            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                                enableHighAccuracy: true,
-                                timeout: 10000,
-                                maximumAge: 0
+
+                    // Ambil status radius dari Backend (Livewire Property)
+                    const isRadiusEnabled = @json($isRadiusEnabled);
+
+                    // LOGIKA JIKA RADIUS DIAKTIFKAN OLEH HUMAS
+                    if (isRadiusEnabled) {
+                        this.loadingText = 'Mengecek Radius & Lokasi...';
+                        try {
+                            const pos = await new Promise((resolve, reject) => {
+                                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                                    enableHighAccuracy: true,
+                                    timeout: 10000,
+                                    maximumAge: 0
+                                });
                             });
-                        });
-                        if (pos.coords.accuracy > 150) {
+
+                            // Validasi ketat jika akurasi jelek (kemungkinan Fake GPS / di dalam gedung tertutup)
+                            if (pos.coords.accuracy > 150) {
+                                this.errorMessage =
+                                    'Akurasi GPS bermasalah atau terdeteksi aplikasi Fake GPS. Pastikan Anda berada di luar ruangan dan mematikan aplikasi pihak ketiga!';
+                                this.showErrorModal = true;
+                                this.closeCamera();
+                                return;
+                            }
+
+                            this.lat = pos.coords.latitude;
+                            this.lng = pos.coords.longitude;
+
+                            // Lempar ke Backend untuk dihitung jaraknya
+                            let isWithinRadius = await this.$wire.verifyLocation(this.lat, this
+                            .lng);
+                            if (!isWithinRadius) {
+                                this.errorMessage =
+                                    'Lokasi Anda saat ini berada di luar radius DUDIKA yang diizinkan sekolah. Silakan masuk ke area tempat PKL untuk melakukan absensi.';
+                                this.showErrorModal = true;
+                                this.closeCamera();
+                                return;
+                            }
+                        } catch (error) {
                             this.errorMessage =
-                                'Akurasi GPS bermasalah atau terdeteksi aplikasi Fake GPS. Pastikan Anda berada di luar ruangan dan mematikan aplikasi pihak ketiga!';
+                                'Gagal mengakses Lokasi. Pastikan izin GPS pada browser Anda sudah diberikan dan fitur GPS di HP menyala!';
                             this.showErrorModal = true;
                             this.closeCamera();
                             return;
                         }
-                        this.lat = pos.coords.latitude;
-                        this.lng = pos.coords.longitude;
-                        let isWithinRadius = await this.$wire.verifyLocation(this.lat, this.lng);
-                        if (!isWithinRadius) {
-                            this.errorMessage =
-                                'Lokasi Anda saat ini berada di luar radius DUDIKA yang diizinkan sekolah. Silakan masuk ke area tempat PKL untuk melakukan absensi.';
-                            this.showErrorModal = true;
-                            this.closeCamera();
-                            return;
+                    }
+                    // LOGIKA BYPASS JIKA RADIUS DINONAKTIFKAN OLEH HUMAS
+                    else {
+                        this.loadingText = 'Menyiapkan Kamera...';
+                        try {
+                            // Tetap coba ambil lokasi untuk dicetak di foto, tapi TIDAK DILARANG kalau akurasinya jelek
+                            const pos = await new Promise((resolve, reject) => {
+                                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                                    enableHighAccuracy: false,
+                                    timeout: 5000, // Cuma nunggu 5 detik, gagal gapapa
+                                    maximumAge: 10000
+                                });
+                            });
+                            this.lat = pos.coords.latitude;
+                            this.lng = pos.coords.longitude;
+                        } catch (error) {
+                            // Kalau gagal / ditolak lokasinya, set 0 saja, kamera tetap terbuka!
+                            this.lat = 0;
+                            this.lng = 0;
                         }
+                    }
+
+                    // Buka Kamera (Wajib untuk foto selfie Absen)
+                    try {
                         this.loadingText = 'Membuka Kamera...';
                         this.stream = await navigator.mediaDevices.getUserMedia({
                             video: {
@@ -511,7 +554,7 @@
                         this.isLoading = false;
                     } catch (error) {
                         this.errorMessage =
-                            'Gagal mengakses Lokasi atau Kamera. Pastikan izin GPS dan Kamera pada browser Anda sudah diberikan!';
+                            'Gagal mengakses Kamera. Pastikan izin Kamera pada browser Anda sudah diberikan!';
                         this.showErrorModal = true;
                         this.closeCamera();
                     }
@@ -528,16 +571,23 @@
                 takeSnapshot() {
                     this.isLoading = true;
                     this.loadingText = 'Menyimpan Absensi...';
+
                     const video = this.$refs.video;
                     const canvas = this.$refs.canvas;
                     const ctx = canvas.getContext('2d');
+
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Box Transparan untuk teks watermark
                     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
                     ctx.fillRect(10, canvas.height - 110, canvas.width - 20, 100);
+
+                    // Watermark Sekolah & Waktu
                     ctx.font = "bold 24px Arial";
                     ctx.fillStyle = "white";
+
                     const dateObj = new Date();
                     const timeStr = dateObj.toLocaleTimeString('id-ID');
                     const dateStr = dateObj.toLocaleDateString('id-ID', {
@@ -546,12 +596,22 @@
                         month: 'long',
                         day: 'numeric'
                     });
+
                     ctx.fillText("SMK PGRI 1 GIRI - GRISA PKL", 20, canvas.height - 80);
                     ctx.font = "20px Arial";
                     ctx.fillText(`Waktu: ${dateStr} - ${timeStr}`, 20, canvas.height - 50);
-                    ctx.fillText(`Lokasi: ${this.lat.toFixed(5)}, ${this.lng.toFixed(5)}`, 20, canvas
-                        .height - 20);
+
+                    // Logika Cetak Lokasi di Foto
+                    if (this.lat !== null && this.lng !== null && this.lat !== 0 && this.lng !== 0) {
+                        ctx.fillText(`Lokasi: ${this.lat.toFixed(5)}, ${this.lng.toFixed(5)}`, 20,
+                            canvas.height - 20);
+                    } else {
+                        ctx.fillText(`Lokasi: Tidak Terdeteksi (Mode Bebas)`, 20, canvas.height - 20);
+                    }
+
                     const base64Photo = canvas.toDataURL('image/jpeg', 0.8);
+
+                    // Kirim ke backend (Kalau isRadiusEnabled false, di backend otomatis lolos verifikasi)
                     this.$wire.submitAttendance(base64Photo, this.lat, this.lng).then(() => {
                         this.closeCamera();
                     });

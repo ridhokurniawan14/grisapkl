@@ -21,7 +21,10 @@
     <tr>
         <td>LAMA PKL</td>
         <td>:</td>
-        <td>{{ \Carbon\Carbon::parse($placement->start_date)->diffInMonths(\Carbon\Carbon::parse($placement->end_date)) }}
+        <td>{{ number_format(
+            \Carbon\Carbon::parse($placement->start_date)->floatDiffInMonths(\Carbon\Carbon::parse($placement->end_date)),
+            2,
+        ) }}
             Bulan</td>
     </tr>
     <tr>
@@ -32,10 +35,62 @@
 </table>
 
 @php
-    $hadir = $placement->journals->where('attend_status', 'Hadir')->count();
-    $sakit = $placement->journals->where('attend_status', 'Sakit')->count();
-    $izin = $placement->journals->where('attend_status', 'Izin')->count();
-    $alfa = $placement->journals->where('attend_status', 'Alpha')->count();
+    use Carbon\Carbon;
+    use Carbon\CarbonPeriod;
+    use App\Models\Journal;
+
+    // Ambil langsung dari database
+    $journals = Journal::where('pkl_placement_id', $placement->id)->get();
+
+    // Rekap dasar
+    $hadir = $journals->where('attend_status', 'Hadir')->count();
+    $sakit = $journals->where('attend_status', 'Sakit')->count();
+    $izin = $journals->where('attend_status', 'Izin')->count();
+
+    // ==========================================
+    // HITUNG ALPHA
+    // ==========================================
+    $alfa = 0;
+    $workingDays = 0;
+
+    if ($placement->start_date && $placement->end_date) {
+        $startDate = Carbon::parse($placement->start_date)->startOfDay();
+        $endDate = Carbon::parse($placement->end_date)->endOfDay();
+        $today = Carbon::now()->endOfDay();
+
+        // Batas akhir hitung
+        $limitDate = $today->lessThan($endDate) ? $today : $endDate;
+
+        // Hitung hari kerja Senin - Jumat
+        if ($startDate->lessThanOrEqualTo($limitDate)) {
+            $period = CarbonPeriod::create($startDate, $limitDate);
+
+            foreach ($period as $date) {
+                if ($date->isWeekday()) {
+                    $workingDays++;
+                }
+            }
+        }
+
+        // Ambil tanggal unik yang SUDAH ada jurnal
+        $loggedDays = $journals
+            ->filter(function ($j) use ($startDate, $limitDate) {
+                if (!$j->date) {
+                    return false;
+                }
+
+                $journalDate = Carbon::parse($j->date);
+
+                return $journalDate->between($startDate, $limitDate) && $journalDate->isWeekday();
+            })
+            ->pluck('date')
+            ->unique()
+            ->count();
+
+        // Alpha asli
+        $alfa = max(0, $workingDays - $loggedDays);
+    }
+
     $total = $hadir + $sakit + $izin + $alfa;
 @endphp
 
@@ -113,6 +168,9 @@
                 <br><br><br><br><br>
                 <strong
                     style="text-decoration: underline;">{{ $placement->dudika->supervisor_name ?? '............................................' }}</strong>
+                @if (!empty($placement->dudika->supervisor_nip) && trim($placement->dudika->supervisor_nip) !== '-')
+                    <br>NIP. {{ $placement->dudika->supervisor_nip }}
+                @endif
             </td>
         </tr>
     </table>

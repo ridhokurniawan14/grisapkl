@@ -3,6 +3,12 @@
 use App\Http\Controllers\PrintController;
 use App\Livewire\Auth\ForgotPasswordRequest;
 use App\Livewire\Auth\LoginUniversal;
+use App\Livewire\Dudika\Beranda as DudikaBeranda;
+use App\Livewire\Dudika\Profil as DudikaProfil;
+use App\Livewire\Dudika\ProfilEdit as DudikaProfilEdit;
+use App\Livewire\Dudika\UbahPassword as DudikaUbahPassword;
+use App\Livewire\Dudika\Jurnal;
+use App\Livewire\Dudika\Nilai;
 use App\Livewire\Pembimbing\Beranda;
 use App\Livewire\Pembimbing\Profil;
 use App\Livewire\Pembimbing\ProfilEdit;
@@ -95,8 +101,14 @@ Route::middleware(['auth', 'role:guru'])->group(function () {
 // ==========================================================
 // RUTE PWA DUDIKA
 // ==========================================================
-// Route::get('/dudika/dashboard', \App\Livewire\Dudika\Dashboard::class)->name('dudika.dashboard');
-
+Route::middleware(['auth', 'role:dudika'])->group(function () {
+    Route::get('/dudika/beranda', DudikaBeranda::class)->name('dudika.beranda');
+    Route::get('/dudika/profil', DudikaProfil::class)->name('dudika.profil');
+    Route::get('/dudika/profil/edit', DudikaProfilEdit::class)->name('dudika.profil.edit');
+    Route::get('/dudika/profil/password', DudikaUbahPassword::class)->name('dudika.profil.password');
+    Route::get('/dudika/jurnal', Jurnal::class)->name('dudika.jurnal');
+    Route::get('/dudika/nilai', Nilai::class)->name('dudika.nilai');
+});
 // ==========================================================
 // RUTE RAHASIA (WAJIB LOGIN UNTUK MENGAKSES)
 // ==========================================================

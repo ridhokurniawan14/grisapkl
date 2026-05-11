@@ -186,6 +186,18 @@
                                 class="material-symbols-outlined text-[18px]">close</span></button>
                     </div>
 
+                    <template x-if="selectedJournal.revision_note">
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100 mb-1">
+                            <div class="flex items-center gap-1.5 mb-1 text-red-600">
+                                <span class="material-symbols-outlined text-[16px]">error</span>
+                                <span class="text-[11px] font-extrabold uppercase tracking-widest">Catatan Revisi
+                                    DUDIKA</span>
+                            </div>
+                            <p class="text-[12px] font-medium text-red-700 leading-relaxed"
+                                x-text="selectedJournal.revision_note"></p>
+                        </div>
+                    </template>
+
                     <template x-if="selectedJournal.attendance_photo_url">
                         <div>
                             <p class="text-[11px] font-bold text-slate-400 mb-1">Foto Lokasi</p>

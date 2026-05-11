@@ -28,7 +28,7 @@
 
 <!-- TABEL PENGESAHAN DUDIKA -->
 <table
-    style="width: 100%; margin-top: 30px; font-size:14pt; text-align: center; table-layout: fixed; border-collapse: collapse;">
+    style="width: 100%; margin-top: 10px; font-size:14pt; text-align: center; table-layout: fixed; border-collapse: collapse;">
     <tr>
         <td class="font-bold" style="vertical-align: middle; padding: 5px;">Kepala DUDIKA</td>
         <td class="font-bold" style="vertical-align: middle; padding: 5px;">Pembimbing PKL DUDIKA</td>
@@ -55,50 +55,143 @@
     </tr>
 </table>
 
-<!-- TABEL PENGESAHAN SEKOLAH -->
 <table
-    style="width: 100%; margin-top: 20px; font-size:14pt; text-align: center; table-layout: fixed; border-collapse: collapse;">
+    style="
+        width: 100%;
+        margin-top: 10px;
+        font-size: 13pt;
+        text-align: center;
+        table-layout: fixed;
+        border-collapse: collapse;
+    ">
+
     <tr>
-        <td class="font-bold" style="vertical-align: middle; padding: 5px; height: 60px;">
+
+        <td class="font-bold"
+            style="
+                vertical-align: bottom;
+                line-height: 1.3;
+                padding-bottom: 8px;
+                height: 45px;
+            ">
             Kepala<br>
             {{ $school->name ?? 'SMK PGRI 1 Giri Banyuwangi' }}
         </td>
-        <td class="font-bold" style="vertical-align: middle; padding: 5px; height: 60px;"><br>Pembimbing PKL SMK </td>
+
+        <td class="font-bold"
+            style="
+                vertical-align: bottom;
+                line-height: 1.3;
+                padding-bottom: 8px;
+                height: 45px;
+            ">
+            Pembimbing PKL SMK
+        </td>
+
     </tr>
+
     <tr>
-        <!-- Area Tanda Tangan & QR Code -->
-        <td style="height: 100px; vertical-align: middle;">
-            <div style="width: 125px; height: 125px; margin: 0 auto; text-align: center;">
+
+        <td
+            style="
+                vertical-align: top;
+                padding-top: 0;
+                padding-bottom: 0;
+            ">
+
+            <div
+                style="
+                    width: 82px;
+                    height: 82px;
+                    margin: 12px auto 0 auto; /* Diubah: margin bawah jadi 0 agar tidak renggang */
+                    position: relative;
+                ">
+
                 <img src="data:image/svg+xml;base64,{{ $qrCode }}"
-                    style="width: 125px; height: 125px; display: block; margin: 0 auto;">
+                    style="
+                        width: 82px;
+                        height: 82px;
+                        display: block;
+                    ">
+
                 @if ($logoBase64)
                     <img src="{{ $logoBase64 }}"
-                        style="width: 26px; height: 26px; margin-top: -75px; background-color: white; padding: 2px; border-radius: 4px; display: inline-block;">
+                        style="
+                            width: 18px;
+                            height: 18px;
+                            position: absolute;
+                            top: 15px;
+                            left: 31px;
+                            background: white;
+                            border-radius: 2px;
+                            padding: 1px;
+                            object-fit: contain;
+                        ">
+                @endif
+
+            </div>
+
+        </td>
+
+        <td
+            style="
+                vertical-align: top;
+                padding-top: 12px;
+                padding-bottom: 0; /* Diubah: padding bawah di-nol-kan */
+            ">
+
+            @if ($ttdGuruBase64 && ($school->is_teacher_signature_enabled ?? true))
+                <img src="{{ $ttdGuruBase64 }}"
+                    style="
+                        height: 55px;
+                        max-width: 150px;
+                        display: block;
+                        margin: 0 auto;
+                    ">
+            @else
+                <div style="height: 55px;"></div>
+            @endif
+
+        </td>
+
+    </tr>
+
+    <tr>
+
+        <td style="
+            vertical-align: top;
+            line-height: 1;
+        ">
+            <div style="margin-top: -5px;">
+                <strong style="text-decoration: underline;">
+                    {{ $placement->pengesah_ks_nama ?? $school->headmaster_name }}
+                </strong>
+
+                @if (!empty($placement->pengesah_ks_nip) && trim($placement->pengesah_ks_nip) !== '-')
+                    <br>
+                    NIP. {{ $placement->pengesah_ks_nip }}
                 @endif
             </div>
+
         </td>
-        <td style="height: 100px; vertical-align: middle;">
-            @if ($ttdGuruBase64 && ($school->is_teacher_signature_enabled ?? true))
-                <img src="{{ $ttdGuruBase64 }}" style="height: 80px; display: block; margin: 0 auto;">
-            @else
-                <br><br><br>
-            @endif
+
+        <td style="
+            vertical-align: top;
+            line-height: 1;
+        ">
+            <div style="margin-top: -5px;">
+                <strong style="text-decoration: underline;">
+                    {{ $placement->teacher->name . ', ' . $placement->teacher->title ?? '.....................................' }}
+                </strong>
+
+                @if (!empty($placement->teacher->nip) && trim($placement->teacher->nip) !== '-')
+                    <br>
+                    NIP. {{ $placement->teacher->nip }}
+                @endif
+            </div>
+
         </td>
+
     </tr>
-    <tr>
-        <td style="vertical-align: top; padding: 5px;">
-            <strong
-                style="text-decoration: underline;">{{ $placement->pengesah_ks_nama ?? $school->headmaster_name }}</strong>
-            @if (!empty($placement->pengesah_ks_nip) && trim($placement->pengesah_ks_nip) !== '-')
-                <br>NIP. {{ $placement->pengesah_ks_nip }}
-            @endif
-        </td>
-        <td style="vertical-align: top; padding: 5px;">
-            <strong
-                style="text-decoration: underline;">{{ $placement->teacher->name . ', ' . $placement->teacher->title ?? '.....................................' }}</strong>
-            @if (!empty($placement->teacher->nip) && trim($placement->teacher->nip) !== '-')
-                <br>NIP. {{ $placement->teacher->nip }}
-            @endif
-        </td>
-    </tr>
+
 </table>

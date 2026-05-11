@@ -20,7 +20,6 @@
         <link rel="icon" href="/favicon.ico">
     @endif
 
-    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap"
@@ -28,7 +27,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
         tailwind.config = {
@@ -141,8 +139,15 @@
         class="relative w-full h-[100dvh] sm:w-[390px] sm:h-[800px] sm:max-h-[90dvh] bg-background flex flex-col overflow-hidden sm:rounded-[2.5rem] sm:shadow-2xl sm:border-[8px] sm:border-slate-800">
 
         @php
-            $isProfile = request()->routeIs('siswa.profil') || request()->routeIs('pembimbing.profil');
-            $isBeranda = request()->routeIs('siswa.beranda') || request()->routeIs('pembimbing.beranda');
+            // PERBAIKAN: Masukkan route DUDIKA ke dalam pengecekan header
+            $isProfile =
+                request()->routeIs('siswa.profil') ||
+                request()->routeIs('pembimbing.profil') ||
+                request()->routeIs('dudika.profil');
+            $isBeranda =
+                request()->routeIs('siswa.beranda') ||
+                request()->routeIs('pembimbing.beranda') ||
+                request()->routeIs('dudika.beranda');
 
             $headerBg = $isProfile
                 ? 'bg-gradient-to-b from-[#1c10a0] via-[#2d1fc5] to-[#3525cd]'
@@ -154,7 +159,7 @@
             $studentData = \App\Models\Student::where('user_id', $user->id ?? 0)->first();
             $avatarPath = $studentData->avatar ?? ($user->avatar ?? null);
 
-            $name = $user->name ?? 'Siswa';
+            $name = $user->name ?? 'User';
             $initials = collect(explode(' ', $name))->map(fn($s) => substr($s, 0, 1))->take(2)->join('');
             $initials = strtoupper($initials);
         @endphp
@@ -182,28 +187,30 @@
                         <span class="text-[11px] font-medium text-slate-500 leading-tight">Hai,</span>
                         <span class="text-[14px] font-bold text-slate-800 leading-tight truncate max-w-[120px]">
                             @php
-                                $fullName = auth()->user()->name ?? 'Siswa';
+                                $fullName = auth()->user()->name ?? 'User';
                                 $nameParts = explode(' ', trim($fullName));
-
-                                $displayName = $nameParts[0] ?? 'Siswa';
+                                $displayName = $nameParts[0] ?? 'User';
 
                                 // Kalau kata pertama <= 2 karakter, ambil kata kedua
                                 if (strlen($displayName) <= 2 && isset($nameParts[1])) {
                                     $displayName .= ' ' . $nameParts[1];
                                 }
                             @endphp
-
-                            {{ ucfirst($displayName) }} </span>
+                            {{ ucfirst($displayName) }}
+                        </span>
                     </div>
                 </div>
             @else
                 {{-- HALAMAN PROFIL: Tampilkan Back Button Dinamis --}}
                 @php
-                    // Cek role user, kalau guru/pembimbing arahkan ke beranda guru, kalau siswa ke absen siswa
-                    $backRoute =
-                        auth()->user()->hasRole('guru') || auth()->user()->hasRole('pembimbing')
-                            ? route('pembimbing.beranda')
-                            : route('siswa.absen');
+                    // PERBAIKAN: Routing dinamis berdasarkan role untuk tombol BACK
+                    if ($user && $user->hasRole('dudika')) {
+                        $backRoute = route('dudika.beranda');
+                    } elseif ($user && ($user->hasRole('guru') || $user->hasRole('pembimbing'))) {
+                        $backRoute = route('pembimbing.beranda');
+                    } else {
+                        $backRoute = route('siswa.absen');
+                    }
                 @endphp
                 <a href="{{ $backRoute }}"
                     class="w-10 h-10 flex items-center justify-center rounded-full text-white hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
@@ -222,7 +229,7 @@
 
         @php
             // Hapus padding atas (pt-20) khusus untuk Profil dan Dudika agar Background bisa mentok ke atas
-            $isProfileOrDudika = request()->routeIs('siswa.dudika');
+            $isProfileOrDudika = request()->routeIs('siswa.dudika') || request()->routeIs('dudika.profil');
             $mainPadding = $isProfileOrDudika ? 'pt-0' : 'pt-20';
         @endphp
 
@@ -235,7 +242,6 @@
                 <div
                     class="absolute bottom-10 left-1/3 w-64 h-64 bg-teal-400/15 rounded-full blur-[80px] animate-pulse">
                 </div>
-                {{-- tambah satu blob di pojok kanan bawah biar makin balanced --}}
                 <div
                     class="absolute -bottom-10 -right-10 w-60 h-60 bg-indigo-400/10 rounded-full blur-[70px] animate-pulse">
                 </div>
@@ -243,7 +249,6 @@
             {{ $slot }}
         </main>
 
-        <!-- Bottom Navigation -->
         <x-bottom-nav />
     </div>
 

@@ -110,7 +110,11 @@ class Beranda extends Component
             $dudikaPendingCount = $dudikaList->where('is_complete', false)->count();
 
             // E. CEK KELENGKAPAN SISWA & BUAT PESAN WA
-            $studentList = $placements->pluck('student')->filter()->map(function ($student) use ($formatPhone) {
+            $studentList = $placements->filter(function ($placement) {
+                // Pastikan placement punya relasi student agar tidak error
+                return $placement->student !== null;
+            })->map(function ($placement) use ($formatPhone) {
+                $student = $placement->student;
                 $missing = [];
 
                 // Data Pribadi & Ortu
@@ -128,6 +132,9 @@ class Beranda extends Component
                 if (empty($student->mother_job)) $missing[] = 'Pekerjaan Ibu';
                 if (empty($student->parent_phone)) $missing[] = 'No. HP Ortu';
                 if (empty($student->parent_address) && empty($student->address)) $missing[] = 'Alamat Ortu';
+
+                // Nah, sekarang $placement bisa terbaca dengan aman!
+                if (empty($placement->pkl_field)) $missing[] = 'Bidang Keahlian / Pekerjaan Siswa';
 
                 $isComplete = count($missing) === 0;
 
@@ -147,7 +154,8 @@ class Beranda extends Component
                     'phone' => $formattedPhone,
                     'wa_message' => urlencode($waText)
                 ];
-            });
+            })->values(); // Reset array keys
+
             $studentPendingCount = $studentList->where('is_complete', false)->count();
         }
 

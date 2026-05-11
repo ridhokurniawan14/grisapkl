@@ -20,19 +20,23 @@ class Absensi extends Component
 {
     use WithFileUploads;
 
-    // Admin: FileUpload->directory('journals/attendance') & ->directory('journals')
     const DIR_ATTENDANCE = 'journals/attendance';
     const DIR_ACTIVITY   = 'journals';
 
     public $placement;
     public $hasAttendedToday = false;
     public $todayJournal;
+    public $isRadiusEnabled = true; // Tambahan untuk memegang status radius
 
     public $activity = '';
     public $activityPhoto;
 
     public function mount()
     {
+        // Cek status radius di sekolah
+        $school = SchoolProfile::first();
+        $this->isRadiusEnabled = $school ? (bool) $school->is_radius_attendance_enabled : true;
+
         $this->placement = PklPlacement::whereHas('student', function ($q) {
             $q->where('user_id', Auth::id());
         })->where('status', 'Aktif')->first();
@@ -54,26 +58,22 @@ class Absensi extends Component
     public function verifyLocation($lat, $lng): bool
     {
         try {
-            $school = SchoolProfile::first();
-
-            if ($school && $school->is_radius_attendance_enabled) {
-                $placementLat = $this->placement->latitude  ?? null;
-                $placementLng = $this->placement->longitude ?? null;
-                $maxRadius    = $this->placement->radius    ?? 50;
-
-                if (!$placementLat || !$placementLng) return true;
-
-                $distance = $this->calculateDistance($lat, $lng, $placementLat, $placementLng);
-                if ($distance > $maxRadius) return false;
+            // Jika radius dinonaktifkan di DB, langsung LOLOS
+            if (!$this->isRadiusEnabled) {
+                return true;
             }
+
+            $placementLat = $this->placement->latitude  ?? null;
+            $placementLng = $this->placement->longitude ?? null;
+            $maxRadius    = $this->placement->radius    ?? 50;
+
+            if (!$placementLat || !$placementLng) return true;
+
+            $distance = $this->calculateDistance($lat, $lng, $placementLat, $placementLng);
+            if ($distance > $maxRadius) return false;
 
             return true;
         } catch (\Throwable $e) {
-            \Log::error('Absensi verifyLocation error: ' . $e->getMessage(), [
-                'placement_id' => $this->placement?->id,
-                'lat' => $lat,
-                'lng' => $lng,
-            ]);
             return true;
         }
     }
@@ -81,9 +81,10 @@ class Absensi extends Component
     public function submitAttendance($photoBase64, $lat, $lng)
     {
         if (!$this->placement || $this->hasAttendedToday) return;
+
+        // Pengecekan via backend dipastikan lagi
         if (!$this->verifyLocation($lat, $lng)) return;
 
-        // Simpan selfie ke journals/attendance/ — konsisten dengan admin & JurnalEdit
         $imageParts  = explode(';base64,', $photoBase64);
         $imageType   = explode('image/', $imageParts[0])[1] ?? 'png';
         $imageBase64 = base64_decode($imageParts[1]);
@@ -139,13 +140,10 @@ class Absensi extends Component
 
         if (!$this->todayJournal) return;
 
-        // Hapus foto kegiatan lama sebelum simpan yang baru
-        // (mencegah file orphan di storage)
         if ($this->todayJournal->photo_path) {
             $this->deleteOldFile($this->todayJournal->photo_path);
         }
 
-        // Simpan ke journals/ — konsisten dengan admin & JurnalEdit
         $photoPath = $this->activityPhoto->storeAs(
             self::DIR_ACTIVITY,
             Str::uuid() . '.' . $this->activityPhoto->getClientOriginalExtension(),
@@ -185,31 +183,51 @@ class Absensi extends Component
         $recentJournals = collect();
 
         if ($this->placement) {
-            $startDate = Carbon::parse($this->placement->start_date);
-            $endDate   = Carbon::parse($this->placement->end_date);
+            // Ambil semua jurnal yang dimiliki penempatan ini
+            $allJournals = Journal::where('pkl_placement_id', $this->placement->id)->get();
 
-            $allJournals = Journal::where('pkl_placement_id', $this->placement->id)
-                ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                ->get();
-
-            $recap['Hadir'] = $allJournals->where('attend_status', 'Hadir')->where('is_valid', true)->count();
+            // Hitung Rekap Dasar (Hadir dihitung semua, bukan cuma yang sudah divalidasi)
+            $recap['Hadir'] = $allJournals->where('attend_status', 'Hadir')->count();
             $recap['Izin']  = $allJournals->where('attend_status', 'Izin')->count();
             $recap['Sakit'] = $allJournals->where('attend_status', 'Sakit')->count();
             $recap['Libur'] = $allJournals->where('attend_status', 'Libur')->count();
 
-            $today     = today();
-            $limitDate = $today->lessThan($endDate) ? $today : $endDate;
+            // =======================================================
+            // LOGIKA PERHITUNGAN ALPHA YANG BENAR (100% AKURAT)
+            // =======================================================
+            if ($this->placement->start_date && $this->placement->end_date) {
+                $startDate = Carbon::parse($this->placement->start_date)->startOfDay();
+                $endDate   = Carbon::parse($this->placement->end_date)->endOfDay();
+                $today     = Carbon::now()->endOfDay();
 
-            $workingDays = 0;
-            if ($startDate->lessThanOrEqualTo($limitDate)) {
-                $workingDays = $startDate->diffInDaysFiltered(function (Carbon $date) {
-                    return !$date->isWeekend();
-                }, $limitDate) + 1;
+                // Batas hitung adalah hari ini atau hari terakhir PKL (mana yang lebih dulu)
+                $limitDate = $today->lessThan($endDate) ? $today : $endDate;
+
+                $workingDays = 0;
+                if ($startDate->lessThanOrEqualTo($limitDate)) {
+                    // Pakai CarbonPeriod agar hitungan hari kerja (Senin - Jumat) super akurat
+                    $period = \Carbon\CarbonPeriod::create($startDate, $limitDate);
+                    foreach ($period as $date) {
+                        if ($date->isWeekday()) {
+                            $workingDays++;
+                        }
+                    }
+                }
+
+                // Ambil jumlah hari (tanggal unik) dimana siswa SUDAH absen di hari kerja (Senin-Jumat)
+                $loggedDays = $allJournals->whereBetween('date', [$startDate->format('Y-m-d'), $limitDate->format('Y-m-d')])
+                    ->filter(function ($j) {
+                        return Carbon::parse($j->date)->isWeekday(); // Pastikan hanya menghitung absen di hari kerja
+                    })
+                    ->pluck('date')
+                    ->unique()
+                    ->count();
+
+                // Alpha = Hari Kerja - Hari yang sudah diisi jurnal
+                $recap['Alpha'] = max(0, $workingDays - $loggedDays);
             }
 
-            $loggedDays     = $recap['Hadir'] + $recap['Izin'] + $recap['Sakit'] + $recap['Libur'];
-            $recap['Alpha'] = max(0, $workingDays - $loggedDays);
-
+            // Ambil History untuk ditampilkan di card bawah
             $recentJournals = Journal::where('pkl_placement_id', $this->placement->id)
                 ->orderBy('date', 'desc')
                 ->orderBy('time', 'desc')

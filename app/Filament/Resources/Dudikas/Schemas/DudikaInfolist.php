@@ -35,7 +35,14 @@ class DudikaInfolist
                                     ->helperText('Orang yang akan membimbing dan menilai siswa di lokasi.')
                                     ->columnSpanFull(),
 
-                                Grid::make(3)->schema([
+                                Grid::make(4)->schema([
+                                    TextEntry::make('user.email')
+                                        ->label('Email / Username')
+                                        ->icon('heroicon-m-envelope')
+                                        ->color('gray')
+                                        ->copyable()
+                                        ->copyMessage('Email berhasil disalin!')
+                                        ->copyMessageDuration(1500),
                                     TextEntry::make('supervisor_name')->label('Nama Pembimbing')->icon('heroicon-m-user-group')->placeholder('-'),
                                     TextEntry::make('supervisor_nip')->label('NIP / NIK')->placeholder('-'),
                                     TextEntry::make('supervisor_phone')
