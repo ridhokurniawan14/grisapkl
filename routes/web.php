@@ -117,6 +117,14 @@ Route::middleware(['auth', 'role:dudika'])->group(function () {
 // ==========================================================
 Route::middleware(['auth'])->group(function () {
 
+    // ===== TAMBAHKAN RUTE FCM INI =====
+    Route::post('/save-fcm-token', function (\Illuminate\Http\Request $request) {
+        $request->user()->update([
+            'fcm_token' => $request->token
+        ]);
+        return response()->json(['success' => true]);
+    });
+
     // Route untuk Cetak PDF DUDIKA
     Route::get('/dudika/print', function (Request $request) {
         if ($request->has('ids')) {

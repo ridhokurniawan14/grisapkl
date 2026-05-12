@@ -17,7 +17,7 @@
         <link rel="shortcut icon" href="{{ $dynamicFavicon }}">
         <link rel="apple-touch-icon" href="{{ $dynamicFavicon }}">
     @else
-        <link rel="icon" href="/favicon.ico">
+        <link rel="icon" href="/images/logo.png">
     @endif
 
     <link href="https://fonts.googleapis.com" rel="preconnect" />
@@ -128,8 +128,85 @@
             animation: subtle-pulse 2s infinite;
         }
     </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 @stack('scripts')
+@livewireScripts
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAiTgBrhFBuSFJV9tDlVXleJhIhsNav0H4",
+        authDomain: "grisapkl.firebaseapp.com",
+        projectId: "grisapkl",
+        storageBucket: "grisapkl.firebasestorage.app",
+        messagingSenderId: "352687462221",
+        appId: "1:352687462221:web:4293afee4d3d79d0678904"
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const messaging = firebase.messaging();
+
+    function requestNotificationPermission() {
+        Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+                console.log('Izin Notifikasi Diberikan!');
+
+                // GANTI 'VAPID_KEY_KAMU' DENGAN VAPID KEY ASLI DARI FIREBASE CONSOLE!
+                messaging.getToken({
+                    vapidKey: 'BOEYSduOymJXH19JH6c5Rq-ZPR52oELvyVV8VJC1rfebcID1rTLQ2W6aJIDnI8xT8Rr0twJxbI_BaHN4QYTVWY4'
+                }).then((currentToken) => {
+                    if (currentToken) {
+                        console.log('FCM Token Berhasil Didapat:', currentToken);
+                        saveTokenToDatabase(currentToken);
+                    } else {
+                        console.log('Gagal mendapatkan token.');
+                    }
+                }).catch((err) => {
+                    console.log('Error saat mengambil token', err);
+                });
+            } else {
+                console.log('Izin Notifikasi Ditolak User!');
+            }
+        });
+    }
+
+    function saveTokenToDatabase(token) {
+        fetch('/save-fcm-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                token: token
+            })
+        }).then(response => {
+            console.log('FCM Token berhasil disimpan ke server');
+        }).catch(err => {
+            console.error('Gagal menyimpan FCM token', err);
+        });
+    }
+
+    // Tangkap notif kalau aplikasi sedang dibuka (Foreground)
+    messaging.onMessage((payload) => {
+        console.log('Pesan diterima saat aplikasi terbuka: ', payload);
+        // Nanti kita bisa panggil SweetAlert disini
+    });
+
+    // Otomatis minta izin notifikasi saat user sudah login
+    document.addEventListener("DOMContentLoaded", function() {
+        @auth
+        requestNotificationPermission();
+    @endauth
+    });
+</script>
+</body>
+
+</html>
 
 <body
     class="antialiased flex flex-col font-body-md text-[14px] w-full min-h-[100dvh] bg-slate-100 sm:items-center sm:justify-center m-0 p-0">

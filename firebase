@@ -15,3 +15,5 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+VAPID KEY = BOEYSduOymJXH19JH6c5Rq-ZPR52oELvyVV8VJC1rfebcID1rTLQ2W6aJIDnI8xT8Rr0twJxbI_BaHN4QYTVWY4;
