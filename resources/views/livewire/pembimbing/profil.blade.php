@@ -62,7 +62,7 @@
                         style="font-variation-settings: 'FILL' 1;">call</span>
                     <span class="text-[10px] font-extrabold uppercase tracking-widest">Nomor HP / WA</span>
                 </div>
-                <p class="text-[14px] font-extrabold text-slate-800 pl-[26px] mt-0.5">{{ $guruData['phone'] }}</p>
+                <p class="text-[14px] font-extrabold text-slate-800 pl-[26px] mt-0.5">{!! $guruData['phone'] !!}</p>
             </div>
 
             <div class="bg-white rounded-[1.25rem] shadow-sm border border-slate-100 p-4 flex flex-col gap-1">
@@ -71,7 +71,7 @@
                         style="font-variation-settings: 'FILL' 1;">school</span>
                     <span class="text-[10px] font-extrabold uppercase tracking-widest">Mata Pelajaran</span>
                 </div>
-                <p class="text-[14px] font-extrabold text-slate-800 pl-[26px] mt-0.5">{{ $guruData['subject'] }}</p>
+                <p class="text-[14px] font-extrabold text-slate-800 pl-[26px] mt-0.5">{!! $guruData['subject'] !!}</p>
             </div>
 
             <div class="bg-slate-50 rounded-[1.25rem] border border-slate-200 p-4 flex flex-col gap-1">

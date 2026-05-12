@@ -10,7 +10,45 @@
         </div>
     </section>
 
-    <section class="mt-6 px-2">
+    @if (isset($announcements) && $announcements->count() > 0)
+        <section class="mt-5 mb-5 px-2 flex flex-col gap-4">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="material-symbols-outlined text-[#3525cd] text-[18px]">campaign</span>
+                <h3 class="text-[14px] font-extrabold text-slate-800">Informasi Terbaru</h3>
+            </div>
+            @foreach ($announcements as $index => $announcement)
+                <div
+                    class="relative overflow-hidden rounded-[1rem] bg-gradient-to-br from-[#4f46e5] to-[#3525cd] p-4 shadow-sm">
+                    <div class="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
+                        <span class="material-symbols-outlined text-[100px]">info</span>
+                    </div>
+
+                    <div class="relative z-10 flex items-start gap-3">
+                        <div class="bg-white/20 p-2 rounded-lg shrink-0">
+                            <span class="material-symbols-outlined text-white text-[20px]"
+                                style="font-variation-settings: 'FILL' 1;">
+                                {{ $announcement->target_audience === 'Umum' ? 'public' : 'campaign' }}
+                            </span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-[14px] font-extrabold text-white mb-1">{{ $announcement->title }}
+                                </h3>
+                            </div>
+                            <div
+                                class="text-[12px] font-medium text-indigo-100 opacity-90 leading-relaxed [&>p]:mb-1 [&>p:last-child]:mb-0 [&>strong]:font-extrabold">
+                                {!! $announcement->content !!}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </section>
+    @else
+        <div class="mt-4"></div>
+    @endif
+
+    <section class="px-2">
         @if ($isComplete)
             <div
                 class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-[1.25rem] shadow-sm mb-4">
@@ -27,7 +65,7 @@
                 </div>
             </div>
         @else
-            <a href="#"
+            <a href="{{ route('dudika.profil.edit') }}" wire:navigate
                 class="flex items-center justify-between p-4 bg-red-50 hover:bg-red-100 transition-colors border border-red-200 rounded-[1.25rem] shadow-sm mb-4 group active:scale-95">
                 <div class="flex items-center gap-3">
                     <div
@@ -100,15 +138,17 @@
                         <div class="flex-1">
                             <h3 class="text-[15px] font-extrabold text-slate-800 leading-tight">{{ $siswa['name'] }}
                             </h3>
-                            <p class="text-[11px] font-medium text-slate-500 mt-0.5 truncate max-w-[200px]">
+                            <p class="text-[11px] font-medium text-slate-500 mt-0.5 truncate max-w-[190px]">
                                 {{ $siswa['field'] }}
                             </p>
                         </div>
 
-                        <a href="https://wa.me/{{ $siswa['phone'] }}" target="_blank"
-                            class="w-9 h-9 rounded-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white flex items-center justify-center transition-colors shrink-0 active:scale-95">
-                            <span class="material-symbols-outlined text-[18px]">chat</span>
-                        </a>
+                        @if (!empty($siswa['phone']))
+                            <a href="https://wa.me/{{ $siswa['phone'] }}" target="_blank"
+                                class="w-9 h-9 rounded-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white flex items-center justify-center transition-colors shrink-0 active:scale-95">
+                                <span class="material-symbols-outlined text-[18px]">chat</span>
+                            </a>
+                        @endif
                     </div>
 
                     <div class="p-4 pt-3 bg-slate-50/50">
@@ -148,10 +188,10 @@
                             </div>
                         </div>
 
-                        <button
+                        <a href="{{ route('dudika.jurnal') }}" wire:navigate
                             class="w-full mt-3 h-[38px] bg-white border border-indigo-100 text-[#3525cd] text-[12px] font-extrabold rounded-[0.75rem] shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition-transform hover:bg-indigo-50">
-                            <span class="material-symbols-outlined text-[16px]">menu_book</span> Lihat Jurnal
-                        </button>
+                            <span class="material-symbols-outlined text-[16px]">menu_book</span> Lihat Jurnal Siswa
+                        </a>
                     </div>
 
                 </div>
@@ -159,10 +199,17 @@
                 <div class="bg-white rounded-2xl p-8 text-center border border-slate-200 mt-2 shadow-sm">
                     <span class="material-symbols-outlined text-[48px] text-slate-300 mb-2">person_search</span>
                     <p class="text-[14px] font-bold text-slate-700">Siswa tidak ditemukan</p>
-                    <p class="text-[12px] text-slate-500 mt-1">Coba gunakan kata kunci lain.</p>
+                    <p class="text-[12px] text-slate-500 mt-1">Belum ada data siswa magang atau coba ubah kata kunci.
+                    </p>
                 </div>
             @endforelse
         </div>
     </section>
-
+    <div class="absolute bottom-[85px] right-4 z-[60]">
+        <a href="{{ route('dudika.bot') }}" wire:navigate
+            class="flex h-14 w-14 items-center justify-center rounded-full bg-[#3525cd] text-white shadow-[0_4px_15px_rgba(53,37,205,0.4)] active:scale-90 hover:bg-[#2c1eb3] transition-all border-[3px] border-white">
+            <span class="material-symbols-outlined text-[26px]"
+                style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+        </a>
+    </div>
 </div>

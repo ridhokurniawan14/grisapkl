@@ -22,34 +22,53 @@ class Lapor extends Component
     public $filterMonth;
 
     // ── State form modal ───────────────────────────────────────────────────
-    public $selectedDudikaId  = '';
-    public $monitoringNotes   = '';   // maps to kolom `activity` di DB
-    public $monitoringPhoto   = null;
+    public $selectedDudikaId = '';
+    public $monitoringNotes  = '';
+    public $monitoringPhoto  = null;
 
     public function mount(): void
     {
         $this->filterMonth = Carbon::now()->format('Y-m');
     }
 
-    // ── ACTION: Ganti bulan filter ─────────────────────────────────────────
     public function setFilterMonth(string $month): void
     {
         $this->filterMonth = $month;
     }
 
-    // ── ACTION: Buka form & set default activity dari nama jadwal aktif ────
+    // ── ACTION: Buka form (DENGAN PROTEKSI TAMBAHAN) ─────
     public function openReportForm(): void
     {
-        $activeSchedule        = MonitoringSchedule::where('is_active', 1)->latest()->first();
-        // Default catatan = nama jadwal (kolom `name` di monitoring_schedules)
-        $this->monitoringNotes  = $activeSchedule ? $activeSchedule->name : '';
+        $user           = Auth::user();
+        $teacher        = Teacher::where('user_id', $user->id)->first();
+        $activeSchedule = MonitoringSchedule::where('is_active', 1)->latest()->first();
+
+        if (!$teacher || !$activeSchedule) return;
+
+        // Validasi Ekstra: Pastikan masih ada sisa instansi yang belum dikunjungi
+        $placements = PklPlacement::where('teacher_id', $teacher->id)
+            ->where('status', 'Aktif')
+            ->get(['id', 'dudika_id']);
+
+        $totalDudika = $placements->pluck('dudika_id')->filter()->unique()->count();
+        $visited = Monitoring::where('monitoring_schedule_id', $activeSchedule->id)
+            ->whereIn('pkl_placement_id', $placements->pluck('id'))
+            ->join('pkl_placements', 'monitorings.pkl_placement_id', '=', 'pkl_placements.id')
+            ->distinct('pkl_placements.dudika_id')
+            ->count('pkl_placements.dudika_id');
+
+        // Jika semua instansi sudah dikunjungi, tolak buka form
+        if (($totalDudika - $visited) <= 0) {
+            return;
+        }
+
+        $this->monitoringNotes  = $activeSchedule->name;
         $this->selectedDudikaId = '';
         $this->monitoringPhoto  = null;
         $this->resetErrorBag();
         $this->dispatch('open-report-form');
     }
 
-    // ── ACTION: Simpan laporan monitoring ─────────────────────────────────
     public function submitMonitoring(): void
     {
         $this->validate([
@@ -72,30 +91,33 @@ class Lapor extends Component
             return;
         }
 
-        $placement = PklPlacement::where('teacher_id', $teacher->id)
+        $placements = PklPlacement::where('teacher_id', $teacher->id)
             ->where('dudika_id', $this->selectedDudikaId)
             ->where('status', 'Aktif')
-            ->first();
+            ->get();
 
-        if (!$placement) {
-            $this->addError('selectedDudikaId', 'DUDIKA yang dipilih tidak valid.');
+        if ($placements->isEmpty()) {
+            $this->addError('selectedDudikaId', 'Tidak ada siswa aktif di DUDIKA yang dipilih.');
             return;
         }
 
-        // photo_path adalah varchar(255) — simpan path tunggal, bukan JSON
         $photoPath = null;
         if ($this->monitoringPhoto) {
             $photoPath = $this->monitoringPhoto->store('monitorings', 'public');
         }
 
-        Monitoring::create([
-            'pkl_placement_id'       => $placement->id,
-            'monitoring_schedule_id' => $activeSchedule->id,
-            'date'                   => Carbon::now()->toDateString(),
-            'time'                   => Carbon::now()->format('H:i:s'),
-            'activity'               => $this->monitoringNotes,  // kolom `activity`, bukan `notes`
-            'photo_path'             => $photoPath,
-        ]);
+        $now = Carbon::now();
+
+        foreach ($placements as $placement) {
+            Monitoring::create([
+                'pkl_placement_id'       => $placement->id,
+                'monitoring_schedule_id' => $activeSchedule->id,
+                'date'                   => $now->toDateString(),
+                'time'                   => $now->format('H:i:s'),
+                'activity'               => $this->monitoringNotes,
+                'photo_path'             => $photoPath,
+            ]);
+        }
 
         $this->reset(['selectedDudikaId', 'monitoringNotes', 'monitoringPhoto']);
         $this->dispatch('close-report-form');
@@ -121,7 +143,6 @@ class Lapor extends Component
         $dudikasForTeacher = collect();
 
         if ($teacher) {
-            // Semua placement aktif milik guru ini
             $placements   = PklPlacement::where('teacher_id', $teacher->id)
                 ->where('status', 'Aktif')
                 ->get(['id', 'dudika_id']);
@@ -129,7 +150,6 @@ class Lapor extends Component
             $placementIds = $placements->pluck('id');
             $totalDudika  = $placements->pluck('dudika_id')->filter()->unique()->count();
 
-            // ── DUDIKA untuk dropdown form ──────────────────────────────────
             $dudikasForTeacher = PklPlacement::where('teacher_id', $teacher->id)
                 ->where('status', 'Aktif')
                 ->with('dudika:id,name')
@@ -139,7 +159,6 @@ class Lapor extends Component
                 ->unique('id')
                 ->values();
 
-            // ── JADWAL AKTIF ────────────────────────────────────────────────
             if ($activeSchedule) {
                 $activeScheduleId = $activeSchedule->id;
                 $scheduleName     = strtoupper($activeSchedule->name);
@@ -149,7 +168,6 @@ class Lapor extends Component
                 $scheduleDateStr = $start->isoFormat('D MMM YYYY') . ' - ' . $end->isoFormat('D MMM YYYY');
                 $isActiveWindow  = Carbon::now()->betweenIncluded($start->startOfDay(), $end->endOfDay());
 
-                // Hitung DUDIKA unik yang sudah divisit di jadwal aktif ini
                 $visited = Monitoring::where('monitoring_schedule_id', $activeScheduleId)
                     ->whereIn('pkl_placement_id', $placementIds)
                     ->join('pkl_placements', 'monitorings.pkl_placement_id', '=', 'pkl_placements.id')
@@ -160,7 +178,6 @@ class Lapor extends Component
             $remaining = max(0, $totalDudika - $visited);
 
             if ($placementIds->isNotEmpty()) {
-                // ── BULAN YANG ADA DATANYA saja (untuk pills filter) ────────
                 $availableMonths = Monitoring::whereIn('pkl_placement_id', $placementIds)
                     ->selectRaw('DATE_FORMAT(date, "%Y-%m") as ym')
                     ->distinct()
@@ -171,16 +188,10 @@ class Lapor extends Component
                         'label' => Carbon::parse($ym . '-01')->isoFormat('MMM YYYY'),
                     ]);
 
-                // Auto-select ke bulan terbaru yang ada data
-                // jika filterMonth sekarang tidak ada di daftar
-                if (
-                    $availableMonths->isNotEmpty() &&
-                    !$availableMonths->contains('value', $this->filterMonth)
-                ) {
+                if ($availableMonths->isNotEmpty() && !$availableMonths->contains('value', $this->filterMonth)) {
                     $this->filterMonth = $availableMonths->first()['value'];
                 }
 
-                // ── HISTORY MONITORING ──────────────────────────────────────
                 $year  = Carbon::parse($this->filterMonth . '-01')->format('Y');
                 $month = Carbon::parse($this->filterMonth . '-01')->format('m');
 
@@ -189,31 +200,37 @@ class Lapor extends Component
                     ->whereYear('date', $year)
                     ->whereMonth('date', $month)
                     ->orderBy('date', 'desc')
+                    ->orderBy('time', 'desc')
                     ->get()
-                    ->map(function ($h) use ($teacher) {
-                        $dudikaId = $h->pklPlacement->dudika_id ?? null;
-
-                        $studentsCovered = PklPlacement::where('teacher_id', $teacher->id)
-                            ->where('dudika_id', $dudikaId)
-                            ->where('status', 'Aktif')
-                            ->count();
-
-                        // photo_path adalah varchar tunggal, bukan JSON array
-                        $hasPhoto = !empty($h->photo_path);
+                    ->groupBy(function ($h) {
+                        $dudikaId = $h->pklPlacement->dudika_id ?? 0;
+                        return $h->date . '_' . $dudikaId;
+                    })
+                    ->map(function ($group) {
+                        $first    = $group->first();
+                        $hasPhoto = $group->filter(fn($h) => !empty($h->photo_path))->isNotEmpty();
+                        $photoRec = $group->first(fn($h) => !empty($h->photo_path));
 
                         return [
-                            'id'               => $h->id,
-                            'date_num'         => Carbon::parse($h->date)->format('d'),
-                            'date_month'       => Carbon::parse($h->date)->isoFormat('MMM'),
-                            'date_full'        => Carbon::parse($h->date)->isoFormat('D MMMM YYYY'),
-                            'time'             => $h->time ? Carbon::parse($h->time)->format('H:i') : '-',
-                            'dudika_name'      => $h->pklPlacement->dudika->name ?? 'Instansi Tidak Diketahui',
-                            'students_covered' => $studentsCovered,
+                            'id'               => $first->id,
+                            'monitoring_ids'   => $group->pluck('id')->toArray(),
+                            'date_num'         => Carbon::parse($first->date)->format('d'),
+                            'date_month'       => Carbon::parse($first->date)->isoFormat('MMM'),
+                            'date_full'        => Carbon::parse($first->date)->isoFormat('D MMMM YYYY'),
+                            'time'             => $first->time
+                                ? Carbon::parse($first->time)->format('H:i')
+                                : '-',
+                            'dudika_name'      => $first->pklPlacement->dudika->name
+                                ?? 'Instansi Tidak Diketahui',
+                            'students_covered' => $group->count(),
                             'photos_count'     => $hasPhoto ? 1 : 0,
-                            'photo_url'        => $hasPhoto ? asset('storage/' . $h->photo_path) : null,
-                            'notes'            => $h->activity ?? 'Tidak ada catatan.',
+                            'photo_url'        => $photoRec
+                                ? asset('storage/' . $photoRec->photo_path)
+                                : null,
+                            'notes'            => $first->activity ?? 'Tidak ada catatan.',
                         ];
-                    });
+                    })
+                    ->values();
             }
         }
 
@@ -223,6 +240,7 @@ class Lapor extends Component
             'scheduleDateStr'   => $scheduleDateStr,
             'visited'           => $visited,
             'remaining'         => $remaining,
+            'totalDudika'       => $totalDudika, // PERBAIKAN: Lempar total Dudika ke View
             'history'           => $historyData,
             'availableMonths'   => $availableMonths,
             'dudikasForTeacher' => $dudikasForTeacher,

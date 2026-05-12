@@ -96,6 +96,7 @@ Route::middleware(['auth', 'role:guru'])->group(function () {
     Route::get('/pembimbing/data', Data::class)->name('pembimbing.data');
     Route::get('/pembimbing/lapor', Lapor::class)->name('pembimbing.lapor');
     Route::get('/pembimbing/lapor/edit', LaporEdit::class)->name('pembimbing.lapor.edit');
+    Route::get('/pembimbing/bot', \App\Livewire\Pembimbing\ChatBot::class)->name('pembimbing.bot');
 });
 
 // ==========================================================
@@ -108,6 +109,8 @@ Route::middleware(['auth', 'role:dudika'])->group(function () {
     Route::get('/dudika/profil/password', DudikaUbahPassword::class)->name('dudika.profil.password');
     Route::get('/dudika/jurnal', Jurnal::class)->name('dudika.jurnal');
     Route::get('/dudika/nilai', Nilai::class)->name('dudika.nilai');
+    Route::get('/dudika/nilai/{placement_id}/edit', \App\Livewire\Dudika\NilaiForm::class)->name('dudika.nilai.form');
+    Route::get('/dudika/bot', \App\Livewire\Dudika\ChatBot::class)->name('dudika.bot');
 });
 // ==========================================================
 // RUTE RAHASIA (WAJIB LOGIN UNTUK MENGAKSES)

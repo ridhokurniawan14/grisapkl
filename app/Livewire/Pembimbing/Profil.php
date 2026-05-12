@@ -87,11 +87,12 @@ class Profil extends Component
         $guruData = [
             'name' => $user->name,
             'nip' => $teacher->nip ?? null,
-            'phone' => $teacher->phone ?? 'Belum Diisi',
-            'subject' => $teacher->subject ?? 'Belum Diisi',
+            'phone' => $teacher->phone ?? "<span style='color:red'>Belum Diisi</span>",
+            'subject' => $teacher->subject ?? "<span style='color:red'>Belum Diisi</span>",
             'email' => $user->email,
             'signature_path' => $teacher->signature_path ?? null,
         ];
+
 
         return view('livewire.pembimbing.profil', compact('guruData'));
     }

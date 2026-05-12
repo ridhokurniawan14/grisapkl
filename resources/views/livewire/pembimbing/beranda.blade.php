@@ -194,4 +194,11 @@
         </div>
 
     </section>
+    <div class="absolute bottom-[85px] right-4 z-[60]">
+        <a href="{{ route('pembimbing.bot') }}" wire:navigate
+            class="flex h-14 w-14 items-center justify-center rounded-full bg-[#3525cd] text-white shadow-[0_4px_15px_rgba(53,37,205,0.4)] active:scale-90 hover:bg-[#2c1eb3] transition-all border-[3px] border-white">
+            <span class="material-symbols-outlined text-[26px]"
+                style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+        </a>
+    </div>
 </div>

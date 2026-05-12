@@ -1,9 +1,3 @@
-{{--
-    lapor.blade.php
-    app.blade.php sudah provide px-4 & pt-20 — jangan tambah px atau -mt ekstra.
-    Modal z-[60] supaya di atas bottom-nav yang z-50.
---}}
-
 <div class="w-full flex flex-col" x-data="{
     showReportForm: false,
     showDetailModal: false,
@@ -16,24 +10,19 @@
 }" x-on:open-report-form.window="showReportForm = true"
     x-on:close-report-form.window="showReportForm = false">
 
-    {{-- ══════════════════════════════════════════════════
-         JADWAL & CIRCLE BUTTON
-    ══════════════════════════════════════════════════ --}}
+    {{-- ══ JADWAL & CIRCLE BUTTON ══════════════════════════════════════════ --}}
     <div class="flex flex-col items-center pt-2 pb-4">
 
-        {{-- Label jadwal --}}
         <p class="text-[10px] font-extrabold text-slate-400 tracking-[0.15em] uppercase mb-2">
             {{ $scheduleName }}
         </p>
 
-        {{-- Tanggal jadwal --}}
         <span class="bg-[#3525cd] text-white text-[12px] font-bold px-5 py-1.5 rounded-full shadow-sm shadow-indigo-200">
             {{ $scheduleDateStr }}
         </span>
 
-        {{-- Circle Button --}}
         <div class="mt-7 mb-2">
-            @if ($isActiveWindow)
+            @if ($isActiveWindow && $remaining > 0)
                 <button wire:click="openReportForm" wire:loading.attr="disabled"
                     class="w-36 h-36 rounded-full bg-[#3525cd] flex flex-col items-center justify-center shadow-2xl shadow-indigo-300/60 active:scale-95 transition-all animate-subtle-pulse disabled:opacity-70">
                     <span class="material-symbols-outlined text-white text-[40px]"
@@ -51,18 +40,25 @@
             @endif
         </div>
 
-        {{-- Warning jika di luar jadwal --}}
         @if (!$isActiveWindow)
             <div class="flex items-center gap-1.5 mt-3 bg-red-50 border border-red-100 rounded-full px-4 py-2">
                 <span class="material-symbols-outlined text-red-500 text-[15px]">error</span>
                 <span class="text-red-500 text-[11px] font-bold">Tombol terkunci. Di luar rentang jadwal aktif.</span>
             </div>
+        @elseif ($totalDudika == 0)
+            <div class="flex items-center gap-1.5 mt-3 bg-amber-50 border border-amber-100 rounded-full px-4 py-2">
+                <span class="material-symbols-outlined text-amber-500 text-[15px]">warning</span>
+                <span class="text-amber-600 text-[11px] font-bold">Belum ada siswa/instansi bimbingan.</span>
+            </div>
+        @elseif ($remaining <= 0)
+            <div class="flex items-center gap-1.5 mt-3 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-2">
+                <span class="material-symbols-outlined text-emerald-500 text-[15px]">task_alt</span>
+                <span class="text-emerald-600 text-[11px] font-bold">Semua instansi telah selesai dikunjungi.</span>
+            </div>
         @endif
     </div>
 
-    {{-- ══════════════════════════════════════════════════
-         STATS: SUDAH & BELUM DIKUNJUNGI
-    ══════════════════════════════════════════════════ --}}
+    {{-- ══ STATS ════════════════════════════════════════════════════════════ --}}
     <div class="grid grid-cols-2 gap-3 mb-5">
         <div class="bg-white rounded-2xl px-4 py-4 shadow-sm border border-slate-100">
             <p class="text-[9px] font-extrabold text-slate-400 tracking-[0.12em] uppercase mb-1">Sudah Dikunjungi</p>
@@ -76,15 +72,12 @@
         </div>
     </div>
 
-    {{-- ══════════════════════════════════════════════════
-         RIWAYAT MONITORING
-    ══════════════════════════════════════════════════ --}}
+    {{-- ══ RIWAYAT MONITORING ══════════════════════════════════════════════ --}}
     <div class="flex flex-col">
 
-        {{-- Header + Filter Bulan --}}
+        {{-- Header + Filter --}}
         <div class="flex items-center justify-between mb-3">
             <h3 class="text-[16px] font-extrabold text-slate-800">Riwayat Monitoring</h3>
-
             @if ($availableMonths->isNotEmpty())
                 <button @click="showMonthFilter = !showMonthFilter"
                     class="flex items-center gap-1 text-[12px] font-bold text-[#3525cd]">
@@ -94,7 +87,7 @@
             @endif
         </div>
 
-        {{-- Pills bulan (toggle) --}}
+        {{-- Pills bulan --}}
         @if ($availableMonths->isNotEmpty())
             <div x-show="showMonthFilter" x-transition:enter="transition ease-out duration-150"
                 x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
@@ -113,7 +106,7 @@
             </div>
         @endif
 
-        {{-- History Cards --}}
+        {{-- Cards --}}
         @if ($history->isEmpty())
             <div class="flex flex-col items-center justify-center py-10 text-center">
                 <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-3">
@@ -131,63 +124,57 @@
         @else
             <div class="flex flex-col gap-3">
                 @foreach ($history as $item)
-                    <button @click="openDetail({{ json_encode($item) }})"
-                        class="w-full text-left bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-slate-100 active:scale-[0.98] transition-all">
-                        <div class="flex items-center gap-3">
-                            {{-- Kotak tanggal --}}
-                            <div
-                                class="flex-shrink-0 w-12 h-12 bg-indigo-50 rounded-xl flex flex-col items-center justify-center border border-indigo-100/80">
+                    <div
+                        class="bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-slate-100 flex items-center gap-3">
+                        <button @click="openDetail({{ json_encode($item) }})"
+                            class="flex-shrink-0 w-12 h-12 bg-indigo-50 rounded-xl flex flex-col items-center justify-center border border-indigo-100/80 active:scale-95 transition-all">
+                            <span
+                                class="text-[#3525cd] font-extrabold text-[17px] leading-none">{{ $item['date_num'] }}</span>
+                            <span
+                                class="text-[#3525cd]/50 font-bold text-[9px] uppercase tracking-wider">{{ $item['date_month'] }}</span>
+                        </button>
+
+                        <button @click="openDetail({{ json_encode($item) }})"
+                            class="flex-1 min-w-0 text-left active:opacity-70 transition-opacity">
+                            <p class="text-slate-800 font-extrabold text-[13px] truncate leading-tight">
+                                {{ $item['dudika_name'] }}</p>
+                            <p class="text-slate-400 text-[11px] font-semibold mt-0.5 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[12px]">group</span>
+                                {{ $item['students_covered'] }} Siswa Tercakup
+                            </p>
+                            <div class="flex items-center gap-2 mt-1.5">
                                 <span
-                                    class="text-[#3525cd] font-extrabold text-[17px] leading-none">{{ $item['date_num'] }}</span>
-                                <span
-                                    class="text-[#3525cd]/50 font-bold text-[9px] uppercase tracking-wider">{{ $item['date_month'] }}</span>
+                                    class="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[9px] font-extrabold px-2 py-0.5 rounded-full tracking-wider uppercase">Selesai</span>
+                                @if ($item['photos_count'] > 0)
+                                    <span class="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
+                                        <span class="material-symbols-outlined text-[12px]">photo_camera</span>
+                                        {{ $item['photos_count'] }} Foto
+                                    </span>
+                                @endif
                             </div>
-                            {{-- Info tengah --}}
-                            <div class="flex-1 min-w-0">
-                                <p class="text-slate-800 font-extrabold text-[13px] truncate leading-tight">
-                                    {{ $item['dudika_name'] }}</p>
-                                <p class="text-slate-400 text-[11px] font-semibold mt-0.5 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[12px]">group</span>
-                                    {{ $item['students_covered'] }} Siswa Tercakup
-                                </p>
-                                <div class="flex items-center gap-2 mt-1.5">
-                                    <span
-                                        class="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[9px] font-extrabold px-2 py-0.5 rounded-full tracking-wider uppercase">Selesai</span>
-                                    @if ($item['photos_count'] > 0)
-                                        <span class="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
-                                            <span class="material-symbols-outlined text-[12px]">photo_camera</span>
-                                            {{ $item['photos_count'] }} Foto
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                            {{-- Icon kanan --}}
-                            <div class="flex-shrink-0">
-                                <span class="material-symbols-outlined text-slate-300 text-[20px]">open_in_new</span>
-                            </div>
-                        </div>
-                    </button>
+                        </button>
+
+                        <a href="{{ route('pembimbing.lapor.edit', ['monitoring_id' => $item['id']]) }}"
+                            class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-indigo-50 hover:text-[#3525cd] hover:border-indigo-200 active:scale-90 transition-all"
+                            title="Edit" @click.stop>
+                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                        </a>
+                    </div>
                 @endforeach
             </div>
         @endif
     </div>
 
-    {{-- ══════════════════════════════════════════════════
-         MODAL: FORM LAPOR MONITORING
-         z-[60] → di atas bottom-nav yang z-50
-    ══════════════════════════════════════════════════ --}}
+    {{-- ══ MODAL: FORM LAPOR ════════════════════════════════════════════════ --}}
     <div x-show="showReportForm" x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-full" x-transition:enter-end="opacity-100 translate-y-0"
         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0"
         x-transition:leave-end="opacity-0 translate-y-full" class="fixed inset-0 z-[60] flex flex-col justify-end"
         style="display: none;">
-        {{-- Backdrop --}}
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showReportForm = false"></div>
 
-        {{-- Bottom Sheet — max 90dvh, tombol submit selalu kelihatan --}}
         <div class="relative bg-white rounded-t-3xl shadow-2xl z-10 flex flex-col max-h-[90dvh]">
 
-            {{-- Handle & Header (tidak ikut scroll) --}}
             <div class="flex-shrink-0 flex flex-col items-center pt-3 pb-4 px-5 border-b border-slate-100">
                 <div class="w-10 h-1 bg-slate-200 rounded-full mb-4"></div>
                 <div class="flex items-center justify-between w-full">
@@ -203,15 +190,11 @@
                 </div>
             </div>
 
-            {{-- Form Scrollable --}}
             <form wire:submit.prevent="submitMonitoring" class="flex flex-col flex-1 overflow-hidden">
-
-                {{-- Field area: scrollable --}}
                 <div class="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
-
-                    {{-- Pilih DUDIKA --}}
                     <div>
-                        <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
+                        <label
+                            class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
                             Pilih DUDIKA / Instansi
                         </label>
                         <div class="relative">
@@ -230,14 +213,28 @@
                         @error('selectedDudikaId')
                             <p class="text-red-500 text-[11px] font-semibold mt-1">{{ $message }}</p>
                         @enderror
+
+                        @if ($selectedDudikaId)
+                            @php
+                                $jumlahSiswa = \App\Models\PklPlacement::where(
+                                    'teacher_id',
+                                    \App\Models\Teacher::where('user_id', auth()->id())->value('id'),
+                                )
+                                    ->where('dudika_id', $selectedDudikaId)
+                                    ->where('status', 'Aktif')
+                                    ->count();
+                            @endphp
+                            <p class="text-[11px] text-[#3525cd] font-semibold mt-1.5 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[13px]">info</span>
+                                Kunjungan mencakup {{ $jumlahSiswa }} siswa.
+                            </p>
+                        @endif
                     </div>
 
-                    {{-- Catatan Pemantauan (default: nama jadwal, bisa diedit) --}}
                     <div>
                         <label
-                            class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
-                            Catatan Pemantauan
-                        </label>
+                            class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Catatan
+                            Pemantauan</label>
                         <textarea wire:model="monitoringNotes" rows="3" placeholder="Deskripsikan hasil pemantauan..."
                             class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-medium text-[13px] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3525cd]/30 focus:border-[#3525cd] transition-all resize-none"></textarea>
                         @error('monitoringNotes')
@@ -245,7 +242,6 @@
                         @enderror
                     </div>
 
-                    {{-- Foto Dokumentasi (1 tombol, OS pilih kamera / galeri) --}}
                     <div>
                         <label
                             class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
@@ -288,7 +284,6 @@
                     </div>
                 </div>
 
-                {{-- Tombol Submit (tidak ikut scroll, selalu kelihatan) --}}
                 <div class="flex-shrink-0 px-5 pt-3 pb-6 border-t border-slate-100 bg-white">
                     <button type="submit" wire:loading.attr="disabled"
                         class="w-full bg-[#3525cd] text-white font-extrabold text-[14px] py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
@@ -308,10 +303,7 @@
         </div>
     </div>
 
-    {{-- ══════════════════════════════════════════════════
-         MODAL: DETAIL RIWAYAT
-         z-[60] → di atas bottom-nav yang z-50
-    ══════════════════════════════════════════════════ --}}
+    {{-- ══ MODAL: DETAIL RIWAYAT (z-[60]) ══════════════════════════════════ --}}
     <div x-show="showDetailModal" x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0"
@@ -324,10 +316,17 @@
 
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-[15px] font-extrabold text-slate-800">Detail Monitoring</h3>
-                <button @click="showDetailModal = false"
-                    class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                    <span class="material-symbols-outlined text-[16px]">close</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <a :href="'{{ route('pembimbing.lapor.edit') }}?monitoring_id=' + detailData.id"
+                        class="w-8 h-8 flex items-center justify-center rounded-xl bg-indigo-50 border border-indigo-200 text-[#3525cd]"
+                        title="Edit">
+                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                    </a>
+                    <button @click="showDetailModal = false"
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                        <span class="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                </div>
             </div>
 
             <div class="flex flex-col gap-2.5">
@@ -374,16 +373,14 @@
                     </div>
                 </div>
 
-                {{-- Foto preview jika ada --}}
                 <template x-if="detailData.photo_url">
-                    <div class="rounded-xl overflow-hidden border border-slate-200">
+                    <div class="rounded-xl overflow-hidden border border-slate-200 mt-1">
                         <img :src="detailData.photo_url" class="w-full h-36 object-cover">
                     </div>
                 </template>
 
-                <div class="p-3 bg-slate-50 rounded-xl">
-                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Catatan / Aktivitas
-                    </p>
+                <div class="p-3 bg-slate-50 rounded-xl mt-1">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Catatan</p>
                     <p class="text-slate-700 text-[12px] font-medium leading-snug" x-text="detailData.notes"></p>
                 </div>
             </div>

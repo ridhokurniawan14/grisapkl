@@ -10,7 +10,6 @@ use App\Models\Monitoring;
 use App\Models\PklPlacement;
 use App\Models\Teacher;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 #[Layout('components.layouts.app')]
@@ -23,35 +22,39 @@ class LaporEdit extends Component
     public $dudika_id;
     public $notes;
     public $date;
-    public $existingPhotos = [];
-    public $newPhotos = []; // Untuk upload foto tambahan
+    public $existingPhoto;
+    public $newPhoto;
     public $dudikaList = [];
 
-    public function mount($id)
+    public function mount()
     {
+        $id = request()->query('monitoring_id');
+        abort_if(!$id, 404, 'Data monitoring tidak ditemukan.');
+
         $this->monitoringId = $id;
         $user = Auth::user();
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        // 1. Ambil Data Monitoring
-        $monitoring = Monitoring::findOrFail($id);
+        $monitoring = Monitoring::with('pklPlacement')->findOrFail($id);
 
-        // Pastikan guru ini yang punya akses ke laporan ini
-        if ($monitoring->teacher_id !== $teacher->id) {
-            abort(403);
+        if ($monitoring->pklPlacement->teacher_id !== $teacher->id) {
+            abort(403, 'Akses ditolak.');
         }
 
-        $this->dudika_id = $monitoring->dudika_id;
-        $this->notes = $monitoring->notes;
+        $this->dudika_id = $monitoring->pklPlacement->dudika_id;
+        $this->notes = $monitoring->activity;
         $this->date = $monitoring->date;
 
-        // Decode foto lama
+        // Antisipasi jika datanya JSON dari testing sebelumnya, kita convert ke string tunggal
         if (!empty($monitoring->photo_path)) {
             $decoded = json_decode($monitoring->photo_path, true);
-            $this->existingPhotos = is_array($decoded) ? $decoded : [$monitoring->photo_path];
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $this->existingPhoto = $decoded[0] ?? null;
+            } else {
+                $this->existingPhoto = $monitoring->photo_path;
+            }
         }
 
-        // 2. Ambil List DUDIKA untuk pilihan (Hanya yang dibimbing guru ini)
         $this->dudikaList = PklPlacement::with('dudika')
             ->where('teacher_id', $teacher->id)
             ->where('status', 'Aktif')
@@ -60,37 +63,33 @@ class LaporEdit extends Component
             ->unique();
     }
 
-    public function removeExistingPhoto($index)
-    {
-        unset($this->existingPhotos[$index]);
-        $this->existingPhotos = array_values($this->existingPhotos);
-    }
-
     public function updateMonitoring()
     {
         $this->validate([
             'dudika_id' => 'required',
             'notes' => 'required|min:10',
-            'newPhotos.*' => 'nullable|image|max:2048', // Max 2MB per foto
+            'newPhoto' => 'nullable|image|max:2048',
         ]);
 
-        $monitoring = Monitoring::findOrFail($this->monitoringId);
+        $monitoring = Monitoring::with('pklPlacement')->findOrFail($this->monitoringId);
 
-        // Gabungkan foto lama yang tidak dihapus dengan foto baru
-        $finalPhotos = $this->existingPhotos;
+        $photoPathToSave = $this->existingPhoto;
 
-        if ($this->newPhotos) {
-            foreach ($this->newPhotos as $photo) {
-                $path = $photo->store('monitoring', 'public');
-                $finalPhotos[] = $path;
-            }
+        if ($this->newPhoto) {
+            // PERBAIKAN: Simpan ke folder 'monitorings' (sesuai Filament) dan jadikan STRING biasa
+            $photoPathToSave = $this->newPhoto->store('monitorings', 'public');
         }
 
-        $monitoring->update([
-            'dudika_id' => $this->dudika_id,
-            'notes' => $this->notes,
-            'photo_path' => json_encode($finalPhotos),
-        ]);
+        $placementIds = PklPlacement::where('dudika_id', $this->dudika_id)
+            ->where('teacher_id', $monitoring->pklPlacement->teacher_id)
+            ->pluck('id');
+
+        Monitoring::whereIn('pkl_placement_id', $placementIds)
+            ->where('date', $this->date)
+            ->update([
+                'activity' => $this->notes,
+                'photo_path' => $photoPathToSave, // Disimpan sebagai String (bukan JSON encode)
+            ]);
 
         session()->flash('success', 'Laporan monitoring berhasil diperbarui!');
         return redirect()->route('pembimbing.lapor');

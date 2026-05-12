@@ -5,6 +5,33 @@
         <h2 class="text-[20px] font-extrabold text-[#3525cd] leading-tight mb-1">Penilaian Siswa</h2>
         <p class="text-[12px] font-medium text-slate-500 mb-3">Kelola evaluasi kinerja siswa magang di instansi Anda.</p>
 
+        <div
+            class="mb-4 bg-gradient-to-br from-[#4f46e5] to-[#3525cd] rounded-[1.25rem] p-4 text-white shadow-md relative overflow-hidden">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/20 rounded-full blur-2xl pointer-events-none">
+            </div>
+
+            <div class="relative z-10">
+                <p class="text-[10px] font-extrabold text-indigo-200 uppercase tracking-widest mb-1">Status Keseluruhan
+                </p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-[22px] font-black leading-none mb-1">{{ $gradedCount }} / {{ $totalStudents }}
+                            Dinilai</h4>
+                        <p class="text-[11px] font-medium text-indigo-100">{{ $progressPercent }}% Progres Selesai</p>
+                    </div>
+                    <div
+                        class="w-12 h-12 rounded-full border-[3px] border-white/20 flex items-center justify-center relative">
+                        <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-white" stroke-dasharray="{{ $progressPercent }}, 100"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                        </svg>
+                        <span class="text-[11px] font-bold">{{ $progressPercent }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <span wire:loading.remove wire:target="search"
@@ -20,7 +47,7 @@
             </div>
             <input wire:model.live.debounce.500ms="search" type="text"
                 class="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-2xl text-[13px] font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm"
-                placeholder="Cari nama siswa atau jurusan...">
+                placeholder="Cari nama siswa atau bidang...">
             @if (!empty($search))
                 <button wire:click="$set('search', '')"
                     class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-red-500 transition-colors active:scale-95">
@@ -83,10 +110,7 @@
                                 class="text-[20px] font-black text-[#3525cd] leading-none mt-1">{{ $siswa['average_score'] }}</span>
                         </div>
                         <div class="flex -space-x-1">
-                            @php
-                                // Logika sederhana mengubah skor (0-100) menjadi 5 bintang
-                                $stars = round($siswa['average_score'] / 20);
-                            @endphp
+                            @php $stars = round($siswa['average_score'] / 20); @endphp
                             @for ($i = 1; $i <= 5; $i++)
                                 <span
                                     class="material-symbols-outlined text-[22px] {{ $i <= $stars ? 'text-amber-400' : 'text-slate-200' }}"
@@ -96,50 +120,22 @@
                     </div>
                 @endif
 
-                <button
+                <a href="{{ route('dudika.nilai.form', $siswa['placement_id']) }}" wire:navigate
                     class="w-full h-[44px] rounded-xl flex items-center justify-center gap-2 font-bold text-[13px] active:scale-95 transition-transform {{ $siswa['status'] === 'Belum Dinilai' ? 'bg-[#3525cd] hover:bg-[#2c1eb3] text-white shadow-md' : 'bg-white border-2 border-[#3525cd] text-[#3525cd] hover:bg-indigo-50' }}">
                     @if ($siswa['status'] === 'Belum Dinilai')
                         <span class="material-symbols-outlined text-[18px]">edit_note</span> Beri Nilai
                     @else
                         <span class="material-symbols-outlined text-[18px]">visibility</span> Lihat / Edit Nilai
                     @endif
-                </button>
+                </a>
 
             </div>
         @empty
             <div class="bg-white rounded-2xl p-8 text-center border border-slate-200 mt-2 shadow-sm">
                 <span class="material-symbols-outlined text-[48px] text-slate-300 mb-2">person_search</span>
                 <p class="text-[14px] font-bold text-slate-700">Siswa tidak ditemukan</p>
-                <p class="text-[12px] text-slate-500 mt-1">Coba gunakan kata kunci lain.</p>
+                <p class="text-[12px] text-slate-500 mt-1">Siswa mungkin belum divalidasi penempatannya.</p>
             </div>
         @endforelse
     </div>
-
-    <div
-        class="mt-6 mx-1 bg-gradient-to-br from-[#4f46e5] to-[#3525cd] rounded-[1.5rem] p-5 text-white shadow-[0_10px_30px_rgba(53,37,205,0.3)] relative overflow-hidden">
-        <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="absolute top-0 right-10 w-20 h-20 bg-indigo-400/30 rounded-full blur-xl pointer-events-none"></div>
-
-        <div class="relative z-10">
-            <p class="text-[10px] font-extrabold text-indigo-200 uppercase tracking-widest mb-1.5">Status Keseluruhan
-            </p>
-            <div class="flex items-end justify-between">
-                <div>
-                    <h4 class="text-[24px] font-black leading-none mb-1">{{ $gradedCount }} / {{ $totalStudents }}
-                        Dinilai</h4>
-                    <p class="text-[12px] font-medium text-indigo-100">{{ $progressPercent }}% Progres Penilaian</p>
-                </div>
-                <div
-                    class="w-14 h-14 rounded-full border-[4px] border-white/20 flex items-center justify-center relative">
-                    <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
-                        <path class="text-white" stroke-dasharray="{{ $progressPercent }}, 100"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                            fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
-                    </svg>
-                    <span class="text-[12px] font-bold">{{ $progressPercent }}%</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
