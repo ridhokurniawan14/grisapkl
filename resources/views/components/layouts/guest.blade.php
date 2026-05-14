@@ -7,7 +7,8 @@
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
 
     <title>{{ $title ?? 'Grisa PKL' }}</title>
-
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3525cd">
     @php
         $school = \App\Models\SchoolProfile::first();
         $dynamicFavicon = $school && $school->app_logo_path ? asset('storage/' . $school->app_logo_path) : null;

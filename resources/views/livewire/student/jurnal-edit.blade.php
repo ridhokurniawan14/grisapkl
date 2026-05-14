@@ -10,6 +10,7 @@
     lng: null,
     showErrorModal: false,
     errorMessage: '',
+    fullScreenImg: null,
 
     requiresCamera() {
         return this.originalStatus !== 'Hadir' && this.currentStatus === 'Hadir';
@@ -267,16 +268,21 @@
             x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
             <div class="flex flex-col gap-4 mt-2">
 
-                {{-- Foto selfie lama --}}
+                {{-- Foto selfie lama DENGAN ZOOM --}}
                 @if ($journal->attendance_photo_path)
                     <div x-show="originalStatus === 'Hadir' && currentStatus === 'Hadir'" class="flex flex-col gap-1.5">
                         <label class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest pl-1">
                             Selfie Kehadiran Sebelumnya
                         </label>
-                        <div
-                            class="w-full h-32 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden relative shadow-inner">
+                        <div @click="fullScreenImg = '{{ asset('storage/' . $journal->attendance_photo_path) }}'"
+                            class="w-full h-32 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden relative shadow-inner cursor-pointer active:scale-95 transition-transform group">
                             <img src="{{ asset('storage/' . $journal->attendance_photo_path) }}"
                                 class="w-full h-full object-cover">
+                            <div
+                                class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span
+                                    class="material-symbols-outlined text-white drop-shadow-md text-[32px]">zoom_in</span>
+                            </div>
                             <div class="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-md">
                                 <span class="text-[10px] text-white font-semibold flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[12px]">verified</span> Terverifikasi
@@ -314,11 +320,11 @@
                             </span>
                             <span
                                 class="text-[12px] font-semibold {{ $errors->has('activityPhoto') ? 'text-red-500' : 'text-slate-500' }}">
-                                {{ $errors->has('activityPhoto') ? 'Foto wajib diupload!' : 'Pilih gambar...' }}
+                                {{ $errors->has('activityPhoto') ? 'Foto wajib diupload!' : 'Pilih gambar dari galeri...' }}
                             </span>
                         @endif
-                        <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*"
-                            capture="environment">
+                        {{-- PERBAIKAN: Hilangkan capture="environment" biar memunculkan galeri --}}
+                        <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*">
                     </label>
 
                     {{-- Loading upload --}}
@@ -398,6 +404,22 @@
                 Ambil Selfie & Simpan
             </button>
         </div>
+    </div>
+
+    {{-- MODAL ZOOM GAMBAR FULLSCREEN --}}
+    <div x-show="fullScreenImg !== null" x-cloak
+        class="fixed inset-0 z-[11000] flex items-center justify-center bg-black/90 backdrop-blur-md px-4"
+        x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-90"
+        x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-90">
+
+        <button @click="fullScreenImg = null"
+            class="absolute top-6 right-6 w-11 h-11 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/40 active:scale-95 transition-all shadow-lg border border-white/30 z-50">
+            <span class="material-symbols-outlined text-[24px]">close</span>
+        </button>
+
+        <img :src="fullScreenImg" @click.away="fullScreenImg = null"
+            class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl">
     </div>
 
 </div>

@@ -1,5 +1,5 @@
 {{-- x-data ditambahkan state untuk Instruktur (true) dan Guru (false) --}}
-<div class="relative w-full pb-5" x-data="{ isEditingField: false, openInstruktur: true, openGuru: false }">
+<div wire:poll.30s class="relative w-full pb-5" x-data="{ isEditingField: false, openInstruktur: true, openGuru: false }">
     @if ($placement && $placement->dudika)
 
         <div class="absolute -top-[100px] -left-4 -right-4 h-[360px] z-0 rounded-b-[3.5rem] overflow-hidden shadow-md">
@@ -40,7 +40,7 @@
             <div class="bg-sky-50 rounded-[1.5rem] p-5 shadow-sm border border-sky-100 flex flex-col gap-2 relative">
                 <h2 class="text-[12px] font-bold text-[#006591] uppercase tracking-widest flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px]">work</span>
-                    Bidang Pekerjaan (PKL Field)
+                    Bidang Pekerjaan
                 </h2>
 
                 <div x-show="!isEditingField" class="flex items-center justify-between mt-1">

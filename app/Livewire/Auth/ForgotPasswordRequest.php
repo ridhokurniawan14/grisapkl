@@ -10,7 +10,7 @@ use App\Models\SchoolProfile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 #[Layout('components.layouts.guest')]
 #[Title('Lupa Kata Sandi - Grisa PKL')]
@@ -18,13 +18,14 @@ class ForgotPasswordRequest extends Component
 {
     public string $email = '';
     public string $phone = '';
+    public string $otp = '';
+    public string $password = '';
+    public string $password_confirmation = '';
 
-    // State flow: 'form' | 'success'
-    public string $step = 'form';
+    // State flow: 'request' | 'otp' | 'reset' | 'success'
+    public string $step = 'request';
 
-    public bool $loading = false;
-
-    public function sendNewPassword(): void
+    public function requestOtp(): void
     {
         $this->validate([
             'email' => 'required|email|exists:users,email',
@@ -48,57 +49,100 @@ class ForgotPasswordRequest extends Component
             return;
         }
 
-        // Generate password baru 8 karakter (mixed)
-        $newPassword = $this->generatePassword();
+        // Generate 6 Digit OTP
+        $otpCode = (string) rand(100000, 999999);
 
-        // Simpan ke database
-        $user->update(['password' => Hash::make($newPassword)]);
+        // Simpan OTP di Cache selama 5 Menit
+        Cache::put('otp_reset_' . $user->id, $otpCode, now()->addMinutes(5));
 
-        // Kirim via Fontee
-        $sent = $this->sendViaFontee($normalizedStored, $user->name, $newPassword);
+        // Kirim OTP via Fontee
+        $sent = $this->sendOtpViaFontee($normalizedStored, $user->name, $otpCode);
 
-        if (! $sent) {
-            // Rollback atau tetap tampilkan success tapi log error
-            Log::error('Fontee API failed for user: ' . $user->id);
+        if (!$sent) {
+            Log::error('Fontee API failed to send OTP for user: ' . $user->id);
+            $this->addError('phone', 'Gagal mengirim OTP ke WhatsApp. Coba lagi nanti.');
+            return;
         }
+
+        $this->step = 'otp';
+    }
+
+    public function verifyOtp(): void
+    {
+        $this->validate([
+            'otp' => 'required|numeric|digits:6',
+        ], [
+            'otp.required' => 'Kode OTP wajib diisi.',
+            'otp.digits'   => 'Kode OTP harus 6 angka.',
+        ]);
+
+        $user = User::where('email', $this->email)->first();
+        $cachedOtp = Cache::get('otp_reset_' . $user->id);
+
+        if (!$cachedOtp || $cachedOtp !== $this->otp) {
+            $this->addError('otp', 'Kode OTP salah atau sudah kedaluwarsa.');
+            return;
+        }
+
+        $this->step = 'reset';
+    }
+
+    public function resetPassword(): void
+    {
+        $this->validate([
+            'password' => 'required|min:8|confirmed',
+        ], [
+            'password.required'  => 'Kata sandi baru wajib diisi.',
+            'password.min'       => 'Kata sandi minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
+        ]);
+
+        $user = User::where('email', $this->email)->first();
+
+        // Update Password
+        $user->update(['password' => Hash::make($this->password)]);
+
+        // Hapus OTP dari cache
+        Cache::forget('otp_reset_' . $user->id);
 
         $this->step = 'success';
     }
 
+    public function goBack(): void
+    {
+        if ($this->step === 'otp') {
+            $this->step = 'request';
+            $this->otp = '';
+        } elseif ($this->step === 'reset') {
+            $this->step = 'otp';
+        } else {
+            $this->redirect(route('login'));
+        }
+    }
+
+    public function backToLogin(): void
+    {
+        $this->redirect(route('login'));
+    }
+
     private function normalizePhone(string $phone): string
     {
-        // Bersihkan karakter non-digit
         $phone = preg_replace('/[^0-9]/', '', $phone);
-
-        if (str_starts_with($phone, '0')) {
-            return '62' . substr($phone, 1);
-        }
-
-        if (str_starts_with($phone, '+')) {
-            return substr($phone, 1);
-        }
-
+        if (str_starts_with($phone, '0')) return '62' . substr($phone, 1);
+        if (str_starts_with($phone, '+')) return substr($phone, 1);
         return $phone;
     }
 
-    private function generatePassword(): string
-    {
-        // 8 karakter: huruf besar, kecil, angka — mudah dibaca
-        $chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
-        return substr(str_shuffle($chars), 0, 8);
-    }
-
-    private function sendViaFontee(string $phone, string $name, string $password): bool
+    private function sendOtpViaFontee(string $phone, string $name, string $otpCode): bool
     {
         try {
             $apiKey  = config('services.fontee.api_key');
-            $sender  = config('services.fontee.sender');  // nama pengirim / device ID
+            $sender  = config('services.fontee.sender');
 
-            $message = "Halo {$name}!\n\n"
-                . "Kata sandi baru Grisa PKL Anda:\n"
-                . "🔑 *{$password}*\n\n"
-                . "Segera masuk dan ganti kata sandi Anda.\n"
-                . "Jangan bagikan ke siapapun.";
+            $message = "Halo *{$name}*!\n\n"
+                . "Kode OTP untuk mengatur ulang kata sandi Grisa PKL Anda adalah:\n\n"
+                . "👉 *{$otpCode}* 👈\n\n"
+                . "_Kode ini hanya berlaku selama 5 menit. Jangan bagikan kode ini kepada siapa pun._";
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
@@ -111,23 +155,13 @@ class ForgotPasswordRequest extends Component
 
             return $response->successful();
         } catch (\Throwable $e) {
-            Log::error('Fontee sendViaFontee Exception: ' . $e->getMessage());
+            Log::error('Fontee Exception: ' . $e->getMessage());
             return false;
         }
     }
 
-    public function backToLogin(): void
-    {
-        $this->redirect(route('login'));
-    }
-
     public function render()
     {
-        $school  = SchoolProfile::first();
-        $logoUrl = ($school && $school->logo_path)
-            ? asset('storage/' . $school->logo_path)
-            : null;
-
-        return view('livewire.auth.forgot-password-request', compact('logoUrl'));
+        return view('livewire.auth.forgot-password-request');
     }
 }

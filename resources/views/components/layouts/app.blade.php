@@ -5,6 +5,9 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
     <title>{{ $title ?? 'GrisaPKL' }}</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3525cd">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @php
         $school = \App\Models\SchoolProfile::first();
@@ -28,76 +31,20 @@
         rel="stylesheet" />
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "secondary-fixed": "#c9e6ff",
-                        "surface-container-highest": "#e4e1ee",
-                        "error": "#ba1a1a",
-                        "tertiary-fixed": "#ffdbcc",
-                        "on-surface-variant": "#464555",
-                        "surface-bright": "#fcf8ff",
-                        "on-tertiary": "#ffffff",
-                        "error-container": "#ffdad6",
-                        "on-error": "#ffffff",
-                        "inverse-surface": "#302f39",
-                        "on-primary": "#ffffff",
                         "background": "#fcf8ff",
-                        "on-primary-fixed-variant": "#3323cc",
-                        "primary-fixed": "#e2dfff",
-                        "secondary": "#006591",
-                        "surface-tint": "#4d44e3",
-                        "inverse-primary": "#c3c0ff",
-                        "on-primary-container": "#dad7ff",
-                        "tertiary": "#7e3000",
-                        "surface-container": "#f0ecf9",
-                        "surface-variant": "#e4e1ee",
-                        "on-error-container": "#93000a",
-                        "primary-container": "#4f46e5",
-                        "on-tertiary-container": "#ffd2be",
-                        "on-surface": "#1b1b24",
-                        "on-secondary-fixed": "#001e2f",
-                        "tertiary-fixed-dim": "#ffb695",
-                        "surface": "#fcf8ff",
-                        "tertiary-container": "#a44100",
-                        "on-primary-fixed": "#0f0069",
-                        "surface-container-high": "#eae6f4",
-                        "on-secondary-fixed-variant": "#004c6e",
-                        "outline-variant": "#c7c4d8",
-                        "surface-container-low": "#f5f2ff",
-                        "primary-fixed-dim": "#c3c0ff",
-                        "on-secondary": "#ffffff",
-                        "inverse-on-surface": "#f3effc",
-                        "secondary-container": "#39b8fd",
-                        "on-tertiary-fixed-variant": "#7b2f00",
                         "on-background": "#1b1b24",
                         "primary": "#3525cd",
-                        "secondary-fixed-dim": "#89ceff",
-                        "on-tertiary-fixed": "#351000",
-                        "outline": "#777587",
-                        "surface-container-lowest": "#ffffff",
-                        "surface-dim": "#dcd8e5",
-                        "on-secondary-container": "#004666"
-                    },
-                    spacing: {
-                        "margin-mobile": "16px",
-                        "base": "4px",
-                        "gutter": "12px",
-                        "stack-md": "16px",
-                        "stack-sm": "8px",
-                        "touch-target": "48px",
-                        "stack-lg": "24px"
                     },
                     fontFamily: {
-                        "h1": ["Lexend"],
-                        "h2": ["Lexend"],
-                        "body-lg": ["Lexend"],
-                        "label-md": ["Lexend"],
                         "body-md": ["Lexend"],
-                        "button": ["Lexend"]
                     }
                 }
             }
@@ -128,85 +75,7 @@
             animation: subtle-pulse 2s infinite;
         }
     </style>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
-@stack('scripts')
-@livewireScripts
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAiTgBrhFBuSFJV9tDlVXleJhIhsNav0H4",
-        authDomain: "grisapkl.firebaseapp.com",
-        projectId: "grisapkl",
-        storageBucket: "grisapkl.firebasestorage.app",
-        messagingSenderId: "352687462221",
-        appId: "1:352687462221:web:4293afee4d3d79d0678904"
-    };
-
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const messaging = firebase.messaging();
-
-    function requestNotificationPermission() {
-        Notification.requestPermission().then((permission) => {
-            if (permission === 'granted') {
-                console.log('Izin Notifikasi Diberikan!');
-
-                // GANTI 'VAPID_KEY_KAMU' DENGAN VAPID KEY ASLI DARI FIREBASE CONSOLE!
-                messaging.getToken({
-                    vapidKey: 'BOEYSduOymJXH19JH6c5Rq-ZPR52oELvyVV8VJC1rfebcID1rTLQ2W6aJIDnI8xT8Rr0twJxbI_BaHN4QYTVWY4'
-                }).then((currentToken) => {
-                    if (currentToken) {
-                        console.log('FCM Token Berhasil Didapat:', currentToken);
-                        saveTokenToDatabase(currentToken);
-                    } else {
-                        console.log('Gagal mendapatkan token.');
-                    }
-                }).catch((err) => {
-                    console.log('Error saat mengambil token', err);
-                });
-            } else {
-                console.log('Izin Notifikasi Ditolak User!');
-            }
-        });
-    }
-
-    function saveTokenToDatabase(token) {
-        fetch('/save-fcm-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                token: token
-            })
-        }).then(response => {
-            console.log('FCM Token berhasil disimpan ke server');
-        }).catch(err => {
-            console.error('Gagal menyimpan FCM token', err);
-        });
-    }
-
-    // Tangkap notif kalau aplikasi sedang dibuka (Foreground)
-    messaging.onMessage((payload) => {
-        console.log('Pesan diterima saat aplikasi terbuka: ', payload);
-        // Nanti kita bisa panggil SweetAlert disini
-    });
-
-    // Otomatis minta izin notifikasi saat user sudah login
-    document.addEventListener("DOMContentLoaded", function() {
-        @auth
-        requestNotificationPermission();
-    @endauth
-    });
-</script>
-</body>
-
-</html>
 
 <body
     class="antialiased flex flex-col font-body-md text-[14px] w-full min-h-[100dvh] bg-slate-100 sm:items-center sm:justify-center m-0 p-0">
@@ -216,7 +85,6 @@
         class="relative w-full h-[100dvh] sm:w-[390px] sm:h-[800px] sm:max-h-[90dvh] bg-background flex flex-col overflow-hidden sm:rounded-[2.5rem] sm:shadow-2xl sm:border-[8px] sm:border-slate-800">
 
         @php
-            // PERBAIKAN: Masukkan route DUDIKA ke dalam pengecekan header
             $isProfile =
                 request()->routeIs('siswa.profil') ||
                 request()->routeIs('pembimbing.profil') ||
@@ -233,24 +101,61 @@
             $headerIcon = $isProfile ? 'text-white hover:bg-white/10' : 'text-primary hover:bg-slate-50';
 
             $user = auth()->user();
-            $studentData = \App\Models\Student::where('user_id', $user->id ?? 0)->first();
-            $avatarPath = $studentData->avatar ?? ($user->avatar ?? null);
+            $studentData = null;
+            $avatarPath = null;
+
+            if ($user) {
+                $studentData = \App\Models\Student::where('user_id', $user->id)->first();
+                $avatarPath = $studentData->avatar ?? ($user->avatar ?? null);
+            }
 
             $name = $user->name ?? 'User';
             $initials = collect(explode(' ', $name))->map(fn($s) => substr($s, 0, 1))->take(2)->join('');
             $initials = strtoupper($initials);
+
+            $homeRoute = url('/');
+            if ($user) {
+                if ($user->hasRole('siswa')) {
+                    $homeRoute = route('siswa.beranda');
+                } elseif ($user->hasRole('dudika')) {
+                    $homeRoute = route('dudika.beranda');
+                } elseif ($user->hasRole(['guru', 'pembimbing'])) {
+                    $homeRoute = route('pembimbing.beranda');
+                }
+            }
+
+            $notifications = collect();
+            if ($user) {
+                $notifications = \App\Models\Announcement::where('is_active', true)
+                    ->where(function ($q) use ($user) {
+                        $q->where('target_audience', 'Umum');
+                        if ($user->hasRole('siswa')) {
+                            $q->orWhere('target_audience', 'Siswa');
+                        }
+                        if ($user->hasRole('dudika')) {
+                            $q->orWhere('target_audience', 'Dudika');
+                        }
+                        if ($user->hasRole(['guru', 'pembimbing'])) {
+                            $q->orWhere('target_audience', 'Guru');
+                        }
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->take(3)
+                    ->get();
+            }
+
+            $hasUnread = $notifications->isNotEmpty();
+            $latestNotifId = $notifications->first()->id ?? 0;
         @endphp
 
         <header
             class="{{ $headerBg }} absolute top-0 w-full z-50 flex justify-between items-center px-4 h-16 transition-colors duration-300">
 
             @if ($isBeranda)
-                {{-- KHUSUS BERANDA: Tampilkan Nama Aplikasi --}}
                 <div class="flex items-center">
                     <h1 class="text-xl font-extrabold text-[#3525cd] font-['Lexend'] tracking-tight">GrisaPKL</h1>
                 </div>
             @elseif (!$isProfile)
-                {{-- HALAMAN LAIN: Tampilkan Avatar & Sapaan --}}
                 <div class="flex items-center gap-3">
                     <div
                         class="flex items-center justify-center w-10 h-10 rounded-full bg-[#e2dfff] overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
@@ -264,11 +169,8 @@
                         <span class="text-[11px] font-medium text-slate-500 leading-tight">Hai,</span>
                         <span class="text-[14px] font-bold text-slate-800 leading-tight truncate max-w-[120px]">
                             @php
-                                $fullName = auth()->user()->name ?? 'User';
-                                $nameParts = explode(' ', trim($fullName));
+                                $nameParts = explode(' ', trim($name));
                                 $displayName = $nameParts[0] ?? 'User';
-
-                                // Kalau kata pertama <= 2 karakter, ambil kata kedua
                                 if (strlen($displayName) <= 2 && isset($nameParts[1])) {
                                     $displayName .= ' ' . $nameParts[1];
                                 }
@@ -278,18 +180,7 @@
                     </div>
                 </div>
             @else
-                {{-- HALAMAN PROFIL: Tampilkan Back Button Dinamis --}}
-                @php
-                    // PERBAIKAN: Routing dinamis berdasarkan role untuk tombol BACK
-                    if ($user && $user->hasRole('dudika')) {
-                        $backRoute = route('dudika.beranda');
-                    } elseif ($user && ($user->hasRole('guru') || $user->hasRole('pembimbing'))) {
-                        $backRoute = route('pembimbing.beranda');
-                    } else {
-                        $backRoute = route('siswa.absen');
-                    }
-                @endphp
-                <a href="{{ $backRoute }}"
+                <a href="{{ $homeRoute }}"
                     class="w-10 h-10 flex items-center justify-center rounded-full text-white hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
                     title="Kembali">
                     <span class="material-symbols-outlined">arrow_back</span>
@@ -298,14 +189,77 @@
 
             <div class="flex-grow"></div>
 
-            <button
-                class="w-10 h-10 flex items-center justify-center rounded-full {{ $headerIcon }} transition-all active:scale-95 flex-shrink-0">
-                <span class="material-symbols-outlined">notifications</span>
-            </button>
+            {{-- DROPDOWN NOTIFIKASI DENGAN ALPINE YANG SAKTI --}}
+            <div x-data="{
+                open: false,
+                latestId: {{ $latestNotifId }},
+                hasNew: false,
+                init() {
+                    let lastSeen = localStorage.getItem('last_seen_announcement_id');
+                    if (this.latestId > 0 && lastSeen != this.latestId) {
+                        this.hasNew = true;
+                    }
+                }
+            }" @new-notification.window="hasNew = true" class="relative">
+
+                <button
+                    @click="open = !open; hasNew = false; localStorage.setItem('last_seen_announcement_id', latestId); handleBellClick();"
+                    class="relative w-10 h-10 flex items-center justify-center rounded-full {{ $headerIcon }} transition-all active:scale-95 flex-shrink-0">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span x-show="hasNew" x-cloak
+                        class="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                </button>
+
+                {{-- Konten Dropdown --}}
+                <div x-show="open" @click.away="open = false" x-cloak
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 scale-95 translate-y-[-10px]"
+                    x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                    class="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-[100]">
+
+                    <div class="p-4 border-b border-slate-50 bg-slate-50/50">
+                        <h3 class="text-sm font-extrabold text-slate-800">Notifikasi Terbaru</h3>
+                    </div>
+
+                    <div class="flex flex-col divide-y divide-slate-50 max-h-[300px] overflow-y-auto">
+                        @forelse($notifications as $notif)
+                            <a href="{{ $isBeranda ? '#' : $homeRoute }}" @click="open = false"
+                                class="p-4 hover:bg-slate-50 transition-colors flex gap-3 items-start">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-[#3525cd] text-[18px]">campaign</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-[12px] font-bold text-slate-800 leading-tight mb-1">
+                                        {{ $notif->title }}</p>
+                                    <p class="text-[10px] text-slate-500 line-clamp-2">
+                                        {{ strip_tags($notif->content) }}</p>
+                                    <p class="text-[9px] text-[#3525cd] font-bold mt-1 uppercase">
+                                        {{ $notif->created_at->diffForHumans() }}</p>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="p-8 text-center">
+                                <span
+                                    class="material-symbols-outlined text-slate-300 text-[32px] mb-2">notifications_off</span>
+                                <p class="text-[12px] font-medium text-slate-400">Belum ada pengumuman.</p>
+                            </div>
+                        @endforelse
+                    </div>
+
+                    @if ($notifications->isNotEmpty())
+                        <div class="p-3 bg-slate-50 text-center border-t border-slate-100">
+                            <a href="{{ $homeRoute }}" @click="open = false"
+                                class="text-[11px] font-extrabold text-[#3525cd] hover:underline">
+                                Lihat Semua Pengumuman
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
         </header>
 
         @php
-            // Hapus padding atas (pt-20) khusus untuk Profil dan Dudika agar Background bisa mentok ke atas
             $isProfileOrDudika = request()->routeIs('siswa.dudika') || request()->routeIs('dudika.profil');
             $mainPadding = $isProfileOrDudika ? 'pt-0' : 'pt-20';
         @endphp
@@ -323,6 +277,7 @@
                     class="absolute -bottom-10 -right-10 w-60 h-60 bg-indigo-400/10 rounded-full blur-[70px] animate-pulse">
                 </div>
             </div>
+
             {{ $slot }}
         </main>
 
@@ -330,6 +285,204 @@
     </div>
 
     @livewireScripts
+    @stack('scripts')
+
+    {{-- FIREBASE NOTIFICATION SCRIPTS --}}
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAiTgBrhFBuSFJV9tDlVXleJhIhsNav0H4",
+            authDomain: "grisapkl.firebaseapp.com",
+            projectId: "grisapkl",
+            storageBucket: "grisapkl.firebasestorage.app",
+            messagingSenderId: "352687462221",
+            appId: "1:352687462221:web:4293afee4d3d79d0678904"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const messaging = firebase.messaging();
+
+        // ============================================================
+        // FIX #1: Fungsi inti dengan SW activation wait (Android fix)
+        // ============================================================
+        async function registerAndGetToken() {
+            if (!('serviceWorker' in navigator)) {
+                console.warn('[FCM] Browser tidak support Service Worker.');
+                return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+                // FIX ANDROID: Tunggu SW benar-benar active sebelum getToken()
+                // Android Chrome strict soal SW state, iOS tidak perlu ini
+                await navigator.serviceWorker.ready;
+
+                const currentToken = await messaging.getToken({
+                    vapidKey: '{{ env('FIREBASE_VAPID_KEY') }}',
+                    serviceWorkerRegistration: registration
+                });
+
+                if (currentToken) {
+                    console.log('[FCM] Token didapat:', currentToken.substring(0, 20) + '...');
+                    await saveTokenToDatabase(currentToken);
+                } else {
+                    console.warn('[FCM] Token kosong, permission mungkin belum granted.');
+                }
+            } catch (err) {
+                console.error('[FCM] Error saat register/getToken:', err);
+            }
+        }
+
+        // ============================================================
+        // FIX #2: requestNotificationPermission yang proper
+        // ============================================================
+        async function requestNotificationPermission() {
+            const permission = await Notification.requestPermission();
+
+            if (permission === 'granted') {
+                console.log('[FCM] Izin notifikasi diberikan!');
+                await registerAndGetToken();
+            } else {
+                console.warn('[FCM] Izin notifikasi ditolak:', permission);
+            }
+        }
+
+        // ============================================================
+        // FIX #3: saveTokenToDatabase dengan error handling & retry
+        // ============================================================
+        async function saveTokenToDatabase(token) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            if (!csrfToken) {
+                console.error('[FCM] CSRF token tidak ditemukan!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/save-fcm-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        token
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('[FCM] Token berhasil disimpan ke server.');
+                } else {
+                    console.error('[FCM] Server tolak token:', data.message);
+                }
+            } catch (err) {
+                console.error('[FCM] Gagal kirim token ke server:', err);
+            }
+        }
+
+        // ============================================================
+        // FIX #4: Auto-init saat page load kalau sudah pernah granted
+        // Ini yang bikin Android selalu tersimpan ulang tiap buka app
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                console.log('[FCM] Permission sudah granted, auto-refresh token...');
+                registerAndGetToken();
+            }
+        });
+
+        // ============================================================
+        // FIX #5: handleBellClick handle semua state permission
+        // ============================================================
+        function handleBellClick() {
+            if (!('Notification' in window)) {
+                Swal.fire({
+                    title: 'Tidak Didukung',
+                    text: 'Browser Anda tidak mendukung notifikasi push.',
+                    icon: 'warning',
+                    confirmButtonColor: '#3525cd',
+                });
+                return;
+            }
+
+            const permission = Notification.permission;
+
+            if (permission === 'granted') {
+                // FIX: Sebelumnya kosong! Sekarang pastikan token tersimpan
+                registerAndGetToken();
+                Swal.fire({
+                    title: 'Notifikasi Aktif',
+                    text: 'Notifikasi sudah aktif di perangkat ini.',
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2500,
+                });
+                return;
+            }
+
+            if (permission === 'denied') {
+                Swal.fire({
+                    title: 'Notifikasi Diblokir',
+                    text: 'Silakan aktifkan notifikasi secara manual di pengaturan browser Anda.',
+                    icon: 'error',
+                    confirmButtonColor: '#3525cd',
+                });
+                return;
+            }
+
+            // permission === 'default' → minta izin dulu
+            Swal.fire({
+                title: 'Aktifkan Notifikasi?',
+                text: 'Izinkan aplikasi mengirimkan pemberitahuan penting.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3525cd',
+                confirmButtonText: 'Ya, Izinkan',
+                cancelButtonText: 'Nanti saja'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    requestNotificationPermission();
+                }
+            });
+        }
+
+        // ============================================================
+        // Foreground message handler (tidak berubah)
+        // ============================================================
+        const userHomeRoute = "{{ $homeRoute }}";
+
+        messaging.onMessage((payload) => {
+            Swal.fire({
+                title: payload.notification.title,
+                text: payload.notification.body,
+                icon: 'info',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 6000,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'cursor-pointer shadow-xl border border-indigo-100'
+                },
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    toast.addEventListener('click', () => {
+                        window.location.href = userHomeRoute;
+                    });
+                }
+            });
+            window.dispatchEvent(new CustomEvent('new-notification'));
+        });
+    </script>
 </body>
 
 </html>

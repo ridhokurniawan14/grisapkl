@@ -19,9 +19,6 @@ class JurnalEdit extends Component
 {
     use WithFileUploads;
 
-    // ── Directory harus sama persis dengan yang dipakai admin (Filament) ────
-    // Admin FileUpload::make('attendance_photo_path')->directory('journals/attendance')
-    // Admin FileUpload::make('photo_path')->directory('journals')
     const DIR_ATTENDANCE = 'journals/attendance';
     const DIR_ACTIVITY   = 'journals';
 
@@ -95,7 +92,6 @@ class JurnalEdit extends Component
 
         if ($checkRadius && !$this->verifyLocation($lat, $lng)) return false;
 
-        // Simpan selfie ke journals/attendance/ — sama dengan admin
         $imageParts  = explode(';base64,', $photoBase64);
         $imageType   = explode('image/', $imageParts[0])[1] ?? 'png';
         $imageBase64 = base64_decode($imageParts[1]);
@@ -114,6 +110,12 @@ class JurnalEdit extends Component
         return redirect()->route('siswa.jurnal');
     }
 
+    // Reset error saat milih foto baru
+    public function updatedActivityPhoto()
+    {
+        $this->resetValidation('activityPhoto');
+    }
+
     private function validateData(): void
     {
         $rules    = ['attend_status' => 'required|in:Hadir,Izin,Sakit,Libur'];
@@ -127,16 +129,16 @@ class JurnalEdit extends Component
             $journal = Journal::find($this->journalId);
 
             if (!$journal?->photo_path) {
-                // Belum ada foto sama sekali → wajib upload
-                $rules['activityPhoto']             = 'required|image|max:5120';
+                // Limit naik ke 15MB
+                $rules['activityPhoto']             = 'required|image|max:15360';
                 $messages['activityPhoto.required'] = 'Foto kegiatan wajib diupload untuk status ' . $this->attend_status . '.';
             } elseif ($this->activityPhoto) {
-                // Ada foto lama, user upload baru → validasi format saja
-                $rules['activityPhoto'] = 'image|max:5120';
+                // Limit naik ke 15MB
+                $rules['activityPhoto'] = 'image|max:15360';
             }
 
             $messages['activityPhoto.image'] = 'File harus berupa gambar (jpg, png, dll).';
-            $messages['activityPhoto.max']   = 'Ukuran foto maksimal 5MB.';
+            $messages['activityPhoto.max']   = 'Ukuran foto terlalu besar (Maksimal 15MB). Silakan pilih foto lain yang lebih kecil.';
         }
 
         $this->validate($rules, $messages);
@@ -147,8 +149,80 @@ class JurnalEdit extends Component
         $journal = Journal::find($this->journalId);
         $data    = ['attend_status' => $this->attend_status];
 
+        // ── KOMPRESI FOTO KEGIATAN NATIVE PHP ──────────────────────────
+        $newActivityPhotoPath = null;
+        if ($this->attend_status !== 'Libur' && $this->activityPhoto) {
+            $this->deleteOldFile($journal->photo_path);
+
+            $filename = Str::uuid() . '.' . $this->activityPhoto->getClientOriginalExtension();
+            $photoPath = self::DIR_ACTIVITY . '/' . $filename;
+
+            try {
+                $sourcePath = $this->activityPhoto->getRealPath();
+                list($width, $height, $type) = getimagesize($sourcePath);
+
+                if ($type == IMAGETYPE_PNG) {
+                    $source = imagecreatefrompng($sourcePath);
+                    imagealphablending($source, false);
+                    imagesavealpha($source, true);
+                } else {
+                    $source = imagecreatefromjpeg($sourcePath);
+                    if (function_exists('exif_read_data')) {
+                        $exif = @exif_read_data($sourcePath);
+                        if ($exif && isset($exif['Orientation'])) {
+                            switch ($exif['Orientation']) {
+                                case 3:
+                                    $source = imagerotate($source, 180, 0);
+                                    break;
+                                case 6:
+                                    $source = imagerotate($source, 270, 0);
+                                    $tmp = $width;
+                                    $width = $height;
+                                    $height = $tmp;
+                                    break;
+                                case 8:
+                                    $source = imagerotate($source, 90, 0);
+                                    $tmp = $width;
+                                    $width = $height;
+                                    $height = $tmp;
+                                    break;
+                            }
+                        }
+                    }
+                }
+
+                if ($width > 1024) {
+                    $newWidth = 1024;
+                    $newHeight = (int)(($height / $width) * $newWidth);
+                    $thumb = imagecreatetruecolor($newWidth, $newHeight);
+                    if ($type == IMAGETYPE_PNG) {
+                        imagealphablending($thumb, false);
+                        imagesavealpha($thumb, true);
+                    }
+                    imagecopyresampled($thumb, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+                    ob_start();
+                    if ($type == IMAGETYPE_PNG) imagepng($thumb, null, 8);
+                    else imagejpeg($thumb, null, 75);
+                    $imageContent = ob_get_clean();
+                    imagedestroy($thumb);
+                } else {
+                    ob_start();
+                    if ($type == IMAGETYPE_PNG) imagepng($source, null, 8);
+                    else imagejpeg($source, null, 75);
+                    $imageContent = ob_get_clean();
+                }
+
+                imagedestroy($source);
+                Storage::disk('public')->put($photoPath, $imageContent);
+                $newActivityPhotoPath = $photoPath;
+            } catch (\Exception $e) {
+                // Fallback
+                $newActivityPhotoPath = $this->activityPhoto->storeAs(self::DIR_ACTIVITY, $filename, 'public');
+            }
+        }
+
         if ($this->attend_status === 'Libur') {
-            // ── Libur: bersihkan semua ──────────────────────────────────────
             $this->deleteOldFile($journal->attendance_photo_path);
             $this->deleteOldFile($journal->photo_path);
 
@@ -158,45 +232,28 @@ class JurnalEdit extends Component
             $data['latitude']              = null;
             $data['longitude']             = null;
         } elseif ($this->attend_status === 'Hadir') {
-            // ── Hadir: selfie + lat/lng wajib dari kamera ───────────────────
             $data['activity'] = $this->activity;
 
             if ($attendancePhotoPath) {
-                $this->deleteOldFile($journal->attendance_photo_path); // hapus selfie lama
+                $this->deleteOldFile($journal->attendance_photo_path);
                 $data['attendance_photo_path'] = $attendancePhotoPath;
                 $data['latitude']              = $lat;
                 $data['longitude']             = $lng;
             }
 
-            if ($this->activityPhoto) {
-                $this->deleteOldFile($journal->photo_path); // hapus foto kegiatan lama
-                // Simpan ke journals/ — sama dengan admin
-                $data['photo_path'] = $this->activityPhoto->storeAs(
-                    self::DIR_ACTIVITY,
-                    Str::uuid() . '.' . $this->activityPhoto->getClientOriginalExtension(),
-                    'public'
-                );
+            if ($newActivityPhotoPath) {
+                $data['photo_path'] = $newActivityPhotoPath;
             }
         } else {
-            // ── Izin / Sakit: hapus selfie, pertahankan lat/lng & foto kegiatan
             $data['activity'] = $this->activity;
 
-            // Hapus foto selfie absensi — tidak relevan untuk Izin/Sakit
             if ($journal->attendance_photo_path) {
                 $this->deleteOldFile($journal->attendance_photo_path);
                 $data['attendance_photo_path'] = null;
             }
 
-            // latitude & longitude tidak diubah (tidak dimasukkan ke $data)
-
-            if ($this->activityPhoto) {
-                $this->deleteOldFile($journal->photo_path); // hapus foto lama
-                // Simpan ke journals/ — sama dengan admin
-                $data['photo_path'] = $this->activityPhoto->storeAs(
-                    self::DIR_ACTIVITY,
-                    Str::uuid() . '.' . $this->activityPhoto->getClientOriginalExtension(),
-                    'public'
-                );
+            if ($newActivityPhotoPath) {
+                $data['photo_path'] = $newActivityPhotoPath;
             }
         }
 

@@ -1,5 +1,5 @@
-<div class="flex flex-col w-full relative pb-2 overflow-hidden min-h-[calc(100vh-4rem)]" x-data="absensiApp()"
-    x-init="startClock()">
+<div wire:poll.30s class="flex flex-col w-full relative pb-2 overflow-hidden min-h-[calc(100vh-4rem)]"
+    x-data="absensiApp()" x-init="startClock()">
 
     <div class="relative z-10 w-full flex flex-col">
 
@@ -143,8 +143,7 @@
                                 <span class="material-symbols-outlined text-[32px] text-outline mb-1">add_a_photo</span>
                                 <span class="text-[12px] font-medium text-outline">Ambil atau pilih foto</span>
                             @endif
-                            <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*"
-                                capture="environment">
+                            <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*">
                         </label>
                         <div wire:loading wire:target="activityPhoto" class="text-xs text-primary mt-1">Mengunggah...
                         </div>
@@ -256,7 +255,7 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100 sm:translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-full sm:scale-90 sm:translate-y-4"
-            @click.away="showDetailModal = false"
+            @click.away="if(fullScreenImg === null) showDetailModal = false"
             class="bg-surface-bright w-full max-w-[400px] sm:rounded-[2rem] rounded-t-[2rem] p-6 pb-8 flex flex-col shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div class="w-12 h-1.5 bg-outline-variant/50 rounded-full mx-auto mb-4 sm:hidden"></div>
             <template x-if="selectedJournal">
@@ -275,12 +274,18 @@
                     <template x-if="selectedJournal.attendance_photo_url">
                         <div class="mb-4">
                             <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Absensi</p>
-                            <div
-                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm">
+                            <div @click.stop="fullScreenImg = selectedJournal.attendance_photo_url"
+                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm cursor-pointer active:scale-95 transition-transform relative group">
                                 <img :src="selectedJournal.attendance_photo_url" class="w-full h-full object-cover">
+                                <div
+                                    class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span
+                                        class="material-symbols-outlined text-white drop-shadow-md text-[32px]">zoom_in</span>
+                                </div>
                             </div>
                         </div>
                     </template>
+
                     <template x-if="selectedJournal.latitude && selectedJournal.longitude">
                         <div
                             class="mb-4 bg-surface-container-low p-3 rounded-xl border border-surface-container-high flex items-center gap-3">
@@ -295,9 +300,14 @@
                     <template x-if="selectedJournal.activity_photo_url">
                         <div class="mb-4">
                             <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Kegiatan / Bukti</p>
-                            <div
-                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm">
+                            <div @click.stop="fullScreenImg = selectedJournal.activity_photo_url"
+                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm cursor-pointer active:scale-95 transition-transform relative group">
                                 <img :src="selectedJournal.activity_photo_url" class="w-full h-full object-cover">
+                                <div
+                                    class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span
+                                        class="material-symbols-outlined text-white drop-shadow-md text-[32px]">zoom_in</span>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -313,7 +323,20 @@
             </template>
         </div>
     </div>
+    <div x-show="fullScreenImg !== null" x-cloak
+        class="fixed inset-0 z-[11000] flex items-center justify-center bg-black/90 backdrop-blur-md px-4"
+        x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-90"
+        x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-90">
 
+        <button @click="fullScreenImg = null"
+            class="absolute top-6 right-6 w-11 h-11 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/40 active:scale-95 transition-all shadow-lg border border-white/30 z-50">
+            <span class="material-symbols-outlined text-[24px]">close</span>
+        </button>
+
+        <img :src="fullScreenImg" @click.away="fullScreenImg = null"
+            class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl">
+    </div>
     <div x-show="isCameraOpen" x-cloak class="fixed inset-0 z-[9999] bg-black flex flex-col justify-between">
         <div
             class="p-4 flex justify-between items-center text-white bg-gradient-to-b from-black/80 to-transparent z-30">
@@ -413,6 +436,7 @@
                 confirmBtnColor: '',
                 showDetailModal: false,
                 selectedJournal: null,
+                fullScreenImg: null,
 
                 startClock() {
                     const updateTime = () => {
@@ -505,7 +529,7 @@
 
                             // Lempar ke Backend untuk dihitung jaraknya
                             let isWithinRadius = await this.$wire.verifyLocation(this.lat, this
-                            .lng);
+                                .lng);
                             if (!isWithinRadius) {
                                 this.errorMessage =
                                     'Lokasi Anda saat ini berada di luar radius DUDIKA yang diizinkan sekolah. Silakan masuk ke area tempat PKL untuk melakukan absensi.';

@@ -62,25 +62,20 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/siswa/bot', \App\Livewire\Student\ChatBot::class)->name('siswa.bot');
     Route::get('/siswa/profil/password', \App\Livewire\Student\UbahPassword::class)->name('siswa.profil.password');
     Route::get('/siswa/laporan/download', function () {
-
         $student = \App\Models\Student::where('user_id', auth()->id())->first();
-
         abort_if(!$student, 403, 'Data siswa tidak ditemukan.');
 
-        $pklPlacement = \App\Models\PklPlacement::where(
-            'student_id',
-            $student->id
-        )->firstOrFail();
+        $pklPlacement = \App\Models\PklPlacement::where('student_id', $student->id)->firstOrFail();
+        abort_if(empty($pklPlacement->file_laporan_path), 404, 'File laporan belum tersedia.');
 
-        abort_if(
-            empty($pklPlacement->file_laporan_path),
-            404,
-            'File laporan belum tersedia.'
-        );
+        $path = storage_path('app/public/' . $pklPlacement->file_laporan_path);
+        $fileName = 'Laporan_PKL_' . str_replace(' ', '_', $student->name) . '.pdf';
 
-        return response()->download(
-            storage_path('app/public/' . $pklPlacement->file_laporan_path)
-        );
+        // PERBAIKAN: Paksa header Content-Disposition menjadi attachment
+        return response()->download($path, $fileName, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
     })->middleware(['auth'])->name('siswa.laporan.download');
 });
 
@@ -119,10 +114,16 @@ Route::middleware(['auth'])->group(function () {
 
     // ===== TAMBAHKAN RUTE FCM INI =====
     Route::post('/save-fcm-token', function (\Illuminate\Http\Request $request) {
-        $request->user()->update([
-            'fcm_token' => $request->token
-        ]);
-        return response()->json(['success' => true]);
+        $user = $request->user();
+
+        if ($user) {
+            $user->fcm_token = $request->token;
+            $user->save();
+
+            return response()->json(['success' => true, 'message' => 'Token saved']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'User not found'], 401);
     });
 
     // Route untuk Cetak PDF DUDIKA

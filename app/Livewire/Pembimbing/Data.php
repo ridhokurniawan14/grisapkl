@@ -176,6 +176,7 @@ class Data extends Component
                         'images' => $images,
                         'status' => $status,
                         'wa_message' => $waMessage,
+                        'revision_note' => $j->revision_note,
                     ];
                 });
 

@@ -24,16 +24,14 @@ class Absensi extends Component
     const DIR_ACTIVITY   = 'journals';
 
     public $placement;
-    public $hasAttendedToday = false;
-    public $todayJournal;
-    public $isRadiusEnabled = true; // Tambahan untuk memegang status radius
+    public $hasAttendedToday = false; // Akan di-update otomatis setiap render
+    public $isRadiusEnabled = true;
 
     public $activity = '';
     public $activityPhoto;
 
     public function mount()
     {
-        // Cek status radius di sekolah
         $school = SchoolProfile::first();
         $this->isRadiusEnabled = $school ? (bool) $school->is_radius_attendance_enabled : true;
 
@@ -41,27 +39,31 @@ class Absensi extends Component
             $q->where('user_id', Auth::id());
         })->where('status', 'Aktif')->first();
 
+        // Pengecekan awal saat halaman dimuat
         if ($this->placement) {
             $this->checkAttendanceStatus();
         }
     }
 
+    /**
+     * Fungsi ini sekarang dipanggil di mount DAN render 
+     * agar status tombol selalu sinkron dengan database (Real-time)
+     */
     public function checkAttendanceStatus()
     {
-        $this->todayJournal = Journal::where('pkl_placement_id', $this->placement->id)
+        if (!$this->placement) return;
+
+        $todayJournal = Journal::where('pkl_placement_id', $this->placement->id)
             ->whereDate('date', today())
             ->first();
 
-        $this->hasAttendedToday = (bool) $this->todayJournal;
+        $this->hasAttendedToday = (bool) $todayJournal;
     }
 
     public function verifyLocation($lat, $lng): bool
     {
         try {
-            // Jika radius dinonaktifkan di DB, langsung LOLOS
-            if (!$this->isRadiusEnabled) {
-                return true;
-            }
+            if (!$this->isRadiusEnabled) return true;
 
             $placementLat = $this->placement->latitude  ?? null;
             $placementLng = $this->placement->longitude ?? null;
@@ -70,9 +72,7 @@ class Absensi extends Component
             if (!$placementLat || !$placementLng) return true;
 
             $distance = $this->calculateDistance($lat, $lng, $placementLat, $placementLng);
-            if ($distance > $maxRadius) return false;
-
-            return true;
+            return $distance <= $maxRadius;
         } catch (\Throwable $e) {
             return true;
         }
@@ -81,8 +81,6 @@ class Absensi extends Component
     public function submitAttendance($photoBase64, $lat, $lng)
     {
         if (!$this->placement || $this->hasAttendedToday) return;
-
-        // Pengecekan via backend dipastikan lagi
         if (!$this->verifyLocation($lat, $lng)) return;
 
         $imageParts  = explode(';base64,', $photoBase64);
@@ -125,32 +123,93 @@ class Absensi extends Component
         $this->checkAttendanceStatus();
     }
 
+    public function updatedActivityPhoto()
+    {
+        $this->resetValidation('activityPhoto');
+    }
+
     public function saveJournal()
     {
         $this->validate([
             'activity'      => 'required|min:10',
-            'activityPhoto' => 'required|image|max:5120',
-        ], [
-            'activity.required'      => 'Keterangan aktivitas wajib diisi.',
-            'activity.min'           => 'Keterangan minimal 10 karakter.',
-            'activityPhoto.required' => 'Foto kegiatan wajib diupload.',
-            'activityPhoto.image'    => 'File harus berupa gambar (jpg, png, dll).',
-            'activityPhoto.max'      => 'Ukuran foto maksimal 5MB.',
+            'activityPhoto' => 'required|image|max:15360',
         ]);
 
-        if (!$this->todayJournal) return;
+        $todayJournal = Journal::where('pkl_placement_id', $this->placement->id)
+            ->whereDate('date', today())
+            ->first();
 
-        if ($this->todayJournal->photo_path) {
-            $this->deleteOldFile($this->todayJournal->photo_path);
+        if (!$todayJournal) return;
+
+        if ($todayJournal->photo_path) {
+            $this->deleteOldFile($todayJournal->photo_path);
         }
 
-        $photoPath = $this->activityPhoto->storeAs(
-            self::DIR_ACTIVITY,
-            Str::uuid() . '.' . $this->activityPhoto->getClientOriginalExtension(),
-            'public'
-        );
+        $filename = Str::uuid() . '.' . $this->activityPhoto->getClientOriginalExtension();
+        $photoPath = self::DIR_ACTIVITY . '/' . $filename;
 
-        $this->todayJournal->update([
+        try {
+            $sourcePath = $this->activityPhoto->getRealPath();
+            list($width, $height, $type) = getimagesize($sourcePath);
+
+            // ... (Kode kompresi gambar native kamu yang sudah jalan) ...
+            if ($type == IMAGETYPE_PNG) {
+                $source = imagecreatefrompng($sourcePath);
+                imagealphablending($source, false);
+                imagesavealpha($source, true);
+            } else {
+                $source = imagecreatefromjpeg($sourcePath);
+                if (function_exists('exif_read_data')) {
+                    $exif = @exif_read_data($sourcePath);
+                    if ($exif && isset($exif['Orientation'])) {
+                        switch ($exif['Orientation']) {
+                            case 3:
+                                $source = imagerotate($source, 180, 0);
+                                break;
+                            case 6:
+                                $source = imagerotate($source, 270, 0);
+                                $tmp = $width;
+                                $width = $height;
+                                $height = $tmp;
+                                break;
+                            case 8:
+                                $source = imagerotate($source, 90, 0);
+                                $tmp = $width;
+                                $width = $height;
+                                $height = $tmp;
+                                break;
+                        }
+                    }
+                }
+            }
+
+            if ($width > 1024) {
+                $newWidth = 1024;
+                $newHeight = (int)(($height / $width) * $newWidth);
+                $thumb = imagecreatetruecolor($newWidth, $newHeight);
+                if ($type == IMAGETYPE_PNG) {
+                    imagealphablending($thumb, false);
+                    imagesavealpha($thumb, true);
+                }
+                imagecopyresampled($thumb, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                ob_start();
+                if ($type == IMAGETYPE_PNG) imagepng($thumb, null, 8);
+                else imagejpeg($thumb, null, 75);
+                $imageContent = ob_get_clean();
+                imagedestroy($thumb);
+            } else {
+                ob_start();
+                if ($type == IMAGETYPE_PNG) imagepng($source, null, 8);
+                else imagejpeg($source, null, 75);
+                $imageContent = ob_get_clean();
+            }
+            imagedestroy($source);
+            Storage::disk('public')->put($photoPath, $imageContent);
+        } catch (\Exception $e) {
+            $this->activityPhoto->storeAs(self::DIR_ACTIVITY, $filename, 'public');
+        }
+
+        $todayJournal->update([
             'activity'   => $this->activity,
             'photo_path' => $photoPath,
         ]);
@@ -172,8 +231,7 @@ class Absensi extends Component
         $earthRadius = 6371000;
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
-        $a    = sin($dLat / 2) ** 2
-            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+        $a    = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
         return $earthRadius * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
@@ -181,65 +239,48 @@ class Absensi extends Component
     {
         $recap          = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Libur' => 0, 'Alpha' => 0];
         $recentJournals = collect();
+        $todayJournal   = null;
 
         if ($this->placement) {
-            // Ambil semua jurnal yang dimiliki penempatan ini
+
+            // PERBAIKAN FATAL: Jalankan pengecekan status SETIAP RENDER agar wire:poll bisa mendeteksi hapus data
+            $this->checkAttendanceStatus();
+
+            $todayJournal = Journal::where('pkl_placement_id', $this->placement->id)
+                ->whereDate('date', today())
+                ->first();
+
             $allJournals = Journal::where('pkl_placement_id', $this->placement->id)->get();
 
-            // Hitung Rekap Dasar (Hadir dihitung semua, bukan cuma yang sudah divalidasi)
+            // ... (Kode rekap absensi kamu tetap sama di sini) ...
             $recap['Hadir'] = $allJournals->where('attend_status', 'Hadir')->count();
             $recap['Izin']  = $allJournals->where('attend_status', 'Izin')->count();
             $recap['Sakit'] = $allJournals->where('attend_status', 'Sakit')->count();
             $recap['Libur'] = $allJournals->where('attend_status', 'Libur')->count();
 
-            // =======================================================
-            // LOGIKA PERHITUNGAN ALPHA YANG BENAR (100% AKURAT)
-            // =======================================================
             if ($this->placement->start_date && $this->placement->end_date) {
                 $startDate = Carbon::parse($this->placement->start_date)->startOfDay();
                 $endDate   = Carbon::parse($this->placement->end_date)->endOfDay();
                 $today     = Carbon::now()->endOfDay();
-
-                // Batas hitung adalah hari ini atau hari terakhir PKL (mana yang lebih dulu)
                 $limitDate = $today->lessThan($endDate) ? $today : $endDate;
-
                 $workingDays = 0;
                 if ($startDate->lessThanOrEqualTo($limitDate)) {
-                    // Pakai CarbonPeriod agar hitungan hari kerja (Senin - Jumat) super akurat
                     $period = \Carbon\CarbonPeriod::create($startDate, $limitDate);
                     foreach ($period as $date) {
-                        if ($date->isWeekday()) {
-                            $workingDays++;
-                        }
+                        if ($date->isWeekday()) $workingDays++;
                     }
                 }
-
-                // Ambil jumlah hari (tanggal unik) dimana siswa SUDAH absen di hari kerja (Senin-Jumat)
                 $loggedDays = $allJournals->whereBetween('date', [$startDate->format('Y-m-d'), $limitDate->format('Y-m-d')])
-                    ->filter(function ($j) {
-                        return Carbon::parse($j->date)->isWeekday(); // Pastikan hanya menghitung absen di hari kerja
-                    })
-                    ->pluck('date')
-                    ->unique()
-                    ->count();
-
-                // Alpha = Hari Kerja - Hari yang sudah diisi jurnal
+                    ->filter(fn($j) => Carbon::parse($j->date)->isWeekday())
+                    ->pluck('date')->unique()->count();
                 $recap['Alpha'] = max(0, $workingDays - $loggedDays);
             }
 
-            // Ambil History untuk ditampilkan di card bawah
             $recentJournals = Journal::where('pkl_placement_id', $this->placement->id)
-                ->orderBy('date', 'desc')
-                ->orderBy('time', 'desc')
-                ->take(7)
-                ->get()
+                ->orderBy('date', 'desc')->orderBy('time', 'desc')->take(7)->get()
                 ->map(function ($j) {
-                    $j->attendance_photo_url = $j->attendance_photo_path
-                        ? asset('storage/' . $j->attendance_photo_path)
-                        : null;
-                    $j->activity_photo_url = $j->photo_path
-                        ? asset('storage/' . $j->photo_path)
-                        : null;
+                    $j->attendance_photo_url = $j->attendance_photo_path ? asset('storage/' . $j->attendance_photo_path) : null;
+                    $j->activity_photo_url = $j->photo_path ? asset('storage/' . $j->photo_path) : null;
                     $j->formatted_date = Carbon::parse($j->date)->isoFormat('dddd, D MMM YYYY');
                     $j->formatted_time = Carbon::parse($j->time)->format('H:i');
                     return $j;
@@ -249,6 +290,7 @@ class Absensi extends Component
         return view('livewire.student.absensi', [
             'recentJournals' => $recentJournals,
             'recap'          => $recap,
+            'todayJournal'   => $todayJournal,
         ]);
     }
 }

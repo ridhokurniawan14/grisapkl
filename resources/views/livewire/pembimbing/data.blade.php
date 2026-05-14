@@ -1,4 +1,4 @@
-<div class="w-full flex flex-col -mt-4 pb-4" x-data="{ isModalOpen: false, modalImageSrc: '' }">
+<div wire:poll.30s class="w-full flex flex-col -mt-4 pb-4" x-data="{ isModalOpen: false, modalImageSrc: '' }">
 
     <div
         class="sticky top-[-16px] z-30 bg-slate-100/95 backdrop-blur-md -mx-4 px-4 pb-4 pt-3 border-b border-slate-200/60 shadow-sm">
@@ -155,11 +155,23 @@
                                 @endforeach
                             </div>
                         @endif
-
+                        @if ($journal['status'] === 'Revisi' && !empty($journal['revision_note']))
+                            <div class="mb-3 p-2.5 bg-red-50 rounded-xl border border-red-100 flex gap-2 items-start">
+                                <span class="material-symbols-outlined text-red-500 text-[16px] mt-0.5">feedback</span>
+                                <div>
+                                    <p class="text-[10px] font-extrabold text-red-600 uppercase tracking-wider mb-0.5">
+                                        Catatan DUDIKA:</p>
+                                    <p class="text-[12px] font-medium text-red-700 leading-snug">
+                                        {{ $journal['revision_note'] }}
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
                         <div class="flex items-center justify-between pt-3 border-t border-slate-100">
                             <div class="flex items-center gap-1.5">
                                 @if ($journal['status'] === 'Disetujui')
-                                    <span class="material-symbols-outlined text-emerald-500 text-[18px]">verified</span>
+                                    <span
+                                        class="material-symbols-outlined text-emerald-500 text-[18px]">verified</span>
                                     <span
                                         class="text-[11px] font-bold text-emerald-600 uppercase tracking-wide">Disetujui
                                         DUDIKA</span>

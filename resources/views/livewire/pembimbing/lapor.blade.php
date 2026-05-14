@@ -1,14 +1,15 @@
-<div class="w-full flex flex-col" x-data="{
+<div wire:poll.30s class="w-full flex flex-col" x-data="{
     showReportForm: false,
     showDetailModal: false,
     showMonthFilter: false,
     detailData: {},
+    fullScreenImg: null,
     openDetail(item) {
         this.detailData = item;
         this.showDetailModal = true;
     }
-}" x-on:open-report-form.window="showReportForm = true"
-    x-on:close-report-form.window="showReportForm = false">
+}"
+    x-on:open-report-form.window="showReportForm = true" x-on:close-report-form.window="showReportForm = false">
 
     {{-- ══ JADWAL & CIRCLE BUTTON ══════════════════════════════════════════ --}}
     <div class="flex flex-col items-center pt-2 pb-4">
@@ -374,8 +375,14 @@
                 </div>
 
                 <template x-if="detailData.photo_url">
-                    <div class="rounded-xl overflow-hidden border border-slate-200 mt-1">
+                    <div class="rounded-xl overflow-hidden border border-slate-200 mt-1 cursor-pointer relative group"
+                        @click="fullScreenImg = detailData.photo_url">
                         <img :src="detailData.photo_url" class="w-full h-36 object-cover">
+                        <div
+                            class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span
+                                class="material-symbols-outlined text-white drop-shadow-md text-[32px]">zoom_in</span>
+                        </div>
                     </div>
                 </template>
 
@@ -386,5 +393,19 @@
             </div>
         </div>
     </div>
+    {{-- ══ MODAL ZOOM GAMBAR FULLSCREEN ══════════════════════════════════ --}}
+    <div x-show="fullScreenImg !== null" x-cloak
+        class="fixed inset-0 z-[11000] flex items-center justify-center bg-black/90 backdrop-blur-md px-4"
+        x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-90"
+        x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-90">
 
+        <button @click="fullScreenImg = null"
+            class="absolute top-6 right-6 w-11 h-11 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/40 active:scale-95 transition-all shadow-lg border border-white/30 z-50">
+            <span class="material-symbols-outlined text-[24px]">close</span>
+        </button>
+
+        <img :src="fullScreenImg" @click.away="fullScreenImg = null"
+            class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl">
+    </div>
 </div>
