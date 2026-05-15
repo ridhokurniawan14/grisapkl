@@ -127,85 +127,11 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Route untuk Cetak PDF DUDIKA
-    Route::get('/dudika/print', function (Request $request) {
-        if ($request->has('ids')) {
-            $ids = explode(',', $request->ids);
-            $dudikas = Dudika::whereIn('id', $ids)->get();
-        } else {
-            $dudikas = Dudika::all();
-        }
-        return view('pdf.dudika', compact('dudikas'));
-    })->name('dudika.print');
+    Route::get('/dudika/print', [PrintController::class, 'dudikaPrint'])->name('dudika.print');
 
-    Route::get('/journal/download', function (Request $request) {
-        if ($request->has('ids')) {
-            $ids = explode(',', $request->ids);
-            $journals = Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])->whereIn('id', $ids)->get();
-        } else {
-            $journals = Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])->get();
-        }
-        return view('pdf.journal', compact('journals'));
-    })->name('journal.download');
+    Route::get('/journal/download', [PrintController::class, 'journalDownload'])->name('journal.download');
 
-    Route::get('/journal/pdf', function (Request $request) {
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
-
-        $ids      = array_filter(explode(',', $request->query('ids', '')));
-        $start    = $request->query('start');
-        $end      = $request->query('end');
-        $studentId = $request->query('student_id');
-
-        $journals = Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])
-            ->whereIn('id', $ids)
-            ->orderBy('date', 'asc')
-            ->get();
-
-        if ($start && $end && $studentId) {
-            $placement    = PklPlacement::with(['student', 'dudika'])
-                ->where('student_id', $studentId)
-                ->where('status', 'Aktif')
-                ->first();
-            $startDate    = Carbon::parse($start);
-            $endDate      = Carbon::parse($end);
-            $journalsKeyed = $journals->keyBy('date');
-            $studentJournals = collect();
-
-            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
-                $dateStr = $date->format('Y-m-d');
-                if ($journalsKeyed->has($dateStr)) {
-                    $studentJournals->push($journalsKeyed->get($dateStr));
-                } else {
-                    $dummy = new Journal([
-                        'date'         => $dateStr,
-                        'time'         => null,
-                        'attend_status' => 'Alpha',
-                        'activity'     => 'Tanpa Keterangan / Alpha',
-                        'is_valid'     => true,
-                    ]);
-                    $dummy->setRelation('pklPlacement', $placement);
-                    $studentJournals->push($dummy);
-                }
-            }
-
-            $journalsByStudent = collect([$placement->id => $studentJournals]);
-        } else {
-            $journalsByStudent = $journals->groupBy('pkl_placement_id');
-        }
-
-        $pdf = Pdf::loadView('pdf.journal', compact('journalsByStudent'))
-            ->setPaper('a4', 'portrait')
-            ->setOptions([
-                'defaultFont'     => 'Arial',
-                'isRemoteEnabled' => true,
-                'isHtml5ParserEnabled' => true,
-                'dpi'             => 96,
-                'chroot'          => public_path(),
-            ]);
-
-        $filename = 'Jurnal_PKL_' . now()->format('Ymd_His') . '.pdf';
-        return $pdf->stream($filename);
-    })->name('journal.pdf');
+    Route::get('/journal/pdf', [PrintController::class, 'journalPdf'])->name('journal.pdf');
 
     Route::get('/cetak/surat-pengantar/{dudika_id}', [PrintController::class, 'suratPengantar'])->name('cetak.surat-pengantar');
     Route::get('/cetak/laporan-lengkap/{id}', [PrintController::class, 'cetakLaporanLengkap'])->name('cetak.laporan-siswa');

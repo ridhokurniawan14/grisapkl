@@ -194,13 +194,23 @@
                 open: false,
                 latestId: {{ $latestNotifId }},
                 hasNew: false,
+                isGranted: false,
                 init() {
                     let lastSeen = localStorage.getItem('last_seen_announcement_id');
                     if (this.latestId > 0 && lastSeen != this.latestId) {
                         this.hasNew = true;
                     }
+                    this.checkPermission();
+                },
+                checkPermission() {
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        this.isGranted = true;
+                    } else {
+                        this.isGranted = false;
+                    }
                 }
-            }" @new-notification.window="hasNew = true" class="relative">
+            }" @new-notification.window="hasNew = true"
+                @update-permission.window="checkPermission()" class="relative">
 
                 <button
                     @click="open = !open; hasNew = false; localStorage.setItem('last_seen_announcement_id', latestId); handleBellClick();"
@@ -217,8 +227,15 @@
                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
                     class="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-[100]">
 
-                    <div class="p-4 border-b border-slate-50 bg-slate-50/50">
+                    {{-- HEADER DENGAN INDIKATOR AKTIF --}}
+                    <div class="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
                         <h3 class="text-sm font-extrabold text-slate-800">Notifikasi Terbaru</h3>
+                        <div x-show="isGranted" x-cloak
+                            class="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-100 shadow-sm"
+                            title="Notifikasi sudah aktif">
+                            <span class="material-symbols-outlined text-[13px] font-bold">check_circle</span>
+                            <span class="text-[9px] font-extrabold uppercase tracking-widest">Aktif</span>
+                        </div>
                     </div>
 
                     <div class="flex flex-col divide-y divide-slate-50 max-h-[300px] overflow-y-auto">
@@ -343,6 +360,9 @@
         async function requestNotificationPermission() {
             const permission = await Notification.requestPermission();
 
+            // Beri tahu Alpine.js kalau status izin baru saja diupdate
+            window.dispatchEvent(new CustomEvent('update-permission'));
+
             if (permission === 'granted') {
                 console.log('[FCM] Izin notifikasi diberikan!');
                 await registerAndGetToken();
@@ -388,7 +408,6 @@
 
         // ============================================================
         // FIX #4: Auto-init saat page load kalau sudah pernah granted
-        // Ini yang bikin Android selalu tersimpan ulang tiap buka app
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -402,29 +421,15 @@
         // ============================================================
         function handleBellClick() {
             if (!('Notification' in window)) {
-                Swal.fire({
-                    title: 'Tidak Didukung',
-                    text: 'Browser Anda tidak mendukung notifikasi push.',
-                    icon: 'warning',
-                    confirmButtonColor: '#3525cd',
-                });
-                return;
+                return; // Silently abort jika browser tidak support
             }
 
             const permission = Notification.permission;
 
             if (permission === 'granted') {
-                // FIX: Sebelumnya kosong! Sekarang pastikan token tersimpan
+                // HAPUS SWEETALERT DI SINI!
+                // Biarkan saja dia nge-refresh token diam-diam di background.
                 registerAndGetToken();
-                Swal.fire({
-                    title: 'Notifikasi Aktif',
-                    text: 'Notifikasi sudah aktif di perangkat ini.',
-                    icon: 'success',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 2500,
-                });
                 return;
             }
 

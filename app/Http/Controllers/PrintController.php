@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dudika;
+use App\Models\Journal;
 use App\Models\PklPlacement;
 use App\Models\SchoolProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 
 class PrintController extends Controller
 {
@@ -94,6 +96,84 @@ class PrintController extends Controller
             ]);
 
         return $pdf->stream('Laporan_PKL_' . $placement->student->name . '.pdf');
+    }
+    public function dudikaPrint(Request $request)
+    {
+        $dudikas = $request->has('ids')
+            ? Dudika::whereIn('id', explode(',', $request->ids))->get()
+            : Dudika::all();
+
+        return view('pdf.dudika', compact('dudikas'));
+    }
+
+    public function journalDownload(Request $request)
+    {
+        $journals = $request->has('ids')
+            ? Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])->whereIn('id', explode(',', $request->ids))->get()
+            : Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])->get();
+
+        return view('pdf.journal', compact('journals'));
+    }
+
+    public function journalPdf(Request $request)
+    {
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
+        $ids      = array_filter(explode(',', $request->query('ids', '')));
+        $start    = $request->query('start');
+        $end      = $request->query('end');
+        $studentId = $request->query('student_id');
+
+        $journals = Journal::with(['pklPlacement.student', 'pklPlacement.dudika'])
+            ->whereIn('id', $ids)
+            ->orderBy('date', 'asc')
+            ->get();
+
+        if ($start && $end && $studentId) {
+            $placement = PklPlacement::with(['student', 'dudika'])
+                ->where('student_id', $studentId)
+                ->where('status', 'Aktif')
+                ->first();
+
+            $startDate = \Carbon\Carbon::parse($start);
+            $endDate   = \Carbon\Carbon::parse($end);
+            $journalsKeyed = $journals->keyBy('date');
+            $studentJournals = collect();
+
+            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                $dateStr = $date->format('Y-m-d');
+                if ($journalsKeyed->has($dateStr)) {
+                    $studentJournals->push($journalsKeyed->get($dateStr));
+                } else {
+                    $dummy = new Journal([
+                        'date'          => $dateStr,
+                        'time'          => null,
+                        'attend_status' => 'Alpha',
+                        'activity'      => 'Tanpa Keterangan / Alpha',
+                        'is_valid'      => true,
+                    ]);
+                    $dummy->setRelation('pklPlacement', $placement);
+                    $studentJournals->push($dummy);
+                }
+            }
+            $journalsByStudent = collect([$placement->id => $studentJournals]);
+        } else {
+            $journalsByStudent = $journals->groupBy('pkl_placement_id');
+        }
+
+        $pdf = Pdf::loadView('pdf.journal', compact('journalsByStudent'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'defaultFont'          => 'Arial',
+                'isRemoteEnabled'      => true,
+                'isHtml5ParserEnabled' => true,
+                'dpi'                  => 96,
+                'chroot'               => public_path(),
+            ]);
+
+        $filename = 'Jurnal_PKL_' . now()->format('Ymd_His') . '.pdf';
+        return $pdf->stream($filename);
     }
     public function cetakRekapMonitoring()
     {
