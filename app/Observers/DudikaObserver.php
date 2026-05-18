@@ -9,31 +9,9 @@ class DudikaObserver
 {
     public function saved(Dudika $dudika): void
     {
-        // Skip kalau datang dari proses import (importer handle sendiri)
-        if (app()->bound('importing.dudika')) {
-            return;
-        }
-
-        if ($dudika->supervisor_name && $dudika->supervisor_phone) {
-            $phone    = preg_replace('/[^0-9]/', '', $dudika->supervisor_phone);
-            $lastFive = substr($phone, -5);
-            $email    = $lastFive . '@smkpgri1giri.sch.id';
-
-            $user       = User::firstOrNew(['email' => $email]);
-            $user->name = $dudika->supervisor_name;
-
-            if (!$user->exists) {
-                $user->password = bcrypt($lastFive);
-            }
-
-            $user->save();
-
-            if (!$user->hasRole('Dudika')) {
-                $user->assignRole('Dudika');
-            }
-
-            $dudika->updateQuietly(['user_id' => $user->id]);
-        }
+        // Kosongkan! 
+        // Pembuatan akun User sekarang ditangani langsung oleh Form (saveRelationshipsUsing)
+        // dan DudikaImporter. Jauh lebih aman dan tidak bentrok!
     }
 
     public function deleted(Dudika $dudika): void

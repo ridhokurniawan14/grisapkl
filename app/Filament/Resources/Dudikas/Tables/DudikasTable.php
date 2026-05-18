@@ -41,8 +41,8 @@ class DudikasTable
                     ->getStateUsing(fn($record) => $record->is_complete ? 'Lengkap' : 'Belum Lengkap')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-                        'Lengkap' => 'success', // Warna Hijau
-                        'Belum Lengkap' => 'danger', // Warna Merah
+                        'Lengkap' => 'success',
+                        'Belum Lengkap' => 'danger',
                     }),
                 TextColumn::make('supervisor_name')
                     ->label('Pembimbing')
@@ -50,23 +50,17 @@ class DudikasTable
                 TextColumn::make('supervisor_phone')
                     ->label('No. HP Pembimbing')
                     ->searchable()
-                    ->icon('heroicon-m-chat-bubble-oval-left-ellipsis') // Ikon chat
-                    ->color('success') // Warna hijau khas WA
+                    ->icon('heroicon-m-chat-bubble-oval-left-ellipsis')
+                    ->color('success')
                     ->url(function ($state) {
                         if (blank($state)) return null;
-
-                        // Bersihkan semua karakter non-angka (seperti + atau spasi)
                         $phone = preg_replace('/[^0-9]/', '', $state);
-
-                        // Jika nomor diawali dengan 0, ubah jadi 62
                         if (str_starts_with($phone, '0')) {
                             $phone = '62' . substr($phone, 1);
                         }
-
                         return "https://wa.me/{$phone}";
                     })
-                    ->openUrlInNewTab(), // Buka di tab baru agar tidak keluar dari web
-                // Kolom di bawah ini kita hide default biar tabel nggak penuh
+                    ->openUrlInNewTab(),
                 TextColumn::make('head_name')
                     ->label('Pimpinan')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -76,7 +70,6 @@ class DudikasTable
                 TextColumn::make('supervisor_nip')
                     ->label('NIP Pembimbing')
                     ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -87,7 +80,7 @@ class DudikasTable
                     ->label('Cetak PDF')
                     ->icon('heroicon-o-printer')
                     ->color('gray')
-                    ->url(fn() => route('dudika.print')) // Nanti kita buat route ini
+                    ->url(fn() => route('dudika.print'))
                     ->openUrlInNewTab(),
             ])
             ->filters([
@@ -99,7 +92,6 @@ class DudikasTable
                     EditAction::make()->label('Ubah Data'),
                     DeleteAction::make()->label('Hapus'),
 
-                    // Fitur Reset Password (Kunci 5 Digit Terakhir)
                     Action::make('reset_password')
                         ->label('Reset Password')
                         ->icon('heroicon-o-key')
@@ -107,9 +99,9 @@ class DudikasTable
                         ->requiresConfirmation()
                         ->action(function (Dudika $record) {
                             if ($record->user) {
-                                $lastFive = substr(preg_replace('/[^0-9]/', '', $record->supervisor_phone), -5);
-                                $record->user->update(['password' => bcrypt($lastFive)]);
-                                Notification::make()->title('Password berhasil direset ke 5 digit terakhir HP')->success()->send();
+                                // RESET KE 12345
+                                $record->user->update(['password' => bcrypt('12345')]);
+                                Notification::make()->title('Password berhasil direset menjadi 12345')->success()->send();
                             }
                         }),
                     Action::make('cetak_surat')
@@ -122,7 +114,6 @@ class DudikasTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    // ✅ Cukup begini, bersih
                     DeleteBulkAction::make(),
                     BulkAction::make('bulk_reset_password')
                         ->label('Reset Password Terpilih')
@@ -131,25 +122,21 @@ class DudikasTable
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
                                 if ($record->user) {
-                                    $lastFive = substr(preg_replace('/[^0-9]/', '', $record->supervisor_phone), -5);
-                                    $record->user->update(['password' => bcrypt($lastFive)]);
+                                    // RESET MASSAL KE 12345
+                                    $record->user->update(['password' => bcrypt('12345')]);
                                 }
                             });
-                            Notification::make()->title('Password massal berhasil direset')->success()->send();
+                            Notification::make()->title('Password massal berhasil direset menjadi 12345')->success()->send();
                         }),
-                    // CETAK PDF UNTUK DATA YANG DICENTANG SAJA
                     BulkAction::make('print_selected')
                         ->label('Cetak PDF Terpilih')
                         ->icon('heroicon-o-printer')
                         ->color('info')
-                        // Hapus "\Illuminate\Database\Eloquent\Collection" dari dalam kurung
                         ->action(function ($records) {
                             $ids = $records->pluck('id')->join(',');
-                            // Redirect ke halaman cetak
                             return redirect()->route('dudika.print', ['ids' => $ids]);
                         }),
                 ]),
-
             ]);
     }
 }

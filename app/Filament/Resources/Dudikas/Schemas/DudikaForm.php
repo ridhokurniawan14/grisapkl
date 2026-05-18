@@ -23,7 +23,6 @@ class DudikaForm
             ->components([
                 Tabs::make('Tabs Dudika')
                     ->tabs([
-                        // TAB 1: PROFIL & KONTAK (GABUNGAN)
                         Tab::make('Profil & Kontak')
                             ->icon('heroicon-m-building-office-2')
                             ->schema([
@@ -32,6 +31,44 @@ class DudikaForm
                                     ->placeholder('Contoh: PT. Telkom Indonesia')
                                     ->autocomplete('off')
                                     ->required(),
+
+                                // MANTRA SAKTI: Virtual Field Email (Tidak masuk ke tabel Dudika)
+                                TextInput::make('email')
+                                    ->label('Email DUDIKA (Untuk Login)')
+                                    ->email()
+                                    ->placeholder('Contoh: dudika@smkpgri1giri.sch.id')
+                                    ->required()
+                                    ->dehydrated(false) // Jangan simpan ke tabel dudikas!
+                                    ->afterStateHydrated(function ($component, $record) {
+                                        // Munculkan email saat mode Edit
+                                        if ($record && $record->user) {
+                                            $component->state($record->user->email);
+                                        }
+                                    })
+                                    ->saveRelationshipsUsing(function ($record, $state) {
+                                        if (blank($state)) return;
+
+                                        // Jika DUDIKA sudah punya akun, update emailnya
+                                        if ($record->user_id) {
+                                            $user = \App\Models\User::find($record->user_id);
+                                            if ($user) $user->update(['email' => $state]);
+                                        }
+                                        // Jika belum punya akun, buatkan baru
+                                        else {
+                                            $user = \App\Models\User::firstOrNew(['email' => $state]);
+                                            if (!$user->exists) {
+                                                $user->name = $record->supervisor_name ?? $record->name;
+                                                $user->password = bcrypt('12345'); // Default 12345
+                                                $user->save();
+
+                                                // Handle perbedaan huruf besar/kecil di Spatie Role
+                                                $roleName = \Spatie\Permission\Models\Role::where('name', 'dudika')->exists() ? 'dudika' : 'Dudika';
+                                                $user->assignRole($roleName);
+                                            }
+                                            $record->updateQuietly(['user_id' => $user->id]);
+                                        }
+                                    }),
+
                                 Textarea::make('address')
                                     ->label('Alamat Lengkap')
                                     ->placeholder('Masukkan alamat lengkap beserta kota...')
@@ -71,7 +108,6 @@ class DudikaForm
                                 ]),
                             ]),
 
-                        // TAB 2: LOKASI ABSENSI
                         Tab::make('Lokasi Absensi')
                             ->icon('heroicon-m-map-pin')
                             ->schema([
@@ -141,7 +177,6 @@ class DudikaForm
                                     TextInput::make('latitude')
                                         ->label('Latitude (Bisa Diisi Manual)')
                                         ->numeric()
-                                        // ->required() DIHAPUS BIAR BISA KOSONG
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state, $livewire) {
                                             if (is_numeric($state) && is_numeric($get('longitude'))) {
@@ -153,7 +188,6 @@ class DudikaForm
                                     TextInput::make('longitude')
                                         ->label('Longitude (Bisa Diisi Manual)')
                                         ->numeric()
-                                        // ->required() DIHAPUS BIAR BISA KOSONG
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state, $livewire) {
                                             if (is_numeric($get('latitude')) && is_numeric($state)) {
