@@ -1,7 +1,5 @@
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
-importScripts(
-    "https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js",
-);
+importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
 
 // 1. Config Firebase
 const firebaseConfig = {
@@ -17,19 +15,4 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// 3. Tangkap Notifikasi saat Aplikasi Berjalan di Background (Ditutup)
-messaging.onBackgroundMessage(function (payload) {
-    console.log(
-        "[firebase-messaging-sw.js] Menerima pesan background ",
-        payload,
-    );
-
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: "/images/logo.png",
-        badge: "/favicon.ico",
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
-});
+self.addEventListener('fetch', function(event) {});

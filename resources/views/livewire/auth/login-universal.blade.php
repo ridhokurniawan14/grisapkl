@@ -177,44 +177,52 @@
 </div>
 
 <script>
+    // 1. TANGKAP EVENT SECEPAT KILAT DI LUAR ALPINE
+    let globalDeferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        globalDeferredPrompt = e;
+        // Beri tahu Alpine kalau event sudah siap
+        window.dispatchEvent(new CustomEvent('pwa-ready'));
+    });
+
     document.addEventListener('alpine:init', () => {
         Alpine.data('pwaInstaller', () => ({
             showInstallPrompt: false,
             showIosPrompt: false,
-            deferredPrompt: null,
-            init() {
-                // Deteksi iOS Safari
-                const isIos = () => {
-                    const userAgent = window.navigator.userAgent.toLowerCase();
-                    return /iphone|ipad|ipod/.test(userAgent);
-                };
 
-                // Deteksi apakah aplikasi sedang dibuka dalam mode PWA (Standalone)
+            init() {
+                const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent
+                .toLowerCase());
                 const isInStandaloneMode = () => ('standalone' in window.navigator) && (window
                     .navigator.standalone);
 
-                // Jika user pakai iPhone dan belum diinstall, munculkan banner manual
                 if (isIos() && !isInStandaloneMode()) {
                     this.showIosPrompt = true;
                 }
 
-                // Untuk Android Chrome
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    this.deferredPrompt = e;
+                // 2. CEK APAKAH SUDAH TERTANGKAP DI GLOBAL
+                if (globalDeferredPrompt) {
+                    this.showInstallPrompt = true;
+                }
+
+                // 3. LISTEN JIKA EVENT BARU MUNCUL
+                window.addEventListener('pwa-ready', () => {
                     this.showInstallPrompt = true;
                 });
 
                 window.addEventListener('appinstalled', () => {
                     this.showInstallPrompt = false;
                     this.showIosPrompt = false;
+                    globalDeferredPrompt = null;
                 });
             },
+
             installApp() {
-                if (!this.deferredPrompt) return;
-                this.deferredPrompt.prompt();
-                this.deferredPrompt.userChoice.then((choiceResult) => {
-                    this.deferredPrompt = null;
+                if (!globalDeferredPrompt) return;
+                globalDeferredPrompt.prompt();
+                globalDeferredPrompt.userChoice.then((choiceResult) => {
+                    globalDeferredPrompt = null;
                     this.showInstallPrompt = false;
                 });
             }
