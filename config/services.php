@@ -45,4 +45,6 @@ return [
         'key' => env('GROQ_API_KEY'),
     ],
 
+    'vapid_key' => env('FIREBASE_VAPID_KEY'),
+
 ];
