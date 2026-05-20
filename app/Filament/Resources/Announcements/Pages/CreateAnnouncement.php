@@ -26,9 +26,9 @@ class CreateAnnouncement extends CreateRecord
         }
 
         // GEMBOK ANTI-DOUBLE: Cegah pengiriman dobel dalam waktu 10 detik!
-        if (!Cache::add('fcm_sent_announcement_' . $pengumuman->id, true, 10)) {
-            return;
-        }
+        // if (!Cache::add('fcm_sent_announcement_' . $pengumuman->id, true, 10)) {
+        //     return;
+        // }
 
         try {
             $target = $pengumuman->target_audience;

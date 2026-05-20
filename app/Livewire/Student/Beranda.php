@@ -58,35 +58,50 @@ class Beranda extends Component
         }
         $isJurnalRevisiClean = $revisiCount === 0;
 
-        // 4. Rekap Absensi
+        // 4. Rekap Absensi Bulan Ini (dihitung dari start_date PKL, bukan awal bulan)
         $recap = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alpha' => 0];
         if ($placement) {
-            $journalsThisMonth = Journal::where('pkl_placement_id', $placement->id)
-                ->whereMonth('date', now()->month)
-                ->whereYear('date', now()->year)
-                ->get();
+            $today        = Carbon::now('Asia/Jakarta')->endOfDay();
+            $startOfMonth = Carbon::now('Asia/Jakarta')->startOfMonth()->startOfDay();
+            $endOfMonth   = Carbon::now('Asia/Jakarta')->endOfMonth()->endOfDay();
 
-            $recap['Hadir'] = $journalsThisMonth->where('attend_status', 'Hadir')->where('is_valid', true)->count();
-            $recap['Izin']  = $journalsThisMonth->where('attend_status', 'Izin')->count();
-            $recap['Sakit'] = $journalsThisMonth->where('attend_status', 'Sakit')->count();
+            // Batas awal range: mana yang lebih besar antara awal bulan vs start_date PKL
+            $pklStart   = Carbon::parse($placement->start_date)->startOfDay();
+            $rangeStart = $pklStart->gt($startOfMonth) ? $pklStart->copy() : $startOfMonth->copy();
 
-            $startOfMonth = now()->startOfMonth();
-            $today = now();
+            // Batas akhir range: mana yang lebih kecil antara hari ini vs akhir bulan
+            $rangeEnd = $today->lt($endOfMonth) ? $today->copy() : $endOfMonth->copy();
 
-            $pklStart = Carbon::parse($placement->start_date);
-            if ($pklStart->isCurrentMonth() && $pklStart->gt($startOfMonth)) {
-                $startOfMonth = $pklStart;
+            // Kalau PKL belum mulai bulan ini, biarkan semua rekap 0
+            if ($rangeStart->lte($rangeEnd)) {
+                // Ambil jurnal hanya dalam range yang valid (dari start_date PKL s.d. hari ini)
+                $journalsInRange = Journal::where('pkl_placement_id', $placement->id)
+                    ->whereBetween('date', [
+                        $rangeStart->toDateString(),
+                        $rangeEnd->toDateString(),
+                    ])
+                    ->get();
+
+                $recap['Hadir'] = $journalsInRange->where('attend_status', 'Hadir')->where('is_valid', true)->count();
+                $recap['Izin']  = $journalsInRange->where('attend_status', 'Izin')->count();
+                $recap['Sakit'] = $journalsInRange->where('attend_status', 'Sakit')->count();
+
+                // Hitung hari kerja (Senin–Jumat) dalam range menggunakan CarbonPeriod
+                $workingDays = 0;
+                $period = \Carbon\CarbonPeriod::create($rangeStart, $rangeEnd);
+                foreach ($period as $date) {
+                    if ($date->isWeekday()) $workingDays++;
+                }
+
+                // Logged = tanggal unik yang sudah ada jurnalnya (semua status kecuali Alpha)
+                $loggedDays = $journalsInRange
+                    ->whereIn('attend_status', ['Hadir', 'Izin', 'Sakit', 'Libur'])
+                    ->pluck('date')
+                    ->unique()
+                    ->count();
+
+                $recap['Alpha'] = max(0, $workingDays - $loggedDays);
             }
-
-            $workingDays = 0;
-            if ($startOfMonth->lte($today)) {
-                $workingDays = $startOfMonth->diffInDaysFiltered(function (Carbon $date) {
-                    return !$date->isWeekend();
-                }, $today) + 1;
-            }
-
-            $loggedDays = $journalsThisMonth->whereIn('attend_status', ['Hadir', 'Izin', 'Sakit', 'Libur'])->count();
-            $recap['Alpha'] = max(0, $workingDays - $loggedDays);
         }
 
         // 5. Tarik Data Pengumuman (Aktif, Khusus Siswa & Umum)
@@ -96,17 +111,17 @@ class Beranda extends Component
             ->get();
 
         return view('livewire.student.beranda', [
-            'user' => $user,
-            'student' => $student,
-            'placement' => $placement,
-            'greeting' => $greeting,
-            'isBiodataComplete' => $isBiodataComplete,
-            'isParentComplete' => $isParentComplete,
-            'isDudikaComplete' => $isDudikaComplete,
+            'user'               => $user,
+            'student'            => $student,
+            'placement'          => $placement,
+            'greeting'           => $greeting,
+            'isBiodataComplete'  => $isBiodataComplete,
+            'isParentComplete'   => $isParentComplete,
+            'isDudikaComplete'   => $isDudikaComplete,
             'isJurnalRevisiClean' => $isJurnalRevisiClean,
-            'revisiCount' => $revisiCount,
-            'recap' => $recap,
-            'announcements' => $announcements, // Kirim ke View
+            'revisiCount'        => $revisiCount,
+            'recap'              => $recap,
+            'announcements'      => $announcements,
         ]);
     }
 }

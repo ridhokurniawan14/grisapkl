@@ -1,12 +1,111 @@
 <div wire:poll.30s class="w-full flex flex-col" x-data="{
+    showCameraModal: false,
+    cameraStream: null,
+    showPhotoMenu: false,
     showReportForm: false,
     showDetailModal: false,
     showMonthFilter: false,
     detailData: {},
     fullScreenImg: null,
+
     openDetail(item) {
         this.detailData = item;
         this.showDetailModal = true;
+    },
+
+    openCamera() {
+        this.showPhotoMenu = false;
+        this.showCameraModal = true;
+        this.$nextTick(async () => {
+            try {
+                this.cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                this.$refs.laporVideo.srcObject = this.cameraStream;
+            } catch (err) {
+                alert('Gagal membuka kamera. Pastikan izin kamera sudah diberikan di browser.');
+                this.showCameraModal = false;
+            }
+        });
+    },
+
+    closeCameraModal() {
+        this.showCameraModal = false;
+        if (this.cameraStream) {
+            this.cameraStream.getTracks().forEach(t => t.stop());
+            this.cameraStream = null;
+        }
+    },
+
+    capturePhoto() {
+        const video = this.$refs.laporVideo;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        /**
+         * Android getUserMedia sudah auto-rotate tampilan di <video> sesuai
+         * orientasi layar, TAPI videoWidth/videoHeight TIDAK berubah — selalu
+         * resolusi sensor asli (biasanya landscape: lebar > tinggi).
+         *
+         * Jika layar portrait dan frame video landscape → browser belum rotate
+         * frame secara fisik, kita perlu rotate canvas agar hasil foto sesuai
+         * apa yang terlihat di layar. Selain itu, biarkan apa adanya.
+         */
+        const screenIsPortrait = window.innerHeight > window.innerWidth;
+        const videoIsLandscape = vw > vh;
+
+        if (screenIsPortrait && videoIsLandscape) {
+            // Perlu rotate: deteksi arah landscape (kiri atau kanan)
+            const angle = (screen.orientation && screen.orientation.angle !== undefined) ?
+                screen.orientation.angle :
+                (window.orientation || 0);
+
+            canvas.width = vh;
+            canvas.height = vw;
+
+            if (angle >= 0 && angle < 180) {
+                // Landscape kanan → rotate +90°
+                ctx.translate(vh, 0);
+                ctx.rotate(Math.PI / 2);
+            } else {
+                // Landscape kiri → rotate -90°
+                ctx.translate(0, vw);
+                ctx.rotate(-Math.PI / 2);
+            }
+        } else {
+            // Frame sudah sesuai orientasi layar, tidak perlu rotate
+            canvas.width = vw;
+            canvas.height = vh;
+        }
+
+        ctx.drawImage(video, 0, 0, vw, vh);
+        this.closeCameraModal();
+        canvas.toBlob((blob) => {
+            if (!blob) return;
+            const file = new File([blob], 'monitoring-foto.jpg', { type: 'image/jpeg' });
+            this.uploadFile(file);
+        }, 'image/jpeg', 0.85);
+    },
+
+    uploadFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('File harus berupa gambar.');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Ukuran foto maksimal 5MB.');
+            return;
+        }
+        this.$wire.upload(
+            'monitoringPhoto',
+            file,
+            () => {},
+            () => { alert('Gagal mengupload foto. Periksa koneksi dan coba lagi.'); },
+            () => {}
+        );
     }
 }"
     x-on:open-report-form.window="showReportForm = true" x-on:close-report-form.window="showReportForm = false">
@@ -243,10 +342,10 @@
                         @enderror
                     </div>
 
-                    <div>
+                    <div class="relative">
                         <label
                             class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
-                            Foto Dokumentasi <span class="normal-case font-normal">(opsional)</span>
+                            Foto Dokumentasi
                         </label>
 
                         @if ($monitoringPhoto)
@@ -258,26 +357,76 @@
                                 </button>
                             </div>
                         @else
-                            <label
-                                class="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl py-5 cursor-pointer hover:border-[#3525cd] hover:bg-indigo-50/40 transition-all group">
+                            {{-- TOMBOL UTAMA --}}
+                            <button type="button" @click="showPhotoMenu = !showPhotoMenu"
+                                class="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl py-5 cursor-pointer hover:border-[#3525cd] hover:bg-indigo-50/40 transition-all group">
                                 <span
                                     class="material-symbols-outlined text-[30px] text-slate-300 group-hover:text-[#3525cd] transition-colors">add_a_photo</span>
                                 <span
                                     class="text-[12px] font-bold text-slate-500 group-hover:text-[#3525cd] transition-colors">Tambah
                                     Foto</span>
-                                <span class="text-[10px] text-slate-400">Pilih dari kamera atau galeri</span>
-                                <input type="file" wire:model="monitoringPhoto" accept="image/*" class="hidden">
-                            </label>
+                                <span class="text-[10px] text-slate-400">Klik untuk memilih metode</span>
+                            </button>
+
+                            {{-- DROPDOWN MENU (Muncul ke Atas) --}}
+                            <div x-show="showPhotoMenu" @click.away="showPhotoMenu = false" x-cloak
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+                                class="absolute bottom-full left-0 right-0 mb-3 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden z-20 p-2 flex flex-col gap-1">
+
+                                {{-- INPUT GALERI: tetap pakai wire:model, galeri normal tidak ada masalah --}}
+                                <input type="file" id="galeriInput" wire:model="monitoringPhoto" accept="image/*"
+                                    class="hidden" @change="showPhotoMenu = false">
+
+                                {{-- OPSI 1: BUKA KAMERA — pakai dynamic input via openCamera() --}}
+                                <button type="button" @click="openCamera()"
+                                    class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all w-full text-left">
+                                    <div
+                                        class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-[#3525cd]">
+                                        <span class="material-symbols-outlined text-[20px]">photo_camera</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-[13px] font-extrabold text-slate-800 leading-none mb-1">Buka
+                                            Kamera</p>
+                                        <p class="text-[10px] font-medium text-slate-500 leading-none">Ambil foto
+                                            langsung saat ini</p>
+                                    </div>
+                                    <span
+                                        class="material-symbols-outlined text-slate-300 text-[18px]">chevron_right</span>
+                                </button>
+
+                                {{-- OPSI 2: PILIH GALERI --}}
+                                <label for="galeriInput"
+                                    class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer active:bg-slate-100 transition-all m-0">
+                                    <div
+                                        class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                        <span class="material-symbols-outlined text-[20px]">image</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-[13px] font-extrabold text-slate-800 leading-none mb-1">Pilih
+                                            dari Galeri</p>
+                                        <p class="text-[10px] font-medium text-slate-500 leading-none">Cari foto di
+                                            penyimpanan HP</p>
+                                    </div>
+                                    <span
+                                        class="material-symbols-outlined text-slate-300 text-[18px]">chevron_right</span>
+                                </label>
+                            </div>
                         @endif
 
+                        {{-- INDIKATOR LOADING UPLOAD --}}
                         <div wire:loading wire:target="monitoringPhoto"
-                            class="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-400 font-medium">
-                            <svg class="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                            class="flex items-center gap-1.5 mt-2 text-[11px] text-slate-400 font-medium">
+                            <svg class="animate-spin w-4 h-4 text-[#3525cd]" viewBox="0 0 24 24" fill="none">
                                 <circle class="opacity-25" cx="12" cy="12" r="10"
                                     stroke="currentColor" stroke-width="4" />
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                             </svg>
-                            Mengupload foto...
+                            <span class="text-[#3525cd] font-bold">Sedang memproses foto...</span>
                         </div>
                         @error('monitoringPhoto')
                             <p class="text-red-500 text-[11px] font-semibold mt-1">{{ $message }}</p>
@@ -407,5 +556,25 @@
 
         <img :src="fullScreenImg" @click.away="fullScreenImg = null"
             class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl">
+    </div>
+    {{-- ══ MODAL KAMERA LAPOR ════════════════════════════════════════════════ --}}
+    <div x-show="showCameraModal" x-cloak class="fixed inset-0 z-[70] flex flex-col items-center justify-end bg-black"
+        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100">
+
+        <video x-ref="laporVideo" autoplay playsinline muted class="w-full flex-1 object-cover"
+            style="max-height: calc(100dvh - 120px);"></video>
+
+        <div class="w-full flex items-center justify-around bg-black py-6 px-8 flex-shrink-0">
+            <button type="button" @click="closeCameraModal()"
+                class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined text-[28px]">close</span>
+            </button>
+            <button type="button" @click="capturePhoto()"
+                class="w-20 h-20 rounded-full bg-white border-4 border-white/50 shadow-xl active:scale-90 transition-all flex items-center justify-center">
+                <span class="material-symbols-outlined text-black text-[32px]">camera</span>
+            </button>
+            <div class="w-14 h-14"></div>{{-- spacer --}}
+        </div>
     </div>
 </div>

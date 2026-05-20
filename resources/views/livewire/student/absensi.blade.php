@@ -377,16 +377,16 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
             x-transition:leave-end="opacity-0 scale-90 translate-y-4" @click.away="showConfirmModal = false"
-            class="bg-surface-container-lowest w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-white/20 relative">
+            class="bg-white w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-slate-200 relative">
             <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner"
                 :class="confirmIconBg"><span class="material-symbols-outlined text-[36px]"
                     style="font-variation-settings: 'FILL' 1;" :class="confirmIconColor" x-text="confirmIcon"></span>
             </div>
-            <h3 class="text-[20px] font-bold text-on-surface mb-2" x-text="confirmTitle"></h3>
-            <p class="text-[13px] text-on-surface-variant mb-6 leading-relaxed" x-text="confirmMessage"></p>
+            <h3 class="text-[20px] font-bold text-slate-800 mb-2" x-text="confirmTitle"></h3>
+            <p class="text-[13px] text-slate-500 mb-6 leading-relaxed" x-text="confirmMessage"></p>
             <div class="flex w-full gap-3">
                 <button @click="showConfirmModal = false"
-                    class="flex-1 h-[48px] bg-surface-container-highest hover:bg-surface-variant text-on-surface text-[14px] font-semibold rounded-[1.25rem] transition-all active:scale-95">Batal</button>
+                    class="flex-1 h-[48px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-[14px] font-semibold rounded-[1.25rem] transition-all active:scale-95">Batal</button>
                 <button @click="executeAttendance()"
                     class="flex-1 h-[48px] text-white text-[14px] font-semibold rounded-[1.25rem] transition-all active:scale-95 shadow-md"
                     :class="confirmBtnColor">Lanjutkan</button>
@@ -402,12 +402,12 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
             x-transition:leave-end="opacity-0 scale-90 translate-y-4" @click.away="showErrorModal = false"
-            class="bg-surface-container-lowest w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-white/20 relative">
-            <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-4 shadow-inner"><span
-                    class="material-symbols-outlined text-error text-[36px]"
+            class="bg-white w-full max-w-[320px] rounded-[2rem] p-6 flex flex-col items-center text-center shadow-2xl border border-slate-200 relative">
+            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4 shadow-inner"><span
+                    class="material-symbols-outlined text-red-600 text-[36px]"
                     style="font-variation-settings: 'FILL' 1;">location_off</span></div>
-            <h3 class="text-[20px] font-bold text-on-surface mb-2">Perhatian!</h3>
-            <p class="text-[13px] text-on-surface-variant mb-6 leading-relaxed" x-text="errorMessage"></p>
+            <h3 class="text-[20px] font-bold text-slate-800 mb-2">Perhatian!</h3>
+            <p class="text-[13px] text-slate-500 mb-6 leading-relaxed" x-text="errorMessage"></p>
             <button @click="showErrorModal = false"
                 class="w-full h-[48px] bg-error hover:bg-red-700 text-white text-[15px] font-semibold rounded-[1.25rem] transition-all active:scale-95 shadow-lg shadow-error/30">Mengerti</button>
         </div>

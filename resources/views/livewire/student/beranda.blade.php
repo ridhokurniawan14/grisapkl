@@ -1,4 +1,4 @@
-<div class="w-full pb-6 pt-2 min-h-[calc(100vh-4rem)]">
+<div class="w-full pt-2">
 
     <section class="flex items-center gap-4 mt-2 px-1">
         <div
@@ -204,7 +204,7 @@
         </div>
     </section>
 
-    <div class="absolute bottom-[85px] right-4 z-[60]">
+    <div class="fixed bottom-[85px] right-4 z-[60]">
         <a href="{{ route('siswa.bot') }}" wire:navigate
             class="flex h-14 w-14 items-center justify-center rounded-full bg-[#3525cd] text-white shadow-[0_4px_15px_rgba(53,37,205,0.4)] active:scale-90 hover:bg-[#2c1eb3] transition-all border-[3px] border-white">
             <span class="material-symbols-outlined text-[26px]"

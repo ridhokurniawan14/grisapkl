@@ -252,17 +252,27 @@ class Absensi extends Component
 
             $allJournals = Journal::where('pkl_placement_id', $this->placement->id)->get();
 
-            // ... (Kode rekap absensi kamu tetap sama di sini) ...
-            $recap['Hadir'] = $allJournals->where('attend_status', 'Hadir')->count();
-            $recap['Izin']  = $allJournals->where('attend_status', 'Izin')->count();
-            $recap['Sakit'] = $allJournals->where('attend_status', 'Sakit')->count();
-            $recap['Libur'] = $allJournals->where('attend_status', 'Libur')->count();
-
+            // Rekap HANYA menghitung jurnal yang masuk dalam range tanggal PKL
             if ($this->placement->start_date && $this->placement->end_date) {
                 $startDate = Carbon::parse($this->placement->start_date)->startOfDay();
                 $endDate   = Carbon::parse($this->placement->end_date)->endOfDay();
                 $today     = Carbon::now()->endOfDay();
                 $limitDate = $today->lessThan($endDate) ? $today : $endDate;
+
+                // Filter jurnal hanya dalam range PKL (start_date s.d. hari ini atau end_date)
+                // Kalau hari ini belum masuk range (sebelum start_date), rekap semua 0
+                $journalsInRange = $startDate->lessThanOrEqualTo($limitDate)
+                    ? $allJournals->filter(function ($j) use ($startDate, $limitDate) {
+                        $jDate = Carbon::parse($j->date);
+                        return $jDate->greaterThanOrEqualTo($startDate) && $jDate->lessThanOrEqualTo($limitDate);
+                    })
+                    : collect();
+
+                $recap['Hadir'] = $journalsInRange->where('attend_status', 'Hadir')->count();
+                $recap['Izin']  = $journalsInRange->where('attend_status', 'Izin')->count();
+                $recap['Sakit'] = $journalsInRange->where('attend_status', 'Sakit')->count();
+                $recap['Libur'] = $journalsInRange->where('attend_status', 'Libur')->count();
+
                 $workingDays = 0;
                 if ($startDate->lessThanOrEqualTo($limitDate)) {
                     $period = \Carbon\CarbonPeriod::create($startDate, $limitDate);
@@ -270,10 +280,16 @@ class Absensi extends Component
                         if ($date->isWeekday()) $workingDays++;
                     }
                 }
-                $loggedDays = $allJournals->whereBetween('date', [$startDate->format('Y-m-d'), $limitDate->format('Y-m-d')])
+                $loggedDays = $journalsInRange
                     ->filter(fn($j) => Carbon::parse($j->date)->isWeekday())
                     ->pluck('date')->unique()->count();
                 $recap['Alpha'] = max(0, $workingDays - $loggedDays);
+            } else {
+                // Kalau placement tidak punya range tanggal, hitung semua jurnal seperti biasa
+                $recap['Hadir'] = $allJournals->where('attend_status', 'Hadir')->count();
+                $recap['Izin']  = $allJournals->where('attend_status', 'Izin')->count();
+                $recap['Sakit'] = $allJournals->where('attend_status', 'Sakit')->count();
+                $recap['Libur'] = $allJournals->where('attend_status', 'Libur')->count();
             }
 
             $recentJournals = Journal::where('pkl_placement_id', $this->placement->id)
