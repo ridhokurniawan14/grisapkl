@@ -108,7 +108,7 @@
             <td width="15%">Nomor</td>
             <td width="2%">:</td>
             <td width="48%">{{ $school->surat_pengantar_nomor ?? '.../M.3/SMK/.../2026' }}</td>
-            <td width="35%" style="text-align: right;">Banyuwangi, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}
+            <td width="35%" style="text-align: right;">{{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}
             </td>
         </tr>
         <tr>
@@ -173,6 +173,7 @@
 
     <div class="ttd-container mt-4">
         <div class="ttd-text-top">
+            Hormat Kami, </br>
             Kepala {{ $school->name ?? 'Sekolah' }}
         </div>
 

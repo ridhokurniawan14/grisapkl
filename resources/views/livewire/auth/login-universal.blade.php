@@ -100,12 +100,12 @@
                         </div>
                     </div>
 
-                    <div class="flex justify-end mt-[-2px] w-full">
+                    {{-- <div class="flex justify-end mt-[-2px] w-full">
                         <a href="{{ route('auth.forgot-password') }}"
                             class="text-[13px] text-primary hover:text-primary-fixed-variant hover:underline font-semibold transition-colors">
                             Lupa Kata Sandi?
                         </a>
-                    </div>
+                    </div> --}}
 
                     <button type="submit"
                         class="w-full h-[52px] mt-1 bg-primary hover:bg-primary-fixed-variant text-on-primary text-[16px] font-semibold rounded-[1.25rem] flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg hover:shadow-primary/30">
@@ -193,7 +193,7 @@
 
             init() {
                 const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent
-                .toLowerCase());
+                    .toLowerCase());
                 const isInStandaloneMode = () => ('standalone' in window.navigator) && (window
                     .navigator.standalone);
 

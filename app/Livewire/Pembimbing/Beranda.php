@@ -85,7 +85,7 @@ class Beranda extends Component
 
                 // 2. Ambil 5 Digit Terakhir untuk Password & Username
                 $onlyNumbers = preg_replace('/[^0-9]/', '', $rawPhone);
-                $last5 = strlen($onlyNumbers) >= 5 ? substr($onlyNumbers, -5) : '12345'; // Fallback jika no HP ga logis
+                $emailDudika = $d->user?->email ?? 'Email_Belum_Terdaftar';
 
                 // 3. Logika Sapaan Gender
                 // (Sesuaikan "supervisor_gender" dengan nama field di DB-mu jika ada)
@@ -98,7 +98,7 @@ class Beranda extends Component
                 }
 
                 // 4. Susun Pesan WA DUDIKA
-                $waText = "Halo {$sapaan} Pimpinan dari {$d->name},\n\nMohon kesediaannya untuk melengkapi data profil instansi di aplikasi GrisaPKL (grisapkl.smkpgri1giri.sch.id), khususnya data Nama Pimpinan Instansi.\n\nUntuk mempermudah proses login, silakan gunakan detail berikut:\nUsername: {$last5}@smkpgri1giri.sch.id\nPassword: {$last5}\n\nTerima kasih atas kerjasamanya!";
+                $waText = "Halo {$sapaan} Pimpinan dari {$d->name},\n\nMohon kesediaannya untuk melengkapi data profil instansi di aplikasi GrisaPKL (grisapkl.smkpgri1giri.sch.id), khususnya data Nama Pimpinan Instansi.\n\nUntuk mempermudah proses login, silakan gunakan detail berikut:\nUsername: {$emailDudika}\nPassword Default: 12345\n\nTerima kasih atas kerjasamanya!";
 
                 return [
                     'name' => $d->name,
