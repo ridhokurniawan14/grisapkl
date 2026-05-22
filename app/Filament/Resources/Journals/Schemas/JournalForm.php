@@ -73,6 +73,7 @@ class JournalForm
                             $set('activity', 'Libur');
                         }
                     })
+                    ->required()
                     ->helperText('Tidak wajib diisi jika status Libur.'),
 
                 // =======================================================

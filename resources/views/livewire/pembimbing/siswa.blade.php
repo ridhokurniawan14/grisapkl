@@ -179,11 +179,12 @@
                                                 Diproses...
                                             </button>
                                         @elseif($siswa['file_laporan_path'])
-                                            <a href="{{ $siswa['file_laporan_url'] }}" target="_blank"
+                                            <button wire:click="downloadLaporan({{ $siswa['placement_id'] }})"
+                                                wire:loading.attr="disabled"
                                                 class="w-full h-[46px] bg-blue-50 hover:bg-blue-100 text-blue-600 text-[12px] font-bold rounded-[1rem] border border-blue-200 active:scale-95 transition-all flex items-center justify-center gap-1.5">
-                                                <span class="material-symbols-outlined text-[18px]">visibility</span>
-                                                Lihat PDF
-                                            </a>
+                                                <span class="material-symbols-outlined text-[18px]">download</span>
+                                                Download PDF
+                                            </button>
                                         @else
                                             <button wire:click="generateLaporan({{ $siswa['placement_id'] }})"
                                                 wire:loading.attr="disabled"

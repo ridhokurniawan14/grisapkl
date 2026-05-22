@@ -64,6 +64,18 @@ class Siswa extends Component
         }
     }
 
+    public function downloadLaporan($placementId)
+    {
+        $placement = PklPlacement::find($placementId);
+        if ($placement && $placement->file_laporan_path) {
+            if (Storage::disk('public')->exists($placement->file_laporan_path)) {
+                return Storage::disk('public')->download($placement->file_laporan_path);
+            }
+        }
+
+        session()->flash('success', 'File PDF tidak ditemukan atau sedang diproses!');
+    }
+
     // =========================================================
     // HELPER: CEK KELENGKAPAN (Mengembalikan Array yg Kurang)
     // =========================================================
