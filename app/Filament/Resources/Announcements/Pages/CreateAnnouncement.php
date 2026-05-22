@@ -18,35 +18,39 @@ class CreateAnnouncement extends CreateRecord
     protected function afterCreate(): void
     {
         set_time_limit(120);
-
         $pengumuman = $this->record;
 
+        // TAMBAH INI
+        Log::info('=== FCM DEBUG ===');
+        Log::info('Pengumuman ID: ' . $pengumuman->id);
+        Log::info('is_active: ' . ($pengumuman->is_active ? 'true' : 'false'));
+        Log::info('target_audience: ' . $pengumuman->target_audience);
+
         if (!$pengumuman->is_active) {
+            Log::info('SKIP: pengumuman tidak aktif');
             return;
         }
-
-        // GEMBOK ANTI-DOUBLE: Cegah pengiriman dobel dalam waktu 10 detik!
-        // if (!Cache::add('fcm_sent_announcement_' . $pengumuman->id, true, 10)) {
-        //     return;
-        // }
 
         try {
             $target = $pengumuman->target_audience;
             $query = User::whereNotNull('fcm_token');
 
-            // Filter Role berdasarkan Pilihan Humas
             if ($target === 'Siswa') {
                 $query->role('siswa');
             } elseif ($target === 'Guru') {
-                $query->role(['guru', 'pembimbing']);
+                $query->role(['guru']);
             } elseif ($target === 'Dudika') {
                 $query->role('dudika');
             }
 
-            // FILTER ANTI-DOUBLE TOKEN (Mencegah token sama terkirim 2x)
             $tokens = array_filter(array_unique($query->pluck('fcm_token')->toArray()));
 
+            // TAMBAH INI
+            Log::info('Jumlah token ditemukan: ' . count($tokens));
+            Log::info('Tokens: ' . json_encode(array_values($tokens)));
+
             if (empty($tokens)) {
+                Log::info('SKIP: tidak ada token');
                 return;
             }
 
@@ -85,6 +89,26 @@ class CreateAnnouncement extends CreateRecord
                     ->withWebPushConfig($webPush);
 
                 $messaging->sendMulticast($message, $chunk);
+            }
+
+            foreach ($tokenChunks as $chunk) {
+                $message = CloudMessage::new()
+                    ->withNotification($notification)
+                    ->withWebPushConfig($webPush);
+
+                // TAMBAH LOG SEBELUM DAN SESUDAH
+                Log::info('Mengirim ke ' . count($chunk) . ' token...');
+
+                $report = $messaging->sendMulticast($message, $chunk);
+
+                Log::info('Berhasil: ' . $report->successes()->count());
+                Log::info('Gagal: ' . $report->failures()->count());
+
+                // Log detail kegagalan
+                foreach ($report->failures()->getItems() as $failure) {
+                    Log::error('Token gagal: ' . $failure->target()->value());
+                    Log::error('Alasan: ' . $failure->error()->getMessage());
+                }
             }
         } catch (\Exception $e) {
             Log::error('Gagal kirim Notif FCM: ' . $e->getMessage());

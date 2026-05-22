@@ -333,13 +333,23 @@
 
             try {
                 const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                await navigator.serviceWorker.ready; // Tunggu SW ready
 
-                // FIX ANDROID: Tunggu SW benar-benar active sebelum getToken()
-                // Android Chrome strict soal SW state, iOS tidak perlu ini
-                await navigator.serviceWorker.ready;
+                // TAMBAHAN: Pastikan SW sudah jadi controller
+                // Kalau belum, tunggu maksimal 5 detik
+                if (!navigator.serviceWorker.controller) {
+                    console.log('[FCM] Menunggu SW jadi controller...');
+                    await new Promise((resolve) => {
+                        const timeout = setTimeout(resolve, 5000); // max tunggu 5 detik
+                        navigator.serviceWorker.addEventListener('controllerchange', () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        });
+                    });
+                }
 
                 const currentToken = await messaging.getToken({
-                    vapidKey: '{{ env('FIREBASE_VAPID_KEY') }}',
+                    vapidKey: '{{ config('services.firebase.vapid_key') }}',
                     serviceWorkerRegistration: registration
                 });
 
@@ -409,10 +419,34 @@
         // ============================================================
         // FIX #4: Auto-init saat page load kalau sudah pernah granted
         // ============================================================
+        // FIX #4 REVISED: Tunggu SW controller ready dulu sebelum getToken (Mobile/PWA fix)
         document.addEventListener('DOMContentLoaded', function() {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                console.log('[FCM] Permission sudah granted, auto-refresh token...');
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+            if (Notification.permission !== 'granted') return;
+
+            console.log('[FCM] Permission granted, menunggu SW siap...');
+
+            // Tunggu SW benar-benar controlling page ini
+            if (navigator.serviceWorker.controller) {
+                // SW sudah active, langsung getToken
+                console.log('[FCM] SW sudah aktif, langsung getToken...');
                 registerAndGetToken();
+            } else {
+                // SW belum jadi controller (fresh install / reload pertama)
+                // Tunggu event controllerchange
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    console.log('[FCM] SW baru aktif via controllerchange, getToken...');
+                    registerAndGetToken();
+                });
+
+                // Fallback: kalau 3 detik SW belum jadi controller, coba tetap getToken
+                // Ini handle kasus SW sudah register tapi tidak trigger controllerchange
+                setTimeout(function() {
+                    if (Notification.permission === 'granted') {
+                        console.log('[FCM] Fallback timeout: mencoba getToken...');
+                        registerAndGetToken();
+                    }
+                }, 3000);
             }
         });
 

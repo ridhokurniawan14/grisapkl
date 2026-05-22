@@ -16,7 +16,7 @@ return [
      * Firebase project configurations
      * ------------------------------------------------------------------------
      */
-    'vapid_key' => env('FIREBASE_VAPID_KEY'),
+
     'projects' => [
         'app' => [
 
