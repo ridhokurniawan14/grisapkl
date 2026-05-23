@@ -150,7 +150,8 @@ class Lapor extends Component
             $placementIds = $placements->pluck('id');
             $totalDudika  = $placements->pluck('dudika_id')->filter()->unique()->count();
 
-            $dudikasForTeacher = PklPlacement::where('teacher_id', $teacher->id)
+            // Ambil semua dudika milik teacher ini
+            $allDudikas = PklPlacement::where('teacher_id', $teacher->id)
                 ->where('status', 'Aktif')
                 ->with('dudika:id,name')
                 ->get()
@@ -158,6 +159,21 @@ class Lapor extends Component
                 ->filter()
                 ->unique('id')
                 ->values();
+
+            // Hanya tampilkan dudika yang BELUM dikunjungi di jadwal aktif
+            if ($activeSchedule) {
+                $visitedDudikaIds = Monitoring::where('monitoring_schedule_id', $activeSchedule->id)
+                    ->whereIn('pkl_placement_id', $placementIds)
+                    ->join('pkl_placements', 'monitorings.pkl_placement_id', '=', 'pkl_placements.id')
+                    ->distinct()
+                    ->pluck('pkl_placements.dudika_id')
+                    ->filter()
+                    ->values();
+
+                $dudikasForTeacher = $allDudikas->reject(fn($d) => $visitedDudikaIds->contains($d->id))->values();
+            } else {
+                $dudikasForTeacher = $allDudikas;
+            }
 
             if ($activeSchedule) {
                 $activeScheduleId = $activeSchedule->id;

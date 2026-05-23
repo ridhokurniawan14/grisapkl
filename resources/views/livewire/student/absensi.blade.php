@@ -256,26 +256,26 @@
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100 sm:translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-full sm:scale-90 sm:translate-y-4"
             @click.away="if(fullScreenImg === null) showDetailModal = false"
-            class="bg-surface-bright w-full max-w-[400px] sm:rounded-[2rem] rounded-t-[2rem] p-6 pb-8 flex flex-col shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            class="bg-white w-full max-w-[400px] sm:rounded-[2rem] rounded-t-[2rem] p-6 pb-8 flex flex-col shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div class="w-12 h-1.5 bg-outline-variant/50 rounded-full mx-auto mb-4 sm:hidden"></div>
             <template x-if="selectedJournal">
                 <div class="flex flex-col">
                     <div class="flex justify-between items-start mb-4">
                         <div>
-                            <h3 class="text-xl font-bold text-on-surface"
+                            <h3 class="text-xl font-bold text-slate-800"
                                 x-text="'Laporan ' + selectedJournal.attend_status"></h3>
-                            <p class="text-[13px] text-outline mt-0.5"
+                            <p class="text-[13px] text-slate-500 mt-0.5"
                                 x-text="selectedJournal.formatted_date + ' • ' + selectedJournal.formatted_time"></p>
                         </div>
                         <button @click="showDetailModal = false"
-                            class="p-2 bg-surface-variant rounded-full text-on-surface-variant active:scale-95"><span
+                            class="p-2 bg-slate-100 rounded-full text-slate-600 active:scale-95"><span
                                 class="material-symbols-outlined text-[20px]">close</span></button>
                     </div>
                     <template x-if="selectedJournal.attendance_photo_url">
                         <div class="mb-4">
-                            <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Absensi</p>
+                            <p class="text-xs font-semibold text-slate-500 mb-1.5">Foto Absensi</p>
                             <div @click.stop="fullScreenImg = selectedJournal.attendance_photo_url"
-                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm cursor-pointer active:scale-95 transition-transform relative group">
+                                class="w-full h-40 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm cursor-pointer active:scale-95 transition-transform relative group">
                                 <img :src="selectedJournal.attendance_photo_url" class="w-full h-full object-cover">
                                 <div
                                     class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -287,21 +287,20 @@
                     </template>
 
                     <template x-if="selectedJournal.latitude && selectedJournal.longitude">
-                        <div
-                            class="mb-4 bg-surface-container-low p-3 rounded-xl border border-surface-container-high flex items-center gap-3">
+                        <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center gap-3">
                             <span class="material-symbols-outlined text-primary">location_on</span>
                             <div class="flex-1">
-                                <p class="text-xs font-semibold text-on-surface">Koordinat Lokasi</p>
-                                <p class="text-[11px] text-on-surface-variant"
+                                <p class="text-xs font-semibold text-slate-700">Koordinat Lokasi</p>
+                                <p class="text-[11px] text-slate-500"
                                     x-text="selectedJournal.latitude + ', ' + selectedJournal.longitude"></p>
                             </div>
                         </div>
                     </template>
                     <template x-if="selectedJournal.activity_photo_url">
                         <div class="mb-4">
-                            <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Foto Kegiatan / Bukti</p>
+                            <p class="text-xs font-semibold text-slate-500 mb-1.5">Foto Kegiatan / Bukti</p>
                             <div @click.stop="fullScreenImg = selectedJournal.activity_photo_url"
-                                class="w-full h-40 rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-sm cursor-pointer active:scale-95 transition-transform relative group">
+                                class="w-full h-40 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm cursor-pointer active:scale-95 transition-transform relative group">
                                 <img :src="selectedJournal.activity_photo_url" class="w-full h-full object-cover">
                                 <div
                                     class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -312,10 +311,9 @@
                         </div>
                     </template>
                     <div class="mb-2">
-                        <p class="text-xs font-semibold text-on-surface-variant mb-1.5">Keterangan Jurnal</p>
-                        <div
-                            class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30 min-h-[60px]">
-                            <p class="text-[13px] text-on-surface leading-relaxed"
+                        <p class="text-xs font-semibold text-slate-500 mb-1.5">Keterangan Jurnal</p>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 min-h-[60px]">
+                            <p class="text-[13px] text-slate-700 leading-relaxed"
                                 x-text="selectedJournal.activity || 'Belum ada keterangan / jurnal belum diisi.'"></p>
                         </div>
                     </div>

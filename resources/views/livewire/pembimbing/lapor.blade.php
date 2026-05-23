@@ -1,6 +1,7 @@
 <div wire:poll.30s class="w-full flex flex-col" x-data="{
     showCameraModal: false,
     cameraStream: null,
+    facingMode: 'environment',
     showPhotoMenu: false,
     showReportForm: false,
     showDetailModal: false,
@@ -13,20 +14,33 @@
         this.showDetailModal = true;
     },
 
-    openCamera() {
+    async openCamera() {
         this.showPhotoMenu = false;
+        this.facingMode = 'environment';
         this.showCameraModal = true;
-        this.$nextTick(async () => {
-            try {
-                this.cameraStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
-                });
-                this.$refs.laporVideo.srcObject = this.cameraStream;
-            } catch (err) {
-                alert('Gagal membuka kamera. Pastikan izin kamera sudah diberikan di browser.');
-                this.showCameraModal = false;
-            }
-        });
+        await this.$nextTick();
+        await this.startStream();
+    },
+
+    async startStream() {
+        if (this.cameraStream) {
+            this.cameraStream.getTracks().forEach(t => t.stop());
+            this.cameraStream = null;
+        }
+        try {
+            this.cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: this.facingMode } }
+            });
+            this.$refs.laporVideo.srcObject = this.cameraStream;
+        } catch (err) {
+            alert('Gagal membuka kamera. Pastikan izin kamera sudah diberikan di browser.');
+            this.showCameraModal = false;
+        }
+    },
+
+    async flipCamera() {
+        this.facingMode = (this.facingMode === 'environment') ? 'user' : 'environment';
+        await this.startStream();
     },
 
     closeCameraModal() {
@@ -41,47 +55,65 @@
         const video = this.$refs.laporVideo;
         const vw = video.videoWidth;
         const vh = video.videoHeight;
+        const isFront = this.facingMode === 'user';
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        /**
-         * Android getUserMedia sudah auto-rotate tampilan di <video> sesuai
-         * orientasi layar, TAPI videoWidth/videoHeight TIDAK berubah — selalu
-         * resolusi sensor asli (biasanya landscape: lebar > tinggi).
-         *
-         * Jika layar portrait dan frame video landscape → browser belum rotate
-         * frame secara fisik, kita perlu rotate canvas agar hasil foto sesuai
-         * apa yang terlihat di layar. Selain itu, biarkan apa adanya.
-         */
-        const screenIsPortrait = window.innerHeight > window.innerWidth;
-        const videoIsLandscape = vw > vh;
-
-        if (screenIsPortrait && videoIsLandscape) {
-            // Perlu rotate: deteksi arah landscape (kiri atau kanan)
-            const angle = (screen.orientation && screen.orientation.angle !== undefined) ?
-                screen.orientation.angle :
-                (window.orientation || 0);
-
+        if (vh > vw) {
+            // Frame masuk portrait → rotate ke landscape
             canvas.width = vh;
             canvas.height = vw;
+            ctx.translate(vh / 2, vw / 2);
 
-            if (angle >= 0 && angle < 180) {
-                // Landscape kanan → rotate +90°
-                ctx.translate(vh, 0);
-                ctx.rotate(Math.PI / 2);
-            } else {
-                // Landscape kiri → rotate -90°
-                ctx.translate(0, vw);
+            if (isFront) {
+                // Kamera depan: rotasi BERLAWANAN arah karena stream sudah di-mirror
+                // +90° landscape kiri (kanan user = kiri frame karena mirror)
                 ctx.rotate(-Math.PI / 2);
+                // Un-mirror horizontal supaya hasil foto tidak terbalik
+                ctx.scale(-1, 1);
+            } else {
+                // Kamera belakang: rotate +90° normal
+                ctx.rotate(Math.PI / 2);
             }
+
+            ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh);
         } else {
-            // Frame sudah sesuai orientasi layar, tidak perlu rotate
+            // Frame sudah landscape
             canvas.width = vw;
             canvas.height = vh;
+
+            if (isFront) {
+                // Un-mirror horizontal untuk kamera depan landscape
+                ctx.translate(vw, 0);
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(video, 0, 0, vw, vh);
         }
 
-        ctx.drawImage(video, 0, 0, vw, vh);
+        // Reset transform sebelum watermark
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // Watermark timestamp
+        const dateObj = new Date();
+        const timeStr = dateObj.toLocaleTimeString('id-ID');
+        const dateStr = dateObj.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        const cw = canvas.width;
+        const ch = canvas.height;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.60)';
+        ctx.fillRect(0, ch - 80, cw, 80);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 22px Arial';
+        ctx.fillText('SMK PGRI 1 GIRI - GRISA PKL', 16, ch - 52);
+        ctx.font = '18px Arial';
+        ctx.fillText('Monitoring: ' + dateStr + ' - ' + timeStr, 16, ch - 26);
+
         this.closeCameraModal();
         canvas.toBlob((blob) => {
             if (!blob) return;
@@ -562,8 +594,13 @@
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100">
 
+        <div
+            class="w-full flex items-center justify-center gap-2 bg-amber-500/20 border-b border-amber-500/30 py-2 flex-shrink-0">
+            <span class="material-symbols-outlined text-amber-400 text-[16px]">screen_rotation</span>
+            <span class="text-amber-400 text-[11px] font-bold">Miringkan HP ke landscape untuk foto terbaik</span>
+        </div>
         <video x-ref="laporVideo" autoplay playsinline muted class="w-full flex-1 object-cover"
-            style="max-height: calc(100dvh - 120px);"></video>
+            :style="`max-height: calc(100dvh - 160px); ${facingMode === 'user' ? 'transform: scaleX(-1);' : ''}`"></video>
 
         <div class="w-full flex items-center justify-around bg-black py-6 px-8 flex-shrink-0">
             <button type="button" @click="closeCameraModal()"
@@ -574,7 +611,11 @@
                 class="w-20 h-20 rounded-full bg-white border-4 border-white/50 shadow-xl active:scale-90 transition-all flex items-center justify-center">
                 <span class="material-symbols-outlined text-black text-[32px]">camera</span>
             </button>
-            <div class="w-14 h-14"></div>{{-- spacer --}}
+            <button type="button" @click="flipCamera()"
+                class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white active:scale-90 transition-all"
+                title="Ganti Kamera">
+                <span class="material-symbols-outlined text-[28px]">flip_camera_ios</span>
+            </button>
         </div>
     </div>
 </div>

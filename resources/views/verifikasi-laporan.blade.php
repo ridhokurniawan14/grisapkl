@@ -3,8 +3,56 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifikasi Keaslian Laporan</title>
+    {{-- MANTRA PWA: Cegah zoom paksa di iOS --}}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    @php
+        $school = \App\Models\SchoolProfile::first();
+        $schoolName = $school->name ?? 'Grisa PKL';
+        $pageTitle = 'Verifikasi Keaslian Laporan PKL — ' . $schoolName;
+        $pageDesc =
+            'Halaman resmi verifikasi keaslian laporan Praktik Kerja Lapangan (PKL) dari ' .
+            $schoolName .
+            '. Pastikan dokumen terdaftar dan sah secara digital.';
+        $pageUrl = url()->current();
+        $faviconUrl = $school && $school->app_logo_path ? asset('storage/' . $school->app_logo_path) : null;
+    @endphp
+
+    {{-- ===== PRIMARY META ===== --}}
+    <title>{{ $pageTitle }}</title>
+    <meta name="description" content="{{ $pageDesc }}">
+    <meta name="keywords" content="verifikasi laporan PKL, cek keaslian laporan, PKL digital, {{ $schoolName }}">
+    <meta name="author" content="{{ $schoolName }}">
+    <meta name="robots" content="noindex, nofollow">{{-- halaman verifikasi tidak perlu diindex --}}
+    <meta name="theme-color" content="#00ff41">
+
+    {{-- ===== DYNAMIC FAVICON (dari logo sekolah, sama seperti guest layout) ===== --}}
+    @if ($faviconUrl)
+        <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+        <link rel="shortcut icon" href="{{ $faviconUrl }}">
+        <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+    @else
+        <link rel="icon" href="/favicon.ico">
+    @endif
+
+    {{-- ===== OPEN GRAPH (WhatsApp / Facebook preview) ===== --}}
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ $pageUrl }}">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDesc }}">
+    <meta property="og:site_name" content="{{ $schoolName }}">
+    @if ($faviconUrl)
+        <meta property="og:image" content="{{ $faviconUrl }}">
+    @endif
+
+    {{-- ===== TWITTER CARD ===== --}}
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $pageDesc }}">
+    @if ($faviconUrl)
+        <meta name="twitter:image" content="{{ $faviconUrl }}">
+    @endif
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap"
         rel="stylesheet">

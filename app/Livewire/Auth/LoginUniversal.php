@@ -82,7 +82,7 @@ class LoginUniversal extends Component
 
                 $this->addError(
                     'identifier',
-                    'Akses login siswa dinonaktifkan oleh admin.'
+                    'Akses login siswa dinonaktifkan. Silahkan hubungi Wali Kelas.'
                 );
 
                 return;
