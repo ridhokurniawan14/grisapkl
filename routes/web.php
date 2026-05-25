@@ -43,6 +43,9 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+Route::view('/offline', 'offline')->name('offline');
+
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', LoginUniversal::class)->name('login');
     Route::get('/lupa-kata-sandi', ForgotPasswordRequest::class)->name('auth.forgot-password');

@@ -343,7 +343,8 @@
                     class="material-symbols-outlined">close</span></button>
         </div>
         <div class="relative flex-1 flex items-center justify-center overflow-hidden">
-            <video x-ref="video" autoplay playsinline class="w-full h-full object-cover"></video>
+            <video x-ref="video" autoplay playsinline class="w-full h-full object-cover"
+                style="transform: scaleX(-1);"></video>
             <canvas x-ref="canvas" class="hidden"></canvas>
             <div x-show="isLoading"
                 class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-40">
@@ -600,7 +601,13 @@
 
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
+
+                    // Fix mirror kamera depan: flip horizontal lalu restore sebelum watermark
+                    ctx.save();
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.restore();
 
                     // Box Transparan untuk teks watermark
                     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";

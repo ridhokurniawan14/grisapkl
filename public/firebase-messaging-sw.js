@@ -22,16 +22,13 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // ============================================================
-// 3. FIX UTAMA: Handler notifikasi background/app tertutup
-//    Tanpa ini, notif TIDAK AKAN MUNCUL saat app di background
+// 3. Handler Notifikasi Saat Aplikasi di Background
 // ============================================================
 messaging.onBackgroundMessage(function (payload) {
     console.log("[SW] Background message received:", payload);
 
     const title = payload.notification?.title || "GrisaPKL";
     const body = payload.notification?.body || "";
-
-    // Ambil redirect URL dari data payload atau fcmOptions
     const redirectUrl =
         payload.data?.link ||
         payload.fcmOptions?.link ||
@@ -40,9 +37,9 @@ messaging.onBackgroundMessage(function (payload) {
 
     const options = {
         body: body,
-        icon: "/images/logo.png", // Ganti path logo sesuai project kamu
-        badge: "/images/logo.png", // Badge kecil di status bar Android
-        vibrate: [200, 100, 200], // Pola getar Android
+        icon: "/images/logo.png",
+        badge: "/images/logo.png",
+        vibrate: [200, 100, 200],
         requireInteraction: false,
         data: {
             url: redirectUrl,
@@ -53,24 +50,21 @@ messaging.onBackgroundMessage(function (payload) {
 });
 
 // ============================================================
-// 4. Handle klik notifikasi → buka/fokus ke URL tujuan
+// 4. Handle Klik Notifikasi → Buka/Fokus ke URL
 // ============================================================
 self.addEventListener("notificationclick", function (event) {
     event.notification.close();
-
     const targetUrl = event.notification.data?.url || "/";
 
     event.waitUntil(
         clients
             .matchAll({ type: "window", includeUncontrolled: true })
             .then(function (clientList) {
-                // Kalau tab yang sama sudah terbuka → fokus saja
                 for (const client of clientList) {
                     if (client.url === targetUrl && "focus" in client) {
                         return client.focus();
                     }
                 }
-                // Kalau belum ada → buka tab baru
                 if (clients.openWindow) {
                     return clients.openWindow(targetUrl);
                 }
@@ -79,6 +73,50 @@ self.addEventListener("notificationclick", function (event) {
 });
 
 // ============================================================
-// 5. Fetch handler (wajib ada agar SW tidak error)
+// 5. MANTRA SAKTI: MODE OFFLINE PWA (NYAWA CADANGAN)
 // ============================================================
-self.addEventListener("fetch", function (event) {});
+const CACHE_NAME = "grisapkl-offline-v1";
+const OFFLINE_URL = "/offline";
+
+// A. Saat Install: Simpan halaman /offline ke memori cache HP
+self.addEventListener("install", (event) => {
+    event.waitUntil(
+        caches
+            .open(CACHE_NAME)
+            .then((cache) => {
+                // FIX UNTUK iOS: Hapus parameter { cache: 'reload' } karena Safari sering memblokirnya
+                return cache.add(OFFLINE_URL);
+            })
+            .catch((err) => {
+                console.error("[SW] Gagal menyimpan cache offline:", err);
+            }),
+    );
+    self.skipWaiting();
+});
+
+// B. Saat Aktivasi: Bersihkan cache versi lama jika ada update
+self.addEventListener("activate", (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames
+                    .filter((name) => name !== CACHE_NAME)
+                    .map((name) => caches.delete(name)),
+            );
+        }),
+    );
+    self.clients.claim();
+});
+
+// C. Saat Fetch (Request Data): Tangkap request! Jika gagal (offline), tampilkan layar cache!
+self.addEventListener("fetch", (event) => {
+    // Hanya memproses request untuk memuat halaman web (navigate)
+    if (event.request.mode === "navigate") {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                // Jika koneksi internet mati (fetch gagal), munculkan halaman offline
+                return caches.match(OFFLINE_URL);
+            }),
+        );
+    }
+});
