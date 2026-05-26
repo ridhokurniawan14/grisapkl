@@ -189,7 +189,7 @@ class CetakLaporansTable
                     ->label('Lihat Laporan (PDF)')
                     ->icon('heroicon-o-document-check')
                     ->color('success')
-                    ->visible(fn($record) => !empty($record->pengesah_ks_nama) && $record->file_laporan_path !== null)
+                    ->visible(fn($record) => !empty($record->pengesah_ks_nama) && $record->file_laporan_path !== null && $record->file_laporan_path !== 'processing')
                     ->url(fn($record) => Storage::url($record->file_laporan_path))
                     ->openUrlInNewTab(),
 
