@@ -50,10 +50,8 @@
         /* ========================================================= */
         .ttd-container {
             position: relative;
-            /* Menjadi jangkar untuk elemen absolut di dalamnya */
             width: 100%;
             height: 150px;
-            /* Beri ruang tinggi agar tidak tumpang tindih dengan paragraf atas */
         }
 
         .ttd-text-top {
@@ -61,24 +59,17 @@
             top: 0;
             right: 0;
             width: 45%;
-            /* Sesuaikan lebar area TTD */
             text-align: center;
             z-index: 1;
-            /* Teks berada di lapisan bawah */
         }
 
         .ttd-image {
             position: absolute;
             top: 15px;
-            /* Geser sedikit ke bawah dari teks "Kepala..." */
             right: 50px;
-            /* Geser ke kiri agar menimpa teks */
             height: 160px;
-            /* Ukuran TTD JAUH LEBIH BESAR */
             z-index: 10;
-            /* TTD berada di lapisan ATAS menimpa teks */
             opacity: 0.9;
-            /* Sedikit transparan agar teks di bawahnya samar terlihat (realistis) */
         }
 
         .ttd-text-bottom {
@@ -90,11 +81,20 @@
             z-index: 1;
             line-height: 1.2;
         }
+
+        /* Class tambahan untuk indentasi paragraf */
+        .paragraf-surat {
+            text-align: justify;
+            text-indent: 40px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 
 <body>
 
+    <!-- ================= HALAMAN 1: SURAT PENGANTAR ================= -->
     @if ($school && $school->kop_surat_path)
         <img src="{{ public_path('storage/' . $school->kop_surat_path) }}" class="kop-surat">
     @else
@@ -190,65 +190,78 @@
         </div>
     </div>
 
-    {{-- <div class="page-break"></div>
+
+    <!-- ================= HALAMAN 2: SURAT PEMBERITAHUAN APLIKASI ================= -->
+    <div class="page-break"></div>
 
     @if ($school && $school->kop_surat_path)
         <img src="{{ public_path('storage/' . $school->kop_surat_path) }}" class="kop-surat">
     @endif
 
-    <h3 class="text-center font-bold" style="text-decoration: underline; margin-bottom: 0;">SURAT PENGANTAR SISWA</h3>
-    <p class="text-center" style="margin-top: 5px; margin-bottom: 20px;">Nomor:
-        {{ $school->surat_pengantar_nomor ?? '...' }}</p>
-
-    <p>Yth. Kepala <strong>{{ $dudika->name }}</strong><br>
-        {{ $dudika->address }}<br>
-        Di tempat
-    </p>
-
-    <p style="text-align: justify;">Untuk kelancaran dan ketertiban pelaksanaan Praktik Kerja Lapangan (PKL), bersama
-        ini kami lampirkan berkas dan format kerja siswa, sesuai daftar berikut:</p>
-
-    <table class="table-bordered mt-4">
-        <thead>
-            <tr style="background-color: #cbd5e1; text-align: center;">
-                <th width="5%">NO</th>
-                <th width="45%">PERIHAL</th>
-                <th width="20%">JUMLAH</th>
-                <th width="30%">KETERANGAN</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="text-center">1</td>
-                <td>Data Siswa PKL:<br>- Daftar nama kelompok<br>- Surat keterangan siswa / Biodata</td>
-                <td class="text-center">1 Lembar<br>1 Lembar tiap siswa</td>
-                <td rowspan="3" style="vertical-align: top; text-align: justify;">Dikirim dengan hormat untuk
-                    diterima dan dipergunakan sebagaimana mestinya. Atas kerjasama Bapak/Ibu disampaikan terima kasih.
-                </td>
-            </tr>
-            <tr>
-                <td class="text-center">2</td>
-                <td>Format Lembar Kerja Siswa:<br>- Daftar Hadir Peserta PKL</td>
-                <td class="text-center">1 Berkas di tiap-tiap siswa</td>
-            </tr>
-            <tr>
-                <td class="text-center">3</td>
-                <td>Penilaian:<br>- Format Penilaian PKL<br>- Rekapitulasi Kehadiran Siswa<br>- Lembar Observasi
-                    Penilaian</td>
-                <td class="text-center">1 Berkas di tiap-tiap siswa</td>
-            </tr>
-        </tbody>
+    <table>
+        <tr>
+            <td width="15%">Nomor</td>
+            <td width="2%">:</td>
+            <td width="48%">{{ $school->surat_pengantar_nomor ?? '1230/M.3/SMK PGRI 1 GIRI/26/VI/2026' }}</td>
+            <td width="35%" style="text-align: right;">{{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}</td>
+        </tr>
+        <tr>
+            <td>Lampiran</td>
+            <td>:</td>
+            <td colspan="2">-</td>
+        </tr>
+        <tr>
+            <td>Hal</td>
+            <td>:</td>
+            <td colspan="2" class="font-bold"><u style="font-weight: bold;">Pemberitahuan Penggunaan Aplikasi
+                    GrisaPKL</u></td>
+        </tr>
     </table>
+
+    <div class="mt-4">
+        <span class="font-bold" style="color: black;">Yth. Kepala {{ $dudika->name }}</span><br>
+        <span style="color: black;">{{ $dudika->address }}</span><br>
+        <span style="color: black;">di tempat</span>
+    </div>
+
+    <div class="mt-4">
+        <p class="paragraf-surat">Dengan hormat,</p>
+        <p class="paragraf-surat">
+            Sehubungan dengan pelaksanaan PKL {{ $school->name ?? 'SMK PGRI 1 Giri Banyuwangi' }}, kami informasikan
+            bahwa pada tahun ini sistem dokumentasi kegiatan, absensi, serta jurnal harian siswa dilaksanakan secara
+            digital melalui aplikasi <strong>Grisa PKL</strong>. Aplikasi ini dapat diakses langsung menggunakan
+            HP/gadget masing-masing siswa sehingga proses pelaporan kegiatan PKL dapat dilakukan secara lebih efektif,
+            tertib, dan terpantau secara berkala oleh pihak sekolah maupun pembimbing dari DUDIKA.
+        </p>
+        <p class="paragraf-surat">
+            Melalui aplikasi Grisa PKL tersebut, siswa diwajibkan mengisi jurnal kegiatan harian, mengunggah dokumentasi
+            kegiatan, serta melaporkan aktivitas PKL secara rutin sesuai dengan ketentuan yang telah ditetapkan. Selain
+            itu, pihak pembimbing dari DUDIKA juga dapat melakukan pemantauan, validasi kegiatan dan penilaian siswa
+            melalui akun yang telah disediakan oleh sekolah. <em>Aplikasi dapat di akses melalui link
+                <strong><u>grisapkl.smkpgri1giri.sch.id</u></strong> dengan email :
+                <strong>{{ $dudika->user->email ?? $dudika->username }}</strong> dan password :
+                <strong>12345</strong></em>
+        </p>
+        <p class="paragraf-surat">
+            Kami berharap penggunaan aplikasi Grisa PKL ini dapat membantu kelancaran proses monitoring, evaluasi, serta
+            komunikasi antara pihak sekolah dan DUDIKA selama kegiatan PKL berlangsung. Besar harapan kami kepada
+            Bapak/Ibu pembimbing di tempat PKL untuk dapat memberikan arahan, pendampingan, dan pengawasan kepada siswa
+            selama melaksanakan kegiatan PKL.
+        </p>
+        <p class="paragraf-surat">
+            Demikian surat pemberitahuan ini kami sampaikan. Atas kerja sama dan dukungan Bapak/Ibu, kami ucapkan terima
+            kasih.
+        </p>
+    </div>
 
     <div class="ttd-container mt-4">
         <div class="ttd-text-top">
-            Banyuwangi, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}<br>
-            Kepala {{ $school->name ?? 'Sekolah' }}
+            Hormat kami,<br>
+            Kepala {{ $school->name ?? 'SMK PGRI 1 Giri' }}
         </div>
 
         @if ($school && $school->signature_path)
-            <img src="{{ public_path('storage/' . $school->signature_path) }}" class="ttd-image"
-                style="right: 60px; top: 30px;">
+            <img src="{{ public_path('storage/' . $school->signature_path) }}" class="ttd-image">
         @endif
 
         <div class="ttd-text-bottom">
@@ -258,8 +271,10 @@
                 <br>NIP. {{ $school->headmaster_nip }}
             @endif
         </div>
-    </div> --}}
+    </div>
 
+
+    <!-- ================= HALAMAN 3+: BIODATA SISWA (LOOPING) ================= -->
     <div class="page-break"></div>
 
     @foreach ($placements as $placement)

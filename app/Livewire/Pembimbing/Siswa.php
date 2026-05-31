@@ -63,7 +63,6 @@ class Siswa extends Component
             session()->flash('success', 'Laporan sedang di-generate di latar belakang! Tunggu beberapa saat.');
         }
     }
-
     public function downloadLaporan($placementId)
     {
         $placement = PklPlacement::find($placementId);

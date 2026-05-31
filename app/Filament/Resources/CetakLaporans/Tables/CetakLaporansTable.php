@@ -204,20 +204,29 @@ class CetakLaporansTable
                     ->modalDescription('Proses ini dikerjakan di latar belakang dan memakan waktu beberapa saat.')
                     ->action(function ($record) {
 
-                        // ==============================================================
-                        // MANTRA SAKTI: HAPUS FILE PDF LAMA DARI STORAGE (BIAR GAK PENUH)
-                        // ==============================================================
+                        // 1. Bersihkan file PDF lama agar storage tidak penuh
                         if ($record->file_laporan_path && $record->file_laporan_path !== 'processing') {
                             if (\Illuminate\Support\Facades\Storage::disk('public')->exists($record->file_laporan_path)) {
                                 \Illuminate\Support\Facades\Storage::disk('public')->delete($record->file_laporan_path);
                             }
                         }
 
-                        // Ubah jadi processing
-                        $record->update(['file_laporan_path' => 'processing']);
+                        // ==============================================================
+                        // MANTRA SAKTI: SAMAKAN DENGAN SISI GURU PEMBIMBING (LIVEWIRE)
+                        // Ambil ulang instance 'PklPlacement' yang fresh & murni dari DB
+                        // ==============================================================
+                        $placement = \App\Models\PklPlacement::find($record->getKey());
 
-                        // Lempar ke Job
-                        GenerateLaporanPdfJob::dispatch($record->id, auth()->id());
+                        if ($placement) {
+                            // Ubah status menjadi processing
+                            $placement->update(['file_laporan_path' => 'processing']);
+
+                            // Lempar ke Job dengan tipe data Integer murni untuk mencegah Queue Crash
+                            \App\Jobs\GenerateLaporanPdfJob::dispatch(
+                                (int) $placement->id,
+                                (int) \Illuminate\Support\Facades\Auth::id()
+                            );
+                        }
 
                         \Filament\Notifications\Notification::make()
                             ->title('Mulai Diproses!')
@@ -225,7 +234,6 @@ class CetakLaporansTable
                             ->success()
                             ->send();
                     }),
-
                 // 3. CEK KEKURANGAN (Tersembunyi kalau sudah lengkap)
                 Action::make('cek_kekurangan')
                     ->label('Cek Kekurangan')
