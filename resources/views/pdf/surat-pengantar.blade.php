@@ -345,7 +345,7 @@
                 <td>LAMA PKL</td>
                 <td>:</td>
                 <td>
-                    {{ \Carbon\Carbon::parse($placement->start_date)->diffInMonths(\Carbon\Carbon::parse($placement->end_date)) }}
+                    {{ round(\Carbon\Carbon::parse($placement->start_date)->diffInMonths(\Carbon\Carbon::parse($placement->end_date))) }}
                     BULAN
                 </td>
             </tr>
