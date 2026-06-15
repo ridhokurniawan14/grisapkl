@@ -41,7 +41,11 @@ class Lapor extends Component
     {
         $user           = Auth::user();
         $teacher        = Teacher::where('user_id', $user->id)->first();
-        $activeSchedule = MonitoringSchedule::where('is_active', 1)->latest()->first();
+        $now = Carbon::now()->toDateString();
+        $activeSchedule = MonitoringSchedule::where('is_active', 1)
+            ->whereDate('end_date', '>=', $now) // Pastikan jadwal belum kedaluwarsa
+            ->orderBy('start_date', 'asc')      // Urutkan dari tanggal mulai terdekat
+            ->first();
 
         if (!$teacher || !$activeSchedule) return;
 
@@ -84,7 +88,11 @@ class Lapor extends Component
 
         $user           = Auth::user();
         $teacher        = Teacher::where('user_id', $user->id)->first();
-        $activeSchedule = MonitoringSchedule::where('is_active', 1)->latest()->first();
+        $now = Carbon::now()->toDateString();
+        $activeSchedule = MonitoringSchedule::where('is_active', 1)
+            ->whereDate('end_date', '>=', $now) // Pastikan jadwal belum kedaluwarsa
+            ->orderBy('start_date', 'asc')      // Urutkan dari tanggal mulai terdekat
+            ->first();
 
         if (!$teacher || !$activeSchedule) {
             $this->addError('selectedDudikaId', 'Data jadwal atau guru tidak ditemukan.');
@@ -129,7 +137,11 @@ class Lapor extends Component
         $user    = Auth::user();
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        $activeSchedule = MonitoringSchedule::where('is_active', 1)->latest()->first();
+        $now = Carbon::now()->toDateString();
+        $activeSchedule = MonitoringSchedule::where('is_active', 1)
+            ->whereDate('end_date', '>=', $now) // Pastikan jadwal belum kedaluwarsa
+            ->orderBy('start_date', 'asc')      // Urutkan dari tanggal mulai terdekat
+            ->first();
 
         $isActiveWindow    = false;
         $scheduleName      = 'TIDAK ADA JADWAL AKTIF';
