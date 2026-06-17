@@ -17,6 +17,7 @@ use App\Livewire\Pembimbing\UbahPassword;
 use App\Livewire\Pembimbing\Data;
 use App\Livewire\Pembimbing\Lapor;
 use App\Livewire\Pembimbing\LaporEdit;
+use App\Http\Middleware\CheckUserActive;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Dudika;
@@ -54,7 +55,7 @@ Route::middleware('guest')->group(function () {
 // ==========================================================
 // RUTE PWA SISWA
 // ==========================================================
-Route::middleware(['auth', 'role:siswa'])->group(function () {
+Route::middleware(['auth', CheckUserActive::class, 'role:siswa'])->group(function () {
     Route::get('/siswa/absen', \App\Livewire\Student\Absensi::class)->name('siswa.absen');
     Route::get('/siswa/profil', \App\Livewire\Student\Profil::class)->name('siswa.profil');
     Route::get('/siswa/profil/edit', \App\Livewire\Student\ProfilEdit::class)->name('siswa.profil.edit');
