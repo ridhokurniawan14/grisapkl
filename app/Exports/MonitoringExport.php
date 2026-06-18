@@ -33,12 +33,13 @@ class MonitoringExport implements FromCollection, WithHeadings, WithMapping, Wit
             return $this->cachedCollection;
         }
 
-        // ✅ Ambil hanya 1 record per kunjungan DUDIKA (MIN id, sama seperti logika tabel)
+        // ✅ FIX 1: Tambahkan pkl_placements.teacher_id di GroupBy
         $representativeIds = Monitoring::selectRaw('MIN(monitorings.id) as id')
             ->join('pkl_placements', 'pkl_placements.id', '=', 'monitorings.pkl_placement_id')
             ->whereIn('monitorings.id', $this->ids)
             ->groupBy(
                 'pkl_placements.dudika_id',
+                'pkl_placements.teacher_id', // <-- Tambahan Pemisah Guru
                 'monitorings.date',
                 'monitorings.monitoring_schedule_id'
             )
@@ -71,13 +72,15 @@ class MonitoringExport implements FromCollection, WithHeadings, WithMapping, Wit
 
     public function map($monitoring): array
     {
-        // ✅ Ambil semua siswa dari kunjungan DUDIKA yang sama
+        // ✅ FIX 2: Tarik nama siswa sesuai Dudika DAN Guru Pembimbingnya
         $students = Monitoring::where('date', $monitoring->date)
             ->where('monitoring_schedule_id', $monitoring->monitoring_schedule_id)
-            ->whereHas('pklPlacement', fn($q) => $q->where(
-                'dudika_id',
-                $monitoring->pklPlacement->dudika_id
-            ))
+            ->whereHas(
+                'pklPlacement',
+                fn($q) => $q
+                    ->where('dudika_id', $monitoring->pklPlacement->dudika_id)
+                    ->where('teacher_id', $monitoring->pklPlacement->teacher_id) // <-- Tambahan Filter Guru
+            )
             ->with('pklPlacement.student')
             ->get()
             ->map(fn($m) => $m->pklPlacement?->student?->name)
@@ -146,15 +149,17 @@ class MonitoringExport implements FromCollection, WithHeadings, WithMapping, Wit
                 $rowCount = $this->collection()->count() + 1;
 
                 for ($i = 2; $i <= $rowCount; $i++) {
-                    // ✅ Tinggi baris otomatis proporsional dengan jumlah siswa
+                    // ✅ FIX 3: Hitung jumlah siswa untuk tinggi baris (Row Height) yang spesifik Guru
                     $monitoring   = $this->collection()->get($i - 2);
                     $studentCount = $monitoring
                         ? Monitoring::where('date', $monitoring->date)
                         ->where('monitoring_schedule_id', $monitoring->monitoring_schedule_id)
-                        ->whereHas('pklPlacement', fn($q) => $q->where(
-                            'dudika_id',
-                            $monitoring->pklPlacement->dudika_id
-                        ))
+                        ->whereHas(
+                            'pklPlacement',
+                            fn($q) => $q
+                                ->where('dudika_id', $monitoring->pklPlacement->dudika_id)
+                                ->where('teacher_id', $monitoring->pklPlacement->teacher_id) // <-- Tambahan Filter Guru
+                        )
                         ->count()
                         : 1;
 
