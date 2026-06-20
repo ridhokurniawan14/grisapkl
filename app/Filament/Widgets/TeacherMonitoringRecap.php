@@ -19,6 +19,7 @@ class TeacherMonitoringRecap extends BaseWidget
     public function table(Table $table): Table
     {
         return $table
+            ->poll('5s')
             ->query(
                 Teacher::query()
                     ->with(['pklPlacements.monitorings', 'pklPlacements.dudika'])

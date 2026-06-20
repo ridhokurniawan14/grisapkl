@@ -20,6 +20,7 @@ class RecentJournalWidget extends BaseWidget
         $activeYear = AcademicYear::where('is_active', true)->first();
 
         return $table
+            ->poll('5s')
             ->query(
                 Journal::query()
                     ->when(
@@ -31,8 +32,11 @@ class RecentJournalWidget extends BaseWidget
                             $q2->where('academic_year_id', $activeYear->id)
                         )
                     )
-                    ->latest('date')
-                    ->limit(8)
+                    // 1. PERBAIKAN: Urutkan dari tanggal & jam terbaru
+                    ->orderBy('date', 'desc')
+                    ->orderBy('time', 'desc')
+                    // 2. PERBAIKAN: Munculkan 10 data terbaru
+                    ->limit(10)
             )
             ->columns([
                 Tables\Columns\TextColumn::make('pklPlacement.student.name')
@@ -41,9 +45,11 @@ class RecentJournalWidget extends BaseWidget
                     ->limit(20)
                     ->weight('semibold'),
 
+                // 3. PERBAIKAN: Tambahkan jam di bawah teks tanggal pakai description()
                 Tables\Columns\TextColumn::make('date')
-                    ->label('Tanggal')
+                    ->label('Waktu Absen')
                     ->date('d M Y')
+                    ->description(fn(Journal $record): string => $record->time ? 'Jam: ' . \Carbon\Carbon::parse($record->time)->format('H:i') . ' WIB' : 'Jam: -')
                     ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('attend_status')
