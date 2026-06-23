@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\AcademicYear;
 use App\Models\Journal;
+use App\Models\PklPlacement;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 
@@ -39,19 +40,51 @@ class AttendanceChart extends ChartWidget
         $dataHadir  = [];
         $dataIzin   = [];
         $dataAlpha  = [];
-        $dataLibur  = []; // TAMBAHAN: Array untuk menampung data Libur
+        $dataLibur  = [];
 
         for ($i = ($days - 1); $i >= 0; $i--) {
-            $date     = Carbon::now()->subDays($i)->format('Y-m-d');
-            $labels[] = Carbon::parse($date)->isoFormat('D MMM');
+            // Ambil objek tanggal agar bisa dicek Weekday/Weekend
+            $dateObj  = Carbon::now()->subDays($i);
+            $date     = $dateObj->format('Y-m-d');
+            $labels[] = $dateObj->isoFormat('D MMM');
 
-            $baseQuery = fn() => Journal::where('date', $date)
+            // 1. Hitung data dasar dari Jurnal (Bagi yang sudah absen)
+            $baseQuery = Journal::where('date', $date)
                 ->whereHas('pklPlacement', fn($q) => $q->where('academic_year_id', $activeYear->id));
 
-            $dataHadir[] = (clone $baseQuery())->where('attend_status', 'Hadir')->count();
-            $dataIzin[]  = (clone $baseQuery())->whereIn('attend_status', ['Sakit', 'Izin'])->count();
-            $dataAlpha[] = (clone $baseQuery())->whereIn('attend_status', ['Alpha', 'Tanpa Keterangan'])->count();
-            $dataLibur[] = (clone $baseQuery())->where('attend_status', 'Libur')->count(); // TAMBAHAN: Hitung yang Libur
+            $hadir = (clone $baseQuery)->where('attend_status', 'Hadir')->count();
+            $izin  = (clone $baseQuery)->whereIn('attend_status', ['Sakit', 'Izin'])->count();
+            $libur = (clone $baseQuery)->where('attend_status', 'Libur')->count();
+
+            // Ini untuk Alpha yang diinput manual (jika ada)
+            $explicitAlpha = (clone $baseQuery)->whereIn('attend_status', ['Alpha', 'Tanpa Keterangan'])->count();
+
+            // 2. MANTRA SAKTI: Hitung Alpha "Ghaib" (Siswa yang bolos tanpa absen sama sekali)
+            $unrecordedAlpha = 0;
+
+            // Kita asumsikan kewajiban PKL hanya di hari kerja (Senin - Jumat)
+            if ($dateObj->isWeekday()) {
+                // Cari total siswa yang "SEHARUSNYA" absen hari ini (Dalam rentang jadwal PKL & Aktif)
+                $expectedStudents = PklPlacement::where('academic_year_id', $activeYear->id)
+                    ->where('status', 'Aktif')
+                    ->whereNotNull('start_date')
+                    ->whereNotNull('end_date')
+                    ->whereDate('start_date', '<=', $date)
+                    ->whereDate('end_date', '>=', $date)
+                    ->count();
+
+                // Cari total siswa yang "SUDAH" mengisi absen apapun hari ini
+                $journaledStudents = (clone $baseQuery)->count();
+
+                // Selisihnya adalah mereka yang bolos tanpa keterangan
+                $unrecordedAlpha = max(0, $expectedStudents - $journaledStudents);
+            }
+
+            // Gabungkan data
+            $dataHadir[] = $hadir;
+            $dataIzin[]  = $izin;
+            $dataLibur[] = $libur;
+            $dataAlpha[] = $explicitAlpha + $unrecordedAlpha; // Alpha Tercatat + Alpha Ghaib
         }
 
         return [
@@ -83,11 +116,10 @@ class AttendanceChart extends ChartWidget
                     'borderRadius'    => 6,
                     'borderSkipped'   => false,
                 ],
-                // TAMBAHAN: Dataset untuk tampilan grafik Libur
                 [
                     'label'           => 'Libur',
                     'data'            => $dataLibur,
-                    'backgroundColor' => 'rgba(59, 130, 246, 0.85)', // Warna Biru (Blue-500)
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.85)',
                     'borderColor'     => '#3b82f6',
                     'borderWidth'     => 0,
                     'borderRadius'    => 6,

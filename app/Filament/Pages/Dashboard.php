@@ -7,6 +7,7 @@ use App\Filament\Widgets\DashboardStatsOverview;
 use App\Filament\Widgets\MasterDataStatus;
 use App\Filament\Widgets\PklByMajorChart;
 use App\Filament\Widgets\RecentJournalWidget;
+use App\Filament\Widgets\AlphaStudentsWidget;
 use BackedEnum;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Support\Icons\Heroicon;
@@ -31,6 +32,7 @@ class Dashboard extends BaseDashboard
             PklByMajorChart::class,         // sort: 3  — doughnut (1/2 width kiri)
             RecentJournalWidget::class,     // sort: 4  — table (1/2 width kanan)
             MasterDataStatus::class,        // sort: 5  — status grid full width
+            AlphaStudentsWidget::class,     // sort: 6  — TABEL SISWA BOLOS FULL WIDTH
         ];
     }
 
