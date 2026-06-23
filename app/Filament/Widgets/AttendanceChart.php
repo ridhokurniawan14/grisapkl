@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 
 class AttendanceChart extends ChartWidget
 {
-    protected ?string $heading = 'Rekap Kehadiran — 14 Hari Terakhir';
+    protected ?string $heading = 'Rekap Kehadiran';
     protected ?string $description = 'Perbandingan kehadiran vs ketidakhadiran siswa PKL';
     protected static ?int $sort = 2;
     protected int|string|array $columnSpan = '1';
@@ -39,6 +39,7 @@ class AttendanceChart extends ChartWidget
         $dataHadir  = [];
         $dataIzin   = [];
         $dataAlpha  = [];
+        $dataLibur  = []; // TAMBAHAN: Array untuk menampung data Libur
 
         for ($i = ($days - 1); $i >= 0; $i--) {
             $date     = Carbon::now()->subDays($i)->format('Y-m-d');
@@ -50,6 +51,7 @@ class AttendanceChart extends ChartWidget
             $dataHadir[] = (clone $baseQuery())->where('attend_status', 'Hadir')->count();
             $dataIzin[]  = (clone $baseQuery())->whereIn('attend_status', ['Sakit', 'Izin'])->count();
             $dataAlpha[] = (clone $baseQuery())->whereIn('attend_status', ['Alpha', 'Tanpa Keterangan'])->count();
+            $dataLibur[] = (clone $baseQuery())->where('attend_status', 'Libur')->count(); // TAMBAHAN: Hitung yang Libur
         }
 
         return [
@@ -77,6 +79,16 @@ class AttendanceChart extends ChartWidget
                     'data'            => $dataAlpha,
                     'backgroundColor' => 'rgba(239, 68, 68, 0.85)',
                     'borderColor'     => '#ef4444',
+                    'borderWidth'     => 0,
+                    'borderRadius'    => 6,
+                    'borderSkipped'   => false,
+                ],
+                // TAMBAHAN: Dataset untuk tampilan grafik Libur
+                [
+                    'label'           => 'Libur',
+                    'data'            => $dataLibur,
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.85)', // Warna Biru (Blue-500)
+                    'borderColor'     => '#3b82f6',
                     'borderWidth'     => 0,
                     'borderRadius'    => 6,
                     'borderSkipped'   => false,

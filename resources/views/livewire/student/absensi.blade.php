@@ -7,7 +7,13 @@
             <h2 class="text-4xl font-extrabold text-on-surface mb-1 tracking-tight" x-text="currentTime"></h2>
             <p class="text-[13px] font-medium text-outline" x-text="currentDate"></p>
 
-            @if (!$hasAttendedToday)
+            @if ($isOutsidePklRange)
+                <div
+                    class="mt-4 bg-red-50/90 backdrop-blur-sm px-4 py-2 rounded-full border border-red-200 flex items-center gap-2 shadow-sm">
+                    <span class="material-symbols-outlined text-[16px] text-red-500">event_busy</span>
+                    <span class="text-xs font-bold text-red-600">Di Luar Jadwal PKL</span>
+                </div>
+            @elseif (!$hasAttendedToday)
                 <div
                     class="mt-4 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-surface-container-high flex items-center gap-2 shadow-sm">
                     <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -28,7 +34,14 @@
                 <div class="w-[270px] h-[270px] rounded-full border border-primary/10 absolute"></div>
             </div>
 
-            @if (!$hasAttendedToday)
+            @if ($isOutsidePklRange)
+                <div
+                    class="w-[160px] h-[160px] rounded-full bg-slate-100 text-slate-400 flex flex-col items-center justify-center shadow-inner z-10 border-4 border-white backdrop-blur-md">
+                    <span class="material-symbols-outlined text-[56px] mb-1"
+                        style="font-variation-settings: 'FILL' 1;">block</span>
+                    <span class="text-[14px] font-bold text-center tracking-wide">Terkunci</span>
+                </div>
+            @elseif (!$hasAttendedToday)
                 <button @click="openCamera()"
                     class="w-[160px] h-[160px] rounded-full bg-primary text-white flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(53,37,205,0.4)] active:scale-95 transition-transform z-10 animate-subtle-pulse border-4 border-white">
                     <span class="material-symbols-outlined text-[56px] mb-1"
@@ -46,24 +59,24 @@
         </div>
 
         <div class="grid grid-cols-3 gap-3 mb-8 relative z-20">
-            <button @if (!$hasAttendedToday) @click="openConfirm('Izin')" @endif
-                {{ $hasAttendedToday ? 'disabled' : '' }}
+            <button @if (!$hasAttendedToday && !$isOutsidePklRange) @click="openConfirm('Izin')" @endif
+                {{ $hasAttendedToday || $isOutsidePklRange ? 'disabled' : '' }}
                 class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 bg-white/90 backdrop-blur-sm
-                {{ $hasAttendedToday ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
+                {{ $hasAttendedToday || $isOutsidePklRange ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
                 <span class="material-symbols-outlined mb-1 text-amber-600">assignment_late</span>
                 <span class="text-xs font-medium">Izin</span>
             </button>
-            <button @if (!$hasAttendedToday) @click="openConfirm('Sakit')" @endif
-                {{ $hasAttendedToday ? 'disabled' : '' }}
+            <button @if (!$hasAttendedToday && !$isOutsidePklRange) @click="openConfirm('Sakit')" @endif
+                {{ $hasAttendedToday || $isOutsidePklRange ? 'disabled' : '' }}
                 class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 bg-white/90 backdrop-blur-sm
-                {{ $hasAttendedToday ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
+                {{ $hasAttendedToday || $isOutsidePklRange ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
                 <span class="material-symbols-outlined mb-1 text-red-500">medical_services</span>
                 <span class="text-xs font-medium">Sakit</span>
             </button>
-            <button @if (!$hasAttendedToday) @click="openConfirm('Libur')" @endif
-                {{ $hasAttendedToday ? 'disabled' : '' }}
+            <button @if (!$hasAttendedToday && !$isOutsidePklRange) @click="openConfirm('Libur')" @endif
+                {{ $hasAttendedToday || $isOutsidePklRange ? 'disabled' : '' }}
                 class="flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm border transition-colors h-20 bg-white/90 backdrop-blur-sm
-                {{ $hasAttendedToday ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
+                {{ $hasAttendedToday || $isOutsidePklRange ? 'bg-surface-variant/50 text-outline border-transparent' : 'text-on-surface hover:bg-surface-variant border-outline-variant/30 active:scale-95' }}">
                 <span class="material-symbols-outlined mb-1 text-blue-500">event_available</span>
                 <span class="text-xs font-medium">Libur</span>
             </button>
@@ -143,10 +156,17 @@
                                 <span class="material-symbols-outlined text-[32px] text-outline mb-1">add_a_photo</span>
                                 <span class="text-[12px] font-medium text-outline">Ambil atau pilih foto</span>
                             @endif
-                            <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*">
+                            <input type="file" @change="compressAndUploadImage" class="hidden" accept="image/*">
                         </label>
-                        <div wire:loading wire:target="activityPhoto" class="text-xs text-primary mt-1">Mengunggah...
+
+                        <div x-show="isCompressing" x-cloak
+                            class="text-xs text-primary mt-2 font-bold animate-pulse flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Memproses &
+                            Mengkompres Foto...
                         </div>
+
+                        <div wire:loading wire:target="activityPhoto" class="text-xs text-primary mt-1">Menyimpan ke
+                            Server...</div>
                         @error('activityPhoto')
                             <span class="text-xs text-error mt-1">{{ $message }}</span>
                         @enderror
@@ -417,6 +437,7 @@
             Alpine.data('absensiApp', () => ({
                 currentTime: 'Menunggu...',
                 currentDate: '',
+                isCompressing: false,
                 isCameraOpen: false,
                 isLoading: false,
                 loadingText: '',
@@ -453,6 +474,80 @@
                     };
                     updateTime();
                     setInterval(updateTime, 1000);
+                },
+
+                // MANTRA SAKTI: Fungsi Kompresi Foto Instan di Browser
+                compressAndUploadImage(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    // Validasi tipe file
+                    if (!file.type.match(/image.*/)) {
+                        this.errorMessage = 'File harus berupa gambar!';
+                        this.showErrorModal = true;
+                        return;
+                    }
+
+                    this.isCompressing = true; // Nyalakan loading
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 1024; // Resolusi aman
+                            const MAX_HEIGHT = 1024;
+                            let width = img.width;
+                            let height = img.height;
+
+                            // Kalkulasi rasio agar gambar tidak gepeng
+                            if (width > height) {
+                                if (width > MAX_WIDTH) {
+                                    height *= MAX_WIDTH / width;
+                                    width = MAX_WIDTH;
+                                }
+                            } else {
+                                if (height > MAX_HEIGHT) {
+                                    width *= MAX_HEIGHT / height;
+                                    height = MAX_HEIGHT;
+                                }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // Kompres menjadi format JPEG dengan kualitas 70% (0.7)
+                            canvas.toBlob((blob) => {
+                                // Ubah nama file menjadi .jpg agar dibaca dengan benar oleh backend
+                                const newFileName = file.name.replace(/\.[^/.]+$/,
+                                    ".jpg");
+                                const compressedFile = new File([blob], newFileName, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+
+                                // Tembakkan file yang sudah dikompres ke Livewire layaknya wire:model
+                                this.$wire.upload('activityPhoto', compressedFile,
+                                    (uploadedFilename) => {
+                                        this.isCompressing = false; // Sukses upload
+                                    },
+                                    (error) => {
+                                        this.isCompressing = false;
+                                        this.errorMessage =
+                                            'Gagal mengunggah foto. Coba lagi.';
+                                        this.showErrorModal = true;
+                                    },
+                                    (event) => {
+                                        // Bisa untuk progress bar jika diperlukan
+                                    }
+                                );
+                            }, 'image/jpeg', 0.7);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
                 },
 
                 openDetail(journal) {

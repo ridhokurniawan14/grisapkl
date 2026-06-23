@@ -26,6 +26,7 @@ class Absensi extends Component
     public $placement;
     public $hasAttendedToday = false; // Akan di-update otomatis setiap render
     public $isRadiusEnabled = true;
+    public $isOutsidePklRange = false;
 
     public $activity = '';
     public $activityPhoto;
@@ -52,6 +53,19 @@ class Absensi extends Component
     public function checkAttendanceStatus()
     {
         if (!$this->placement) return;
+
+        // FIX 2: Cek apakah hari ini berada di dalam rentang PKL
+        if ($this->placement->start_date && $this->placement->end_date) {
+            $today = \Carbon\Carbon::today();
+            $start = \Carbon\Carbon::parse($this->placement->start_date)->startOfDay();
+            $end   = \Carbon\Carbon::parse($this->placement->end_date)->endOfDay();
+
+            if ($today->lessThan($start) || $today->greaterThan($end)) {
+                $this->isOutsidePklRange = true;
+            } else {
+                $this->isOutsidePklRange = false;
+            }
+        }
 
         $todayJournal = Journal::where('pkl_placement_id', $this->placement->id)
             ->whereDate('date', today())
@@ -80,7 +94,7 @@ class Absensi extends Component
 
     public function submitAttendance($photoBase64, $lat, $lng)
     {
-        if (!$this->placement || $this->hasAttendedToday) return;
+        if (!$this->placement || $this->hasAttendedToday || $this->isOutsidePklRange) return;
         if (!$this->verifyLocation($lat, $lng)) return;
 
         $imageParts  = explode(';base64,', $photoBase64);
@@ -107,7 +121,7 @@ class Absensi extends Component
 
     public function markAttendance($status)
     {
-        if (!$this->placement || $this->hasAttendedToday) return;
+        if (!$this->placement || $this->hasAttendedToday || $this->isOutsidePklRange) return;
 
         $activityText = ($status === 'Libur') ? 'Libur / Tanggal Merah' : '';
 

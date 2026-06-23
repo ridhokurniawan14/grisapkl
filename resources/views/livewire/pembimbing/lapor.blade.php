@@ -6,8 +6,61 @@
     showReportForm: false,
     showDetailModal: false,
     showMonthFilter: false,
+    isCompressing: false,
     detailData: {},
     fullScreenImg: null,
+    physicalOrientation: 0,
+    needsSensorPermission: false,
+
+    // MANTRA SAKTI: Cek & Request Izin Sensor saat Halaman Dimuat
+    init() {
+        this.checkSensorPermission();
+    },
+
+    // 1. Logika Pengecekan Izin Sensor (Khusus iOS)
+    checkSensorPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            this.needsSensorPermission = true;
+        } else if (window.DeviceOrientationEvent) {
+            this.startSensorListener();
+        } else {
+            console.warn('Sensor orientasi tidak didukung oleh browser ini.');
+        }
+    },
+
+    // 2. Tindakan Klik User untuk Memberikan Izin
+    async requestSensorPermission() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const permissionState = await DeviceOrientationEvent.requestPermission();
+                if (permissionState === 'granted') {
+                    this.needsSensorPermission = false;
+                    this.startSensorListener();
+                    alert('Sensor aktif! Sekarang monitoring akan otomatis mendeteksi jika HP dimiringkan.');
+                } else {
+                    alert('Akses sensor ditolak. Anda hanya bisa memotret dalam posisi Portrait.');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Gagal mengaktifkan sensor. Pastikan web diakses via HTTPS.');
+            }
+        }
+    },
+
+    // 3. Logika Membaca Gyroscope (Sudut Akurat)
+    startSensorListener() {
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (e) => {
+                if (e.beta === null || e.gamma === null) return;
+
+                if (Math.abs(e.gamma) > Math.abs(e.beta) && Math.abs(e.gamma) > 40) {
+                    this.physicalOrientation = e.gamma > 0 ? 90 : -90;
+                } else {
+                    this.physicalOrientation = 0;
+                }
+            }, true);
+        }
+    },
 
     openDetail(item) {
         this.detailData = item;
@@ -15,6 +68,12 @@
     },
 
     async openCamera() {
+        if (this.needsSensorPermission) {
+            this.showPhotoMenu = false;
+            this.showCameraModal = true;
+            return;
+        }
+
         this.showPhotoMenu = false;
         this.facingMode = 'environment';
         this.showCameraModal = true;
@@ -51,51 +110,68 @@
         }
     },
 
+    // 4. MANTRA SAKTI 3: Ambil Gambar, Paksa Rotasi berdasarkan SENSOR, lalu Kompres
     capturePhoto() {
+        this.isCompressing = true;
+
         const video = this.$refs.laporVideo;
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
+        let vw = video.videoWidth;
+        let vh = video.videoHeight;
         const isFront = this.facingMode === 'user';
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        if (vh > vw) {
-            // Frame masuk portrait → rotate ke landscape
-            canvas.width = vh;
-            canvas.height = vw;
-            ctx.translate(vh / 2, vw / 2);
-
-            if (isFront) {
-                // Kamera depan: rotasi BERLAWANAN arah karena stream sudah di-mirror
-                // +90° landscape kiri (kanan user = kiri frame karena mirror)
-                ctx.rotate(-Math.PI / 2);
-                // Un-mirror horizontal supaya hasil foto tidak terbalik
-                ctx.scale(-1, 1);
-            } else {
-                // Kamera belakang: rotate +90° normal
-                ctx.rotate(Math.PI / 2);
-            }
-
-            ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh);
-        } else {
-            // Frame sudah landscape
-            canvas.width = vw;
-            canvas.height = vh;
-
-            if (isFront) {
-                // Un-mirror horizontal untuk kamera depan landscape
-                ctx.translate(vw, 0);
-                ctx.scale(-1, 1);
-            }
-
-            ctx.drawImage(video, 0, 0, vw, vh);
+        if (vw === 0 || vh === 0) {
+            alert('Kamera belum siap, silakan klik ulang tombol jepret.');
+            this.isCompressing = false;
+            return;
         }
 
-        // Reset transform sebelum watermark
+        const MAX_BOUND = 1024;
+        if (vw > vh) {
+            if (vw > MAX_BOUND) {
+                vh *= MAX_BOUND / vw;
+                vw = MAX_BOUND;
+            }
+        } else {
+            if (vh > MAX_BOUND) {
+                vw *= MAX_BOUND / vh;
+                vh = MAX_BOUND;
+            }
+        }
+
+        let rotateAngle = this.physicalOrientation;
+        const canvas = document.createElement('canvas');
+
+        if (rotateAngle !== 0) {
+            canvas.width = vh;
+            canvas.height = vw;
+        } else {
+            canvas.width = vw;
+            canvas.height = vh;
+        }
+
+        const ctx = canvas.getContext('2d');
+
+        if (rotateAngle === 90) {
+            ctx.translate(canvas.width, 0);
+            ctx.rotate(90 * Math.PI / 180);
+        } else if (rotateAngle === -90) {
+            ctx.translate(0, canvas.height);
+            ctx.rotate(-90 * Math.PI / 180);
+        }
+
+        if (isFront) {
+            if (rotateAngle === 0) {
+                ctx.translate(vw, 0);
+                ctx.scale(-1, 1);
+            } else {
+                ctx.translate(0, vh);
+                ctx.scale(1, -1);
+            }
+        }
+
+        ctx.drawImage(video, 0, 0, vw, vh);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        // Watermark timestamp
         const dateObj = new Date();
         const timeStr = dateObj.toLocaleTimeString('id-ID');
         const dateStr = dateObj.toLocaleDateString('id-ID', {
@@ -104,38 +180,94 @@
             month: 'long',
             day: 'numeric'
         });
+
         const cw = canvas.width;
         const ch = canvas.height;
+        const boxHeight = ch > 800 ? 80 : 60;
+
         ctx.fillStyle = 'rgba(0, 0, 0, 0.60)';
-        ctx.fillRect(0, ch - 80, cw, 80);
+        ctx.fillRect(0, ch - boxHeight, cw, boxHeight);
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 22px Arial';
-        ctx.fillText('SMK PGRI 1 GIRI - GRISA PKL', 16, ch - 52);
-        ctx.font = '18px Arial';
-        ctx.fillText('Monitoring: ' + dateStr + ' - ' + timeStr, 16, ch - 26);
+        ctx.font = `bold ${ch > 800 ? 22 : 16}px Arial`;
+        ctx.fillText('SMK PGRI 1 GIRI - GRISA PKL', 16, ch - (boxHeight * 0.55));
+        ctx.font = `${ch > 800 ? 18 : 12}px Arial`;
+        ctx.fillText('Monitoring: ' + dateStr + ' - ' + timeStr, 16, ch - (boxHeight * 0.2));
 
         this.closeCameraModal();
+
         canvas.toBlob((blob) => {
-            if (!blob) return;
-            const file = new File([blob], 'monitoring-foto.jpg', { type: 'image/jpeg' });
+            if (!blob) {
+                this.isCompressing = false;
+                return;
+            }
+            const file = new File([blob], 'monitoring-foto.jpg', { type: 'image/jpeg', lastModified: Date.now() });
             this.uploadFile(file);
-        }, 'image/jpeg', 0.85);
+        }, 'image/jpeg', 0.80);
+    },
+
+    // Kompresi Foto Galeri Instan
+    compressAndUploadImage(event) {
+        this.showPhotoMenu = false;
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.match(/image.*/)) {
+            alert('File harus berupa gambar!');
+            return;
+        }
+
+        this.isCompressing = true;
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1024;
+                const MAX_HEIGHT = 1024;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    const newFileName = file.name.replace(/\.[^/.]+$/, '.jpg');
+                    const compressedFile = new File([blob], newFileName, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    this.uploadFile(compressedFile);
+                }, 'image/jpeg', 0.80);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     },
 
     uploadFile(file) {
-        if (!file.type.startsWith('image/')) {
-            alert('File harus berupa gambar.');
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Ukuran foto maksimal 5MB.');
-            return;
-        }
         this.$wire.upload(
             'monitoringPhoto',
             file,
-            () => {},
-            () => { alert('Gagal mengupload foto. Periksa koneksi dan coba lagi.'); },
+            () => { this.isCompressing = false; },
+            () => {
+                this.isCompressing = false;
+                alert('Gagal mengupload foto. Periksa koneksi dan coba lagi.');
+            },
             () => {}
         );
     }
@@ -410,11 +542,11 @@
                                 x-transition:leave-end="opacity-0 translate-y-2 scale-95"
                                 class="absolute bottom-full left-0 right-0 mb-3 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden z-20 p-2 flex flex-col gap-1">
 
-                                {{-- INPUT GALERI: tetap pakai wire:model, galeri normal tidak ada masalah --}}
-                                <input type="file" id="galeriInput" wire:model="monitoringPhoto" accept="image/*"
-                                    class="hidden" @change="showPhotoMenu = false">
+                                {{-- INPUT GALERI: tetap pakai fungsi kompresi --}}
+                                <input type="file" id="galeriInput" accept="image/*" class="hidden"
+                                    @change="compressAndUploadImage">
 
-                                {{-- OPSI 1: BUKA KAMERA — pakai dynamic input via openCamera() --}}
+                                {{-- OPSI 1: BUKA KAMERA --}}
                                 <button type="button" @click="openCamera()"
                                     class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all w-full text-left">
                                     <div
@@ -450,15 +582,21 @@
                             </div>
                         @endif
 
-                        {{-- INDIKATOR LOADING UPLOAD --}}
+                        <div x-show="isCompressing" x-cloak
+                            class="flex items-center gap-1.5 mt-3 text-[11px] text-[#3525cd] font-bold animate-pulse">
+                            <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                            Memproses & Mengkompres Foto...
+                        </div>
+
+                        {{-- INDIKATOR LOADING UPLOAD KE SERVER --}}
                         <div wire:loading wire:target="monitoringPhoto"
-                            class="flex items-center gap-1.5 mt-2 text-[11px] text-slate-400 font-medium">
+                            class="flex items-center gap-1.5 mt-3 text-[11px] text-slate-500 font-medium">
                             <svg class="animate-spin w-4 h-4 text-[#3525cd]" viewBox="0 0 24 24" fill="none">
                                 <circle class="opacity-25" cx="12" cy="12" r="10"
                                     stroke="currentColor" stroke-width="4" />
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                             </svg>
-                            <span class="text-[#3525cd] font-bold">Sedang memproses foto...</span>
+                            <span class="text-[#3525cd] font-bold">Menyimpan ke Server...</span>
                         </div>
                         @error('monitoringPhoto')
                             <p class="text-red-500 text-[11px] font-semibold mt-1">{{ $message }}</p>
@@ -574,6 +712,7 @@
             </div>
         </div>
     </div>
+
     {{-- ══ MODAL ZOOM GAMBAR FULLSCREEN ══════════════════════════════════ --}}
     <div x-show="fullScreenImg !== null" x-cloak
         class="fixed inset-0 z-[11000] flex items-center justify-center bg-black/90 backdrop-blur-md px-4"
@@ -589,33 +728,70 @@
         <img :src="fullScreenImg" @click.away="fullScreenImg = null"
             class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl">
     </div>
-    {{-- ══ MODAL KAMERA LAPOR ════════════════════════════════════════════════ --}}
-    <div x-show="showCameraModal" x-cloak class="fixed inset-0 z-[70] flex flex-col items-center justify-end bg-black"
-        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100">
 
-        <div
-            class="w-full flex items-center justify-center gap-2 bg-amber-500/20 border-b border-amber-500/30 py-2 flex-shrink-0">
-            <span class="material-symbols-outlined text-amber-400 text-[16px]">screen_rotation</span>
-            <span class="text-amber-400 text-[11px] font-bold">Miringkan HP ke landscape untuk foto terbaik</span>
+    {{-- ══ MODAL KAMERA LAPOR (FIXED LANDSCAPE DETECTION) ════════════════════ --}}
+    <div x-show="showCameraModal" x-cloak
+        class="fixed inset-0 z-[100] bg-slate-950/80 flex flex-col justify-between p-4 backdrop-blur-sm"
+        @keydown.window.escape="closeCameraModal()">
+
+        {{-- Header & Tutup --}}
+        <div class="flex justify-between items-center z-10">
+            <button @click="closeCameraModal()" class="text-white flex items-center gap-1 opacity-70">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+            <span class="text-sm font-medium text-white/90">Lapor Monitoring</span>
+            <div class="w-5"></div>
         </div>
-        <video x-ref="laporVideo" autoplay playsinline muted class="w-full flex-1 object-cover"
-            :style="`max-height: calc(100dvh - 160px); ${facingMode === 'user' ? 'transform: scaleX(-1);' : ''}`"></video>
 
-        <div class="w-full flex items-center justify-around bg-black py-6 px-8 flex-shrink-0">
-            <button type="button" @click="closeCameraModal()"
-                class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white">
-                <span class="material-symbols-outlined text-[28px]">close</span>
+        {{-- Area Video Kamera + INDIKATOR ORIENTASI --}}
+        <div
+            class="relative w-full flex-1 my-4 rounded-3xl overflow-hidden bg-black shadow-inner border border-slate-700">
+            <video x-ref="laporVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+
+            {{-- Tombol Request Izin Sensor (Khusus iOS Safari) --}}
+            <template x-if="needsSensorPermission">
+                <div
+                    class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center z-20">
+                    <span class="material-symbols-outlined text-amber-400 text-[48px] mb-3">screen_rotation</span>
+                    <h3 class="text-white font-bold mb-1">Akses Rotasi Diperlukan</h3>
+                    <p class="text-slate-300 text-xs mb-5">Untuk mendeteksi posisi HP Landscape/Portrait, izinkan akses
+                        gerakan.</p>
+                    <button @click="requestSensorPermission()"
+                        class="bg-[#3525cd] text-white px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 active:scale-95 transition-transform">
+                        Izinkan Akses Gerakan
+                    </button>
+                </div>
+            </template>
+
+            {{-- Indikator Status Orientasi (Visual Feedback untuk Guru) --}}
+            <template x-if="cameraStream && !needsSensorPermission">
+                <div class="absolute bottom-3 left-3 px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5 z-10"
+                    :class="physicalOrientation !== 0 ? 'bg-green-600/90' : 'bg-slate-900/80'">
+                    <span class="material-symbols-outlined text-[16px] text-white"
+                        :class="physicalOrientation !== 0 ? 'rotate-90' : ''">
+                        crop_portrait
+                    </span>
+                    <span class="text-[11px] font-bold text-white tracking-wide"
+                        x-text="physicalOrientation !== 0 ? 'LANDSCAPE (OTOMATIS)' : 'PORTRAIT' ">
+                    </span>
+                </div>
+            </template>
+        </div>
+
+        {{-- Tombol Aksi di Bawah --}}
+        <div class="flex justify-center items-center gap-10 p-5 z-10">
+            <button @click="flipCamera()"
+                class="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 text-white active:scale-95">
+                <span class="material-symbols-outlined text-[24px]">flip_camera_ios</span>
             </button>
-            <button type="button" @click="capturePhoto()"
-                class="w-20 h-20 rounded-full bg-white border-4 border-white/50 shadow-xl active:scale-90 transition-all flex items-center justify-center">
-                <span class="material-symbols-outlined text-black text-[32px]">camera</span>
+
+            {{-- Tombol Jepret --}}
+            <button @click="capturePhoto()"
+                class="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                <span class="w-12 h-12 rounded-full border-4 border-slate-950"></span>
             </button>
-            <button type="button" @click="flipCamera()"
-                class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white active:scale-90 transition-all"
-                title="Ganti Kamera">
-                <span class="material-symbols-outlined text-[28px]">flip_camera_ios</span>
-            </button>
+
+            <div class="w-12"></div>
         </div>
     </div>
 </div>
