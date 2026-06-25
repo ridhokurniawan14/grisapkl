@@ -134,6 +134,41 @@
                             {{ $journal->activity ?: 'Belum ada catatan kegiatan.' }}</p>
                     </div>
 
+                    {{-- ── MANTRA SAKTI: GALERI GAMBAR DI CARD JURNAL ──────────────── --}}
+                    @if ($journal->attendance_photo_path || $journal->photo_path)
+                        <div
+                            class="flex gap-2 overflow-x-auto mt-1 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+
+                            {{-- Foto Selfie Absen --}}
+                            @if ($journal->attendance_photo_path)
+                                <div @click="fullScreenImg = '{{ asset('storage/' . $journal->attendance_photo_path) }}'"
+                                    class="relative w-24 h-24 shrink-0 rounded-[0.75rem] overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer active:scale-95 transition-transform group">
+                                    <img src="{{ asset('storage/' . $journal->attendance_photo_path) }}"
+                                        class="w-full h-full object-cover">
+                                    <div class="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-1">
+                                        <p class="text-white text-[8px] font-bold text-center uppercase tracking-wider">
+                                            Selfie Absen</p>
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Foto Bukti / Kegiatan --}}
+                            @if ($journal->photo_path)
+                                <div @click="fullScreenImg = '{{ asset('storage/' . $journal->photo_path) }}'"
+                                    class="relative w-32 h-24 shrink-0 rounded-[0.75rem] overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer active:scale-95 transition-transform group">
+                                    <img src="{{ asset('storage/' . $journal->photo_path) }}"
+                                        class="w-full h-full object-cover">
+                                    <div class="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-1">
+                                        <p class="text-white text-[8px] font-bold text-center uppercase tracking-wider">
+                                            Bukti Kegiatan</p>
+                                    </div>
+                                </div>
+                            @endif
+
+                        </div>
+                    @endif
+                    {{-- ────────────────────────────────────────────────────────────── --}}
+
                     @if ($isRejected)
                         <div class="bg-red-50 border border-red-100 rounded-lg p-2 mt-1">
                             <p class="text-[10px] text-red-600 leading-snug"><span class="font-bold">Revisi:</span>

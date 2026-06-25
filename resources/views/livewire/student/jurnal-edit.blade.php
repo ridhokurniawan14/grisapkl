@@ -4,6 +4,7 @@
     isCameraOpen: false,
     isLoading: false,
     isSaving: false,
+    isCompressing: false, // TAMBAHAN: Indikator loading kompresi foto galeri
     loadingText: '',
     stream: null,
     lat: null,
@@ -27,12 +28,72 @@
     },
 
     async saveWithoutCamera() {
+        if (this.isSaving) return; // MANTRA ANTI DOUBLE-CLICK
         this.isSaving = true;
         try {
             await this.$wire.updateWithoutCamera();
         } catch (e) {
             this.isSaving = false;
         }
+    },
+
+    // MANTRA SAKTI: Fungsi Kompresi Foto Instan di Browser
+    compressAndUploadImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.match(/image.*/)) {
+            return this.showError('File harus berupa gambar!');
+        }
+
+        this.isCompressing = true;
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1024;
+                const MAX_HEIGHT = 1024;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    const newFileName = file.name.replace(/\.[^/.]+$/, '.jpg');
+                    const compressedFile = new File([blob], newFileName, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+
+                    this.$wire.upload('activityPhoto', compressedFile,
+                        (uploadedFilename) => { this.isCompressing = false; },
+                        (error) => {
+                            this.isCompressing = false;
+                            this.showError('Gagal mengunggah foto. Periksa sinyal dan coba lagi.');
+                        }
+                    );
+                }, 'image/jpeg', 0.80);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     },
 
     async openCamera() {
@@ -42,7 +103,6 @@
 
         await this.$nextTick();
 
-        // ── STEP 1: Geolocation ─────────────────────────────────────────────
         let pos;
         try {
             pos = await new Promise((resolve, reject) =>
@@ -66,7 +126,6 @@
             return this.showError('Akurasi GPS terlalu rendah. Matikan Fake GPS atau pindah ke area terbuka.');
         }
 
-        // ── STEP 2: Verifikasi Radius ke Server ─────────────────────────────
         this.loadingText = 'VERIFIKASI LOKASI...';
         try {
             const ok = await this.$wire.verifyLocation(this.lat, this.lng);
@@ -76,7 +135,6 @@
             return this.showError('Gagal verifikasi ke server. Periksa koneksi dan coba lagi.');
         }
 
-        // ── STEP 3: Ambil stream kamera ─────────────────────────────────────
         this.loadingText = 'MEMBUKA KAMERA...';
 
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -94,7 +152,6 @@
             return this.showError('Gagal buka kamera: ' + (e.message || e.name));
         }
 
-        // ── STEP 4: Pasang stream ────────────────────────────────────────────
         this.$refs.video.srcObject = this.stream;
         try { await this.$refs.video.play(); } catch (_) {}
         this.isLoading = false;
@@ -111,6 +168,7 @@
     },
 
     takeSnapshot() {
+        if (this.isLoading) return; // MANTRA ANTI DOUBLE-CLICK KAMERA
         this.isLoading = true;
         this.loadingText = 'MENYIMPAN...';
 
@@ -144,6 +202,7 @@
             .catch(err => {
                 console.error(err);
                 this.showError('Gagal menyimpan ke server. Periksa koneksi dan coba lagi.');
+                this.isLoading = false;
             });
     }
 }">
@@ -297,7 +356,6 @@
                     <label
                         class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest pl-1 flex items-center gap-1">
                         <span x-text="currentStatus === 'Hadir' ? 'Foto Kegiatan' : 'Bukti Surat'"></span>
-                        {{-- Tanda wajib — tampil jika status bukan Libur dan belum ada foto lama --}}
                         @if (!$journal->photo_path)
                             <span x-show="photoRequired()" class="text-red-500 text-[13px] font-black">*</span>
                         @endif
@@ -323,17 +381,27 @@
                                 {{ $errors->has('activityPhoto') ? 'Foto wajib diupload!' : 'Pilih gambar dari galeri...' }}
                             </span>
                         @endif
-                        {{-- PERBAIKAN: Hilangkan capture="environment" biar memunculkan galeri --}}
-                        <input type="file" wire:model="activityPhoto" class="hidden" accept="image/*">
+                        {{-- FIX: Ganti wire:model dengan Pemicu Kompresi JS --}}
+                        <input type="file" @change="compressAndUploadImage" class="hidden" accept="image/*">
                     </label>
 
-                    {{-- Loading upload --}}
-                    <div wire:loading wire:target="activityPhoto"
-                        class="text-[11px] text-[#3525cd] mt-1 pl-1 font-bold animate-pulse">
-                        Mengupload foto...
+                    {{-- FIX: Indikator Loading Kompresi & Upload --}}
+                    <div x-show="isCompressing" x-cloak
+                        class="flex items-center gap-1.5 mt-1.5 pl-1 text-[11px] text-[#3525cd] font-bold animate-pulse">
+                        <span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                        Memproses & Mengkompres Foto...
                     </div>
 
-                    {{-- Pesan error dari server --}}
+                    <div wire:loading wire:target="activityPhoto"
+                        class="flex items-center gap-1.5 mt-1.5 pl-1 text-[11px] text-[#3525cd] font-bold animate-pulse">
+                        <svg class="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        Menyimpan ke Server...
+                    </div>
+
                     @error('activityPhoto')
                         <div class="flex items-center gap-1.5 mt-0.5 pl-1">
                             <span class="material-symbols-outlined text-red-500 text-[14px]">error</span>
@@ -369,8 +437,7 @@
 
         {{-- Simpan Perubahan --}}
         <div class="absolute inset-0 transition-all duration-300"
-            :class="requiresCamera() ?
-                'opacity-0 pointer-events-none translate-y-1' :
+            :class="requiresCamera() ? 'opacity-0 pointer-events-none translate-y-1' :
                 'opacity-100 pointer-events-auto translate-y-0'">
             <button @click="saveWithoutCamera()" :disabled="isSaving" type="button"
                 class="relative w-full h-[52px] bg-[#3525cd] hover:bg-[#2c1eb3] disabled:opacity-75 text-white font-bold rounded-[1.25rem] shadow-lg overflow-hidden active:scale-95 transition-all">
@@ -395,8 +462,7 @@
 
         {{-- Ambil Selfie --}}
         <div class="absolute inset-0 transition-all duration-300"
-            :class="requiresCamera() ?
-                'opacity-100 pointer-events-auto translate-y-0' :
+            :class="requiresCamera() ? 'opacity-100 pointer-events-auto translate-y-0' :
                 'opacity-0 pointer-events-none translate-y-1'">
             <button @click="openCamera()" type="button"
                 class="w-full h-[52px] bg-green-600 hover:bg-green-700 text-white text-[15px] font-bold rounded-[1.25rem] shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all">

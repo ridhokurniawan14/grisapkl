@@ -97,6 +97,16 @@ class Absensi extends Component
         if (!$this->placement || $this->hasAttendedToday || $this->isOutsidePklRange) return;
         if (!$this->verifyLocation($lat, $lng)) return;
 
+        // MANTRA SAKTI ANTI DOUBLE-SUBMIT (Cek langsung ke database sepersekian detik sebelum insert)
+        $alreadyAttended = Journal::where('pkl_placement_id', $this->placement->id)
+            ->whereDate('date', today())
+            ->exists();
+
+        if ($alreadyAttended) {
+            $this->checkAttendanceStatus();
+            return;
+        }
+
         $imageParts  = explode(';base64,', $photoBase64);
         $imageType   = explode('image/', $imageParts[0])[1] ?? 'png';
         $imageBase64 = base64_decode($imageParts[1]);
@@ -122,6 +132,16 @@ class Absensi extends Component
     public function markAttendance($status)
     {
         if (!$this->placement || $this->hasAttendedToday || $this->isOutsidePklRange) return;
+
+        // MANTRA SAKTI ANTI DOUBLE-SUBMIT UNTUK IZIN/SAKIT/LIBUR
+        $alreadyAttended = Journal::where('pkl_placement_id', $this->placement->id)
+            ->whereDate('date', today())
+            ->exists();
+
+        if ($alreadyAttended) {
+            $this->checkAttendanceStatus();
+            return;
+        }
 
         $activityText = ($status === 'Libur') ? 'Libur / Tanggal Merah' : '';
 

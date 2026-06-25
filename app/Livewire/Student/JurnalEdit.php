@@ -67,11 +67,6 @@ class JurnalEdit extends Component
 
             return true;
         } catch (\Throwable $e) {
-            \Log::error('verifyLocation error: ' . $e->getMessage(), [
-                'journalId' => $this->journalId,
-                'lat'       => $lat,
-                'lng'       => $lng,
-            ]);
             return true;
         }
     }
@@ -110,7 +105,6 @@ class JurnalEdit extends Component
         return redirect()->route('siswa.jurnal');
     }
 
-    // Reset error saat milih foto baru
     public function updatedActivityPhoto()
     {
         $this->resetValidation('activityPhoto');
@@ -129,16 +123,15 @@ class JurnalEdit extends Component
             $journal = Journal::find($this->journalId);
 
             if (!$journal?->photo_path) {
-                // Limit naik ke 15MB
+                // Biarkan validasi max besar, karena yang diterima server sudah kecil berkat JS
                 $rules['activityPhoto']             = 'required|image|max:15360';
                 $messages['activityPhoto.required'] = 'Foto kegiatan wajib diupload untuk status ' . $this->attend_status . '.';
             } elseif ($this->activityPhoto) {
-                // Limit naik ke 15MB
                 $rules['activityPhoto'] = 'image|max:15360';
             }
 
             $messages['activityPhoto.image'] = 'File harus berupa gambar (jpg, png, dll).';
-            $messages['activityPhoto.max']   = 'Ukuran foto terlalu besar (Maksimal 15MB). Silakan pilih foto lain yang lebih kecil.';
+            $messages['activityPhoto.max']   = 'Ukuran foto terlalu besar. Silakan pilih foto lain.';
         }
 
         $this->validate($rules, $messages);
@@ -149,77 +142,14 @@ class JurnalEdit extends Component
         $journal = Journal::find($this->journalId);
         $data    = ['attend_status' => $this->attend_status];
 
-        // ── KOMPRESI FOTO KEGIATAN NATIVE PHP ──────────────────────────
         $newActivityPhotoPath = null;
         if ($this->attend_status !== 'Libur' && $this->activityPhoto) {
             $this->deleteOldFile($journal->photo_path);
 
-            $filename = Str::uuid() . '.' . $this->activityPhoto->getClientOriginalExtension();
-            $photoPath = self::DIR_ACTIVITY . '/' . $filename;
-
-            try {
-                $sourcePath = $this->activityPhoto->getRealPath();
-                list($width, $height, $type) = getimagesize($sourcePath);
-
-                if ($type == IMAGETYPE_PNG) {
-                    $source = imagecreatefrompng($sourcePath);
-                    imagealphablending($source, false);
-                    imagesavealpha($source, true);
-                } else {
-                    $source = imagecreatefromjpeg($sourcePath);
-                    if (function_exists('exif_read_data')) {
-                        $exif = @exif_read_data($sourcePath);
-                        if ($exif && isset($exif['Orientation'])) {
-                            switch ($exif['Orientation']) {
-                                case 3:
-                                    $source = imagerotate($source, 180, 0);
-                                    break;
-                                case 6:
-                                    $source = imagerotate($source, 270, 0);
-                                    $tmp = $width;
-                                    $width = $height;
-                                    $height = $tmp;
-                                    break;
-                                case 8:
-                                    $source = imagerotate($source, 90, 0);
-                                    $tmp = $width;
-                                    $width = $height;
-                                    $height = $tmp;
-                                    break;
-                            }
-                        }
-                    }
-                }
-
-                if ($width > 1024) {
-                    $newWidth = 1024;
-                    $newHeight = (int)(($height / $width) * $newWidth);
-                    $thumb = imagecreatetruecolor($newWidth, $newHeight);
-                    if ($type == IMAGETYPE_PNG) {
-                        imagealphablending($thumb, false);
-                        imagesavealpha($thumb, true);
-                    }
-                    imagecopyresampled($thumb, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-                    ob_start();
-                    if ($type == IMAGETYPE_PNG) imagepng($thumb, null, 8);
-                    else imagejpeg($thumb, null, 75);
-                    $imageContent = ob_get_clean();
-                    imagedestroy($thumb);
-                } else {
-                    ob_start();
-                    if ($type == IMAGETYPE_PNG) imagepng($source, null, 8);
-                    else imagejpeg($source, null, 75);
-                    $imageContent = ob_get_clean();
-                }
-
-                imagedestroy($source);
-                Storage::disk('public')->put($photoPath, $imageContent);
-                $newActivityPhotoPath = $photoPath;
-            } catch (\Exception $e) {
-                // Fallback
-                $newActivityPhotoPath = $this->activityPhoto->storeAs(self::DIR_ACTIVITY, $filename, 'public');
-            }
+            // MANTRA SAKTI: Karena foto sudah dikompres super kecil di HP Siswa via Javascript, 
+            // Kita hapus semua proses GD Library yang berat, dan langsung simpan file-nya!
+            $filename = Str::uuid() . '.jpg';
+            $newActivityPhotoPath = $this->activityPhoto->storeAs(self::DIR_ACTIVITY, $filename, 'public');
         }
 
         if ($this->attend_status === 'Libur') {

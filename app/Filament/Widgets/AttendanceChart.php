@@ -48,23 +48,19 @@ class AttendanceChart extends ChartWidget
             $date     = $dateObj->format('Y-m-d');
             $labels[] = $dateObj->isoFormat('D MMM');
 
-            // 1. Hitung data dasar dari Jurnal (Bagi yang sudah absen)
             $baseQuery = Journal::where('date', $date)
                 ->whereHas('pklPlacement', fn($q) => $q->where('academic_year_id', $activeYear->id));
 
-            $hadir = (clone $baseQuery)->where('attend_status', 'Hadir')->count();
-            $izin  = (clone $baseQuery)->whereIn('attend_status', ['Sakit', 'Izin'])->count();
-            $libur = (clone $baseQuery)->where('attend_status', 'Libur')->count();
+            // MANTRA 1: Gunakan distinct agar double-click / jurnal ganda tidak merusak hitungan!
+            $hadir = (clone $baseQuery)->where('attend_status', 'Hadir')->distinct('pkl_placement_id')->count('pkl_placement_id');
+            $izin  = (clone $baseQuery)->whereIn('attend_status', ['Sakit', 'Izin'])->distinct('pkl_placement_id')->count('pkl_placement_id');
+            $libur = (clone $baseQuery)->where('attend_status', 'Libur')->distinct('pkl_placement_id')->count('pkl_placement_id');
 
-            // Ini untuk Alpha yang diinput manual (jika ada)
-            $explicitAlpha = (clone $baseQuery)->whereIn('attend_status', ['Alpha', 'Tanpa Keterangan'])->count();
-
-            // 2. MANTRA SAKTI: Hitung Alpha "Ghaib" (Siswa yang bolos tanpa absen sama sekali)
-            $unrecordedAlpha = 0;
+            $alpha = 0;
 
             // Kita asumsikan kewajiban PKL hanya di hari kerja (Senin - Jumat)
             if ($dateObj->isWeekday()) {
-                // Cari total siswa yang "SEHARUSNYA" absen hari ini (Dalam rentang jadwal PKL & Aktif)
+                // Cari total siswa yang "SEHARUSNYA" absen hari ini 
                 $expectedStudents = PklPlacement::where('academic_year_id', $activeYear->id)
                     ->where('status', 'Aktif')
                     ->whereNotNull('start_date')
@@ -73,18 +69,27 @@ class AttendanceChart extends ChartWidget
                     ->whereDate('end_date', '>=', $date)
                     ->count();
 
-                // Cari total siswa yang "SUDAH" mengisi absen apapun hari ini
-                $journaledStudents = (clone $baseQuery)->count();
+                // MANTRA 2: Total siswa yang SUDAH AMAN statusnya hari ini (anti duplikat)
+                $safeStudents = (clone $baseQuery)
+                    ->whereIn('attend_status', ['Hadir', 'Izin', 'Sakit', 'Libur'])
+                    ->distinct('pkl_placement_id')
+                    ->count('pkl_placement_id');
 
-                // Selisihnya adalah mereka yang bolos tanpa keterangan
-                $unrecordedAlpha = max(0, $expectedStudents - $journaledStudents);
+                // Alpha = Target Siswa - Siswa yang Aman (Persis seperti logika Tabel Widget)
+                $alpha = max(0, $expectedStudents - $safeStudents);
+            } else {
+                // Jika weekend, hitung manual siapa tau ada yang sengaja di-alpha-kan oleh Admin
+                $alpha = (clone $baseQuery)
+                    ->whereNotIn('attend_status', ['Hadir', 'Izin', 'Sakit', 'Libur'])
+                    ->distinct('pkl_placement_id')
+                    ->count('pkl_placement_id');
             }
 
             // Gabungkan data
             $dataHadir[] = $hadir;
             $dataIzin[]  = $izin;
             $dataLibur[] = $libur;
-            $dataAlpha[] = $explicitAlpha + $unrecordedAlpha; // Alpha Tercatat + Alpha Ghaib
+            $dataAlpha[] = $alpha;
         }
 
         return [
