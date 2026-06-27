@@ -43,7 +43,7 @@ class AttendanceChart extends ChartWidget
         $dataLibur  = [];
 
         for ($i = ($days - 1); $i >= 0; $i--) {
-            // Ambil objek tanggal agar bisa dicek Weekday/Weekend
+            // Ambil objek tanggal
             $dateObj  = Carbon::now()->subDays($i);
             $date     = $dateObj->format('Y-m-d');
             $labels[] = $dateObj->isoFormat('D MMM');
@@ -51,39 +51,31 @@ class AttendanceChart extends ChartWidget
             $baseQuery = Journal::where('date', $date)
                 ->whereHas('pklPlacement', fn($q) => $q->where('academic_year_id', $activeYear->id));
 
-            // MANTRA 1: Gunakan distinct agar double-click / jurnal ganda tidak merusak hitungan!
+            // MANTRA 1: Gunakan distinct agar double-click tidak merusak hitungan
             $hadir = (clone $baseQuery)->where('attend_status', 'Hadir')->distinct('pkl_placement_id')->count('pkl_placement_id');
             $izin  = (clone $baseQuery)->whereIn('attend_status', ['Sakit', 'Izin'])->distinct('pkl_placement_id')->count('pkl_placement_id');
             $libur = (clone $baseQuery)->where('attend_status', 'Libur')->distinct('pkl_placement_id')->count('pkl_placement_id');
 
-            $alpha = 0;
+            // MANTRA 2: HAPUS PEMBATAS SENIN-JUMAT.
+            // Sekarang hitungan Alpha (Target vs Aman) akan dicek SETIAP HARI tanpa kecuali!
 
-            // Kita asumsikan kewajiban PKL hanya di hari kerja (Senin - Jumat)
-            if ($dateObj->isWeekday()) {
-                // Cari total siswa yang "SEHARUSNYA" absen hari ini 
-                $expectedStudents = PklPlacement::where('academic_year_id', $activeYear->id)
-                    ->where('status', 'Aktif')
-                    ->whereNotNull('start_date')
-                    ->whereNotNull('end_date')
-                    ->whereDate('start_date', '<=', $date)
-                    ->whereDate('end_date', '>=', $date)
-                    ->count();
+            // Cari total siswa yang "SEHARUSNYA" absen hari ini (Dalam rentang PKL Aktif)
+            $expectedStudents = PklPlacement::where('academic_year_id', $activeYear->id)
+                ->where('status', 'Aktif')
+                ->whereNotNull('start_date')
+                ->whereNotNull('end_date')
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->count();
 
-                // MANTRA 2: Total siswa yang SUDAH AMAN statusnya hari ini (anti duplikat)
-                $safeStudents = (clone $baseQuery)
-                    ->whereIn('attend_status', ['Hadir', 'Izin', 'Sakit', 'Libur'])
-                    ->distinct('pkl_placement_id')
-                    ->count('pkl_placement_id');
+            // Total siswa yang SUDAH AMAN statusnya hari ini (anti duplikat)
+            $safeStudents = (clone $baseQuery)
+                ->whereIn('attend_status', ['Hadir', 'Izin', 'Sakit', 'Libur'])
+                ->distinct('pkl_placement_id')
+                ->count('pkl_placement_id');
 
-                // Alpha = Target Siswa - Siswa yang Aman (Persis seperti logika Tabel Widget)
-                $alpha = max(0, $expectedStudents - $safeStudents);
-            } else {
-                // Jika weekend, hitung manual siapa tau ada yang sengaja di-alpha-kan oleh Admin
-                $alpha = (clone $baseQuery)
-                    ->whereNotIn('attend_status', ['Hadir', 'Izin', 'Sakit', 'Libur'])
-                    ->distinct('pkl_placement_id')
-                    ->count('pkl_placement_id');
-            }
+            // Alpha = Target Siswa - Siswa yang Aman
+            $alpha = max(0, $expectedStudents - $safeStudents);
 
             // Gabungkan data
             $dataHadir[] = $hadir;
