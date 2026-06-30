@@ -106,6 +106,7 @@
                 <div x-show="open" x-collapse>
                     <div class="p-4 pt-0 border-t border-slate-50 mt-2">
 
+                        {{-- Blok Grid Lama (Persentase & Log) --}}
                         <div class="grid grid-cols-2 gap-3 mb-4 mt-4">
                             <div
                                 class="bg-[#f5f2ff] rounded-xl p-3 border border-indigo-50 flex flex-col justify-center">
@@ -129,6 +130,45 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- ── MANTRA SAKTI: GRID REKAPAN BARU ──────────────── --}}
+                        <div class="mb-4 pt-1 pb-4 border-b border-slate-100">
+                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 pl-1">
+                                Total Kehadiran Siswa</p>
+                            <div class="grid grid-cols-5 gap-1.5">
+                                <div
+                                    class="bg-white border border-emerald-100 rounded-xl py-1.5 flex flex-col items-center justify-center shadow-sm">
+                                    <span class="text-[9px] font-bold text-slate-400 mb-0.5">Hadir</span>
+                                    <span
+                                        class="text-[14px] font-extrabold text-emerald-600 leading-none">{{ $siswa['recap']['H'] }}</span>
+                                </div>
+                                <div
+                                    class="bg-white border border-amber-100 rounded-xl py-1.5 flex flex-col items-center justify-center shadow-sm">
+                                    <span class="text-[9px] font-bold text-slate-400 mb-0.5">Izin</span>
+                                    <span
+                                        class="text-[14px] font-extrabold text-amber-500 leading-none">{{ $siswa['recap']['I'] }}</span>
+                                </div>
+                                <div
+                                    class="bg-white border border-red-100 rounded-xl py-1.5 flex flex-col items-center justify-center shadow-sm">
+                                    <span class="text-[9px] font-bold text-slate-400 mb-0.5">Sakit</span>
+                                    <span
+                                        class="text-[14px] font-extrabold text-red-500 leading-none">{{ $siswa['recap']['S'] }}</span>
+                                </div>
+                                <div
+                                    class="bg-white border border-blue-100 rounded-xl py-1.5 flex flex-col items-center justify-center shadow-sm">
+                                    <span class="text-[9px] font-bold text-slate-400 mb-0.5">Libur</span>
+                                    <span
+                                        class="text-[14px] font-extrabold text-blue-500 leading-none">{{ $siswa['recap']['L'] }}</span>
+                                </div>
+                                <div
+                                    class="bg-white border border-slate-200 rounded-xl py-1.5 flex flex-col items-center justify-center shadow-sm">
+                                    <span class="text-[9px] font-bold text-slate-400 mb-0.5">Alpha</span>
+                                    <span
+                                        class="text-[14px] font-extrabold text-slate-700 leading-none">{{ $siswa['recap']['A'] }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {{-- ─────────────────────────────────────────────────── --}}
 
                         <div class="mb-4 pb-4 border-b border-slate-100 flex flex-col gap-2">
 
