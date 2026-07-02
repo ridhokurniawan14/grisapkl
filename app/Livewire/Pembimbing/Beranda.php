@@ -37,7 +37,6 @@ class Beranda extends Component
         // FUNGSI HELPER: FORMAT NO HP KE +62
         // ==========================================
         $formatPhone = function ($phone) {
-            // Bersihkan semua karakter selain angka dan plus
             $phone = preg_replace('/[^0-9+]/', '', (string)$phone);
 
             if (str_starts_with($phone, '0')) {
@@ -45,9 +44,9 @@ class Beranda extends Component
             } elseif (str_starts_with($phone, '62')) {
                 return '+' . $phone;
             } elseif (!str_starts_with($phone, '+') && !empty($phone)) {
-                return '+62' . $phone; // Jaga-jaga jika depannya 812 langsung
+                return '+62' . $phone;
             }
-            return $phone; // Kalau sudah +62 dibiarkan
+            return $phone;
         };
 
         $totalSiswa = 0;
@@ -57,6 +56,10 @@ class Beranda extends Component
         $studentList = collect();
         $dudikaPendingCount = 0;
         $studentPendingCount = 0;
+
+        // VARIABEL ABSENSI HARI INI
+        $attendanceList = collect();
+        $belumAbsenCount = 0;
 
         if ($teacher) {
             // A. CEK KELENGKAPAN PROFIL GURU
@@ -79,16 +82,10 @@ class Beranda extends Component
             $dudikaList = $placements->pluck('dudika')->filter()->unique('id')->map(function ($d) use ($formatPhone) {
                 $isComplete = !empty($d->head_name);
 
-                // 1. Format Nomor WA
                 $rawPhone = $d->supervisor_phone ?? '';
                 $formattedPhone = $formatPhone($rawPhone);
-
-                // 2. Ambil 5 Digit Terakhir untuk Password & Username
-                $onlyNumbers = preg_replace('/[^0-9]/', '', $rawPhone);
                 $emailDudika = $d->user?->email ?? 'Email_Belum_Terdaftar';
 
-                // 3. Logika Sapaan Gender
-                // (Sesuaikan "supervisor_gender" dengan nama field di DB-mu jika ada)
                 $gender = $d->supervisor_gender ?? null;
                 $sapaan = 'Bapak/Ibu';
                 if (in_array(strtoupper($gender), ['L', 'LAKI-LAKI', 'PRIA'])) {
@@ -97,7 +94,6 @@ class Beranda extends Component
                     $sapaan = 'Ibu';
                 }
 
-                // 4. Susun Pesan WA DUDIKA
                 $waText = "Halo {$sapaan} Pimpinan dari {$d->name},\n\nMohon kesediaannya untuk melengkapi data profil instansi di aplikasi GrisaPKL (grisapkl.smkpgri1giri.sch.id), khususnya data Nama Pimpinan Instansi.\n\nUntuk mempermudah proses login, silakan gunakan detail berikut:\nUsername: {$emailDudika}\nPassword Default: 12345\n\nTerima kasih atas kerjasamanya!";
 
                 return [
@@ -111,13 +107,11 @@ class Beranda extends Component
 
             // E. CEK KELENGKAPAN SISWA & BUAT PESAN WA
             $studentList = $placements->filter(function ($placement) {
-                // Pastikan placement punya relasi student agar tidak error
                 return $placement->student !== null;
             })->map(function ($placement) use ($formatPhone) {
                 $student = $placement->student;
                 $missing = [];
 
-                // Data Pribadi & Ortu
                 if (empty($student->nisn)) $missing[] = 'NISN';
                 if (empty($student->nis)) $missing[] = 'NIS';
                 if (empty($student->birth_place)) $missing[] = 'Tempat Lahir';
@@ -132,20 +126,16 @@ class Beranda extends Component
                 if (empty($student->mother_job)) $missing[] = 'Pekerjaan Ibu';
                 if (empty($student->parent_phone)) $missing[] = 'No. HP Ortu';
                 if (empty($student->parent_address) && empty($student->address)) $missing[] = 'Alamat Ortu';
-
-                // Nah, sekarang $placement bisa terbaca dengan aman!
                 if (empty($placement->pkl_field)) $missing[] = 'Bidang Keahlian / Pekerjaan Siswa';
 
                 $isComplete = count($missing) === 0;
 
-                // Format Nomor WA Siswa
                 $rawPhone = $student->phone ?? ($student->user->phone ?? '');
                 $formattedPhone = $formatPhone($rawPhone);
 
                 $studentName = $student->user->name ?? 'Siswa';
                 $missingStr = implode(', ', $missing);
 
-                // Susun Pesan WA Siswa
                 $waText = "Halo {$studentName}, mohon segera lengkapi data profil kamu di aplikasi GrisaPKL ya.\n\nData yang saat ini masih kosong: *{$missingStr}*.\n\nSegera dilengkapi agar tidak menghambat penulisan laporan jurnal. Terima kasih!";
 
                 return [
@@ -154,9 +144,43 @@ class Beranda extends Component
                     'phone' => $formattedPhone,
                     'wa_message' => urlencode($waText)
                 ];
-            })->values(); // Reset array keys
+            })->values();
 
             $studentPendingCount = $studentList->where('is_complete', false)->count();
+
+            // ==========================================
+            // F. CEK ABSENSI / JURNAL HARI INI
+            // ==========================================
+            $today = Carbon::today();
+            $attendanceList = $placements->filter(function ($placement) {
+                return $placement->student !== null;
+            })->map(function ($placement) use ($formatPhone, $today) {
+                $student = $placement->student;
+                $studentName = $student->user->name ?? 'Siswa';
+
+                // Query mengecek jurnal/absen hari ini. 
+                // Ganti 'created_at' jadi nama kolom tanggal di tabel journals jika kamu punya kolom spesifik (misal: 'date' atau 'tanggal')
+                $absenHariIni = Journal::where('pkl_placement_id', $placement->id)
+                    ->whereDate('created_at', $today)
+                    ->first();
+
+                // Ganti 'status' jadi nama kolom absensimu di tabel journals jika namanya beda (misal: 'kehadiran')
+                $statusAbsen = $absenHariIni ? ($absenHariIni->status ?? 'Hadir') : 'Belum Absen';
+
+                $rawPhone = $student->phone ?? ($student->user->phone ?? '');
+                $formattedPhone = $formatPhone($rawPhone);
+
+                $waText = "Halo {$studentName}, Bapak/Ibu guru mengingatkan jangan lupa untuk mengisi absensi/jurnal PKL hari ini ya. Semangat dan jaga kesehatan selalu!";
+
+                return [
+                    'name' => $studentName,
+                    'status' => $statusAbsen,
+                    'phone' => $formattedPhone,
+                    'wa_message' => urlencode($waText)
+                ];
+            })->values();
+
+            $belumAbsenCount = $attendanceList->where('status', 'Belum Absen')->count();
         }
 
         // 3. Tarik Data Pengumuman
@@ -177,6 +201,8 @@ class Beranda extends Component
             'dudikaPendingCount' => $dudikaPendingCount,
             'studentList' => $studentList,
             'studentPendingCount' => $studentPendingCount,
+            'attendanceList' => $attendanceList, // Parsing data absen ke blade
+            'belumAbsenCount' => $belumAbsenCount, // Parsing jumlah yg belum absen ke blade
         ]);
     }
 }

@@ -61,9 +61,13 @@
         </a>
     </section>
 
-    <section class="mt-6 px-2" x-data="{ openDudika: true, openSiswa: false }">
+    <section class="mt-6 px-2" x-data="{
+        openAbsen: {{ $belumAbsenCount > 0 ? 'true' : 'false' }},
+        openDudika: {{ $dudikaPendingCount > 0 ? 'true' : 'false' }},
+        openSiswa: {{ $studentPendingCount > 0 ? 'true' : 'false' }}
+    }">
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-[16px] font-extrabold text-slate-800">Kelengkapan Data</h3>
+            <h3 class="text-[16px] font-extrabold text-slate-800">Aktivitas & Kelengkapan Data</h3>
         </div>
 
         @if ($isTeacherComplete)
@@ -98,6 +102,78 @@
                     class="material-symbols-outlined text-red-400 group-hover:text-red-600 transition-colors">chevron_right</span>
             </a>
         @endif
+
+        <div class="bg-white border border-slate-200 rounded-[1rem] overflow-hidden shadow-sm mb-3 transition-all">
+            <button @click="openAbsen = !openAbsen"
+                class="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors flex justify-between items-center outline-none">
+                <div class="flex items-center gap-2">
+                    <span class="text-[13px] font-extrabold text-slate-800">Absensi Hari Ini</span>
+                    @if ($belumAbsenCount > 0)
+                        <span
+                            class="text-[9px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{{ $belumAbsenCount }}
+                            Belum Absen</span>
+                    @else
+                        <span
+                            class="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Lengkap</span>
+                    @endif
+                </div>
+                <span class="material-symbols-outlined text-slate-400 transition-transform duration-300"
+                    :class="openAbsen ? 'rotate-180' : ''">expand_more</span>
+            </button>
+
+            <div x-show="openAbsen" x-collapse>
+                <div class="divide-y divide-slate-100">
+                    @forelse($attendanceList as $absen)
+                        <div class="p-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div class="flex items-center gap-3">
+                                @if ($absen['status'] === 'Belum Absen')
+                                    <span
+                                        class="material-symbols-outlined text-amber-500 text-[20px]">pending_actions</span>
+                                @elseif(in_array(strtolower($absen['status']), ['hadir']))
+                                    <span
+                                        class="material-symbols-outlined text-emerald-500 text-[20px]">how_to_reg</span>
+                                @else
+                                    <span class="material-symbols-outlined text-blue-500 text-[20px]">event_note</span>
+                                @endif
+                                <span
+                                    class="text-[13px] font-semibold text-slate-700 truncate max-w-[140px]">{{ $absen['name'] }}</span>
+                            </div>
+
+                            <div>
+                                @if ($absen['status'] === 'Belum Absen')
+                                    @if (!empty($absen['phone']))
+                                        <a href="https://wa.me/{{ $absen['phone'] }}?text={{ $absen['wa_message'] }}"
+                                            target="_blank"
+                                            class="flex items-center gap-1 bg-[#25D366] hover:bg-[#20bd5a] text-white px-2.5 py-1.5 rounded-[0.5rem] transition-transform active:scale-95 shadow-sm shrink-0">
+                                            <span class="material-symbols-outlined text-[14px]">chat</span>
+                                            <span class="text-[10px] font-bold">Ingatkan</span>
+                                        </a>
+                                    @else
+                                        <span class="text-[10px] font-medium text-slate-400 italic">No HP Kosong</span>
+                                    @endif
+                                @else
+                                    @php
+                                        // Mewarnai badge status absen secara otomatis
+                                        $badgeColor = match (strtolower($absen['status'])) {
+                                            'hadir' => 'bg-emerald-100 text-emerald-700',
+                                            'sakit' => 'bg-red-100 text-red-700',
+                                            'izin', 'ijin' => 'bg-amber-100 text-amber-700',
+                                            'libur' => 'bg-blue-100 text-blue-700',
+                                            default => 'bg-slate-100 text-slate-700',
+                                        };
+                                    @endphp
+                                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full {{ $badgeColor }}">
+                                        {{ ucfirst($absen['status']) }}
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <p class="p-4 text-[12px] text-center text-slate-400">Belum ada siswa bimbingan aktif.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
 
         <div class="bg-white border border-slate-200 rounded-[1rem] overflow-hidden shadow-sm mb-3 transition-all">
             <button @click="openDudika = !openDudika"
@@ -194,6 +270,7 @@
         </div>
 
     </section>
+
     <div class="absolute bottom-[85px] right-4 z-[60]">
         <a href="{{ route('pembimbing.bot') }}" wire:navigate
             class="flex h-14 w-14 items-center justify-center rounded-full bg-[#3525cd] text-white shadow-[0_4px_15px_rgba(53,37,205,0.4)] active:scale-90 hover:bg-[#2c1eb3] transition-all border-[3px] border-white">
