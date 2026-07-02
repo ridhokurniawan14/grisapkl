@@ -106,25 +106,23 @@ class Beranda extends Component
                 $s = $journalsInRange->where('attend_status', 'Sakit')->count();
                 $l = $journalsInRange->where('attend_status', 'Libur')->count();
 
-                // E. Hitung Alpha: hari kerja dalam range dikurangi hari yang sudah ada jurnalnya
-                $workingDays = 0;
-                if ($startDate->lessThanOrEqualTo($limitDate)) {
-                    $period = \Carbon\CarbonPeriod::create($startDate, $limitDate);
-                    foreach ($period as $date) {
-                        if ($date->isWeekday()) {
-                            $workingDays++;
-                        }
-                    }
-                }
+                // E. Hitung Alpha: SEMUA hari kalender (Senin s/d Minggu)
+                // Siswa PKL wajib absen setiap hari, termasuk hari libur
+                // (status Libur/Sakit/Izin pun wajib tetap diinput).
+                // Karena itu Alpha dihitung dari TOTAL hari kalender,
+                // bukan hanya hari kerja (weekday) saja.
+                $totalDays = $startDate->lessThanOrEqualTo($limitDate)
+                    ? (int) $startDate->diffInDays($limitDate) + 1
+                    : 0;
 
-                // Hitung tanggal unik yang sudah ada jurnalnya (hanya hari kerja)
+                // Hitung tanggal unik yang sudah ada jurnalnya (semua hari)
                 $loggedDays = $journalsInRange
-                    ->filter(fn($j) => Carbon::parse($j->date)->isWeekday())
                     ->pluck('date')
+                    ->map(fn($d) => Carbon::parse($d)->toDateString())
                     ->unique()
                     ->count();
 
-                $alpha = max(0, $workingDays - $loggedDays);
+                $alpha = max(0, $totalDays - $loggedDays);
 
                 return [
                     'id'     => $student->id,
