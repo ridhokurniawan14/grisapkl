@@ -158,14 +158,13 @@ class Beranda extends Component
                 $student = $placement->student;
                 $studentName = $student->user->name ?? 'Siswa';
 
-                // Query mengecek jurnal/absen hari ini. 
-                // Ganti 'created_at' jadi nama kolom tanggal di tabel journals jika kamu punya kolom spesifik (misal: 'date' atau 'tanggal')
+                // PERBAIKAN 1: Gunakan kolom 'date' untuk mencari data hari ini
                 $absenHariIni = Journal::where('pkl_placement_id', $placement->id)
-                    ->whereDate('created_at', $today)
+                    ->whereDate('date', $today)
                     ->first();
 
-                // Ganti 'status' jadi nama kolom absensimu di tabel journals jika namanya beda (misal: 'kehadiran')
-                $statusAbsen = $absenHariIni ? ($absenHariIni->status ?? 'Hadir') : 'Belum Absen';
+                // PERBAIKAN 2: Gunakan kolom 'attend_status' sesuai struktur tabelmu
+                $statusAbsen = $absenHariIni ? $absenHariIni->attend_status : 'Belum Absen';
 
                 $rawPhone = $student->phone ?? ($student->user->phone ?? '');
                 $formattedPhone = $formatPhone($rawPhone);

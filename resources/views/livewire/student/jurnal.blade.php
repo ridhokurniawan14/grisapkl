@@ -1,5 +1,6 @@
 <div wire:poll.30s class="relative w-full pb-2 min-h-[calc(100vh-4rem)]" x-data="{
     showDetailModal: false,
+    showPrintModal: false,
     selectedJournal: null,
     fullScreenImg: null,
     openDetail(journal) {
@@ -8,9 +9,16 @@
     }
 }">
 
-    <section class="flex flex-col gap-1 mt-4 px-2">
-        <h2 class="text-[22px] font-extrabold text-slate-800 tracking-tight">Jurnal Kegiatan</h2>
-        <p class="text-[13px] font-medium text-slate-500">Pantau aktivitas & kelola revisi prakerinmu.</p>
+    <section class="flex justify-between items-center mt-4 px-2">
+        <div class="flex flex-col gap-1">
+            <h2 class="text-[22px] font-extrabold text-slate-800 tracking-tight">Jurnal Kegiatan</h2>
+            <p class="text-[13px] font-medium text-slate-500">Pantau aktivitas & kelola revisi.</p>
+        </div>
+
+        <button @click="showPrintModal = true"
+            class="bg-[#3525cd] text-white px-3 py-2 rounded-[0.75rem] text-[12px] font-bold flex items-center gap-1 shadow-md hover:bg-indigo-700 active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-[18px]">print</span> Cetak
+        </button>
     </section>
 
     <section class="grid grid-cols-2 gap-3 mt-4 px-1">
@@ -68,27 +76,33 @@
             </div>
         </div>
 
-        @if (!empty($selectedMonth) || !empty($selectedStatus))
-            <div class="relative w-full animate-fade-in-up mt-1 group">
-                <span
-                    class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] group-focus-within:text-[#3525cd] transition-colors">search</span>
-                <input wire:model.live.debounce.500ms="search"
-                    class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] pl-10 pr-4 text-[13px] text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm"
-                    placeholder="Cari kegiatan jurnal..." type="text" />
+        <div class="flex gap-2 w-full mt-1">
+            <div class="relative flex-1 group">
+                <span class="absolute -top-2.5 left-3 bg-slate-50 px-1 text-[10px] font-bold text-slate-400 z-10">Mulai
+                    Tanggal</span>
+                <input wire:model.live="filterStartDate" type="date"
+                    class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] px-3 text-[13px] text-slate-700 focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm" />
             </div>
-        @endif
+
+            <div class="relative flex-1 group">
+                <span class="absolute -top-2.5 left-3 bg-slate-50 px-1 text-[10px] font-bold text-slate-400 z-10">Sampai
+                    Tanggal</span>
+                <input wire:model.live="filterEndDate" type="date"
+                    class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] px-3 text-[13px] text-slate-700 focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm" />
+            </div>
+        </div>
     </section>
 
     <section class="flex flex-col gap-3 mt-5 px-1">
 
-        @if (empty($selectedMonth) && empty($selectedStatus) && empty($search))
+        @if (empty($selectedMonth) && empty($selectedStatus) && empty($filterStartDate) && empty($filterEndDate))
             <div class="flex flex-col items-center justify-center py-12 px-6 text-center opacity-80 mt-4">
                 <div class="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-4">
                     <span class="material-symbols-outlined text-[36px] text-slate-400">filter_alt</span>
                 </div>
                 <h3 class="text-[16px] font-bold text-slate-700">Tentukan Filter</h3>
-                <p class="text-[13px] text-slate-500 mt-1">Silakan pilih bulan atau status di atas untuk menampilkan
-                    daftar jurnal kamu.</p>
+                <p class="text-[13px] text-slate-500 mt-1">Silakan pilih bulan, status, atau rentang tanggal di atas
+                    untuk menampilkan daftar jurnal kamu.</p>
             </div>
         @else
             @forelse($journals as $journal)
@@ -134,12 +148,10 @@
                             {{ $journal->activity ?: 'Belum ada catatan kegiatan.' }}</p>
                     </div>
 
-                    {{-- ── MANTRA SAKTI: GALERI GAMBAR DI CARD JURNAL ──────────────── --}}
                     @if ($journal->attendance_photo_path || $journal->photo_path)
                         <div
                             class="flex gap-2 overflow-x-auto mt-1 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-                            {{-- Foto Selfie Absen --}}
                             @if ($journal->attendance_photo_path)
                                 <div @click="fullScreenImg = '{{ asset('storage/' . $journal->attendance_photo_path) }}'"
                                     class="relative w-24 h-24 shrink-0 rounded-[0.75rem] overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer active:scale-95 transition-transform group">
@@ -152,7 +164,6 @@
                                 </div>
                             @endif
 
-                            {{-- Foto Bukti / Kegiatan --}}
                             @if ($journal->photo_path)
                                 <div @click="fullScreenImg = '{{ asset('storage/' . $journal->photo_path) }}'"
                                     class="relative w-32 h-24 shrink-0 rounded-[0.75rem] overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer active:scale-95 transition-transform group">
@@ -167,7 +178,6 @@
 
                         </div>
                     @endif
-                    {{-- ────────────────────────────────────────────────────────────── --}}
 
                     @if ($isRejected)
                         <div class="bg-red-50 border border-red-100 rounded-lg p-2 mt-1">
@@ -193,7 +203,8 @@
             @empty
                 <div class="flex flex-col items-center justify-center py-10 opacity-60">
                     <span class="material-symbols-outlined text-[48px] text-slate-400 mb-3">search_off</span>
-                    <p class="text-[13px] font-bold text-slate-500">Tidak ada jurnal yang sesuai.</p>
+                    <p class="text-[13px] font-bold text-slate-500">Tidak ada jurnal yang sesuai dengan rentang tanggal
+                        ini.</p>
                 </div>
             @endforelse
         @endif
@@ -284,6 +295,92 @@
                     </div>
                 </div>
             </template>
+        </div>
+    </div>
+
+    <div x-show="showPrintModal" x-cloak
+        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+
+        <div @click.away="showPrintModal = false" x-show="showPrintModal"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+            class="bg-white w-full max-w-[350px] rounded-[1.5rem] p-5 shadow-2xl relative" x-data="{
+                startDate: '{{ \Carbon\Carbon::now()->subMonth()->format('Y-m-d') }}',
+                endDate: '{{ \Carbon\Carbon::now()->format('Y-m-d') }}',
+                errorMsg: '',
+                checkDate(e) {
+                    this.errorMsg = '';
+            
+                    if (!this.startDate || !this.endDate) {
+                        this.errorMsg = 'Tanggal awal dan akhir wajib diisi.';
+                        e.preventDefault();
+                        return;
+                    }
+            
+                    let d1 = new Date(this.startDate);
+                    let d2 = new Date(this.endDate);
+            
+                    if (d2 < d1) {
+                        this.errorMsg = 'Tanggal akhir harus lebih besar atau sama dengan tanggal awal.';
+                        e.preventDefault();
+                        return;
+                    }
+            
+                    let diffTime = Math.abs(d2 - d1);
+                    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+                    if (diffDays > 31) {
+                        this.errorMsg = 'Rentang waktu maksimal 31 hari bro, biar server nggak lemot.';
+                        e.preventDefault();
+                        return;
+                    }
+            
+                    setTimeout(() => { showPrintModal = false; }, 500);
+                }
+            }">
+
+            <button @click="showPrintModal = false"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 active:scale-95 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            <div class="flex items-center gap-2 mb-4 text-[#3525cd]">
+                <span class="material-symbols-outlined text-[24px]">print</span>
+                <h3 class="text-lg font-extrabold text-slate-800">Cetak Laporan</h3>
+            </div>
+
+            <p class="text-[12px] text-slate-500 mb-4">Pilih rentang tanggal jurnal yang ingin dicetak (Maksimal 1
+                Bulan).</p>
+
+            <div class="flex flex-col gap-3">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">Dari Tanggal</label>
+                    <input type="date" x-model="startDate"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl h-[42px] px-3 text-[13px] text-slate-700 outline-none focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] transition-all">
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">Sampai Tanggal</label>
+                    <input type="date" x-model="endDate"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl h-[42px] px-3 text-[13px] text-slate-700 outline-none focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] transition-all">
+                </div>
+
+                <template x-if="errorMsg">
+                    <div
+                        class="bg-red-50 text-red-600 p-2 rounded-lg border border-red-100 flex items-start gap-1 mt-1">
+                        <span class="material-symbols-outlined text-[16px]">error</span>
+                        <p class="text-[11px] font-medium leading-tight" x-text="errorMsg"></p>
+                    </div>
+                </template>
+            </div>
+
+            <a :href="`{{ route('siswa.jurnal.cetak') }}?start=${startDate}&end=${endDate}`" target="_blank"
+                @click="checkDate($event)"
+                class="w-full bg-[#3525cd] text-white font-bold text-[13px] rounded-xl h-[46px] mt-5 flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-[18px]">download</span>
+                <span>Download PDF</span>
+            </a>
         </div>
     </div>
 

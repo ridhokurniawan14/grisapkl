@@ -17,9 +17,9 @@ use App\Livewire\Pembimbing\UbahPassword;
 use App\Livewire\Pembimbing\Data;
 use App\Livewire\Pembimbing\Lapor;
 use App\Livewire\Pembimbing\LaporEdit;
-use App\Http\Middleware\CheckUserActive;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Middleware\CheckUserActive;
 use App\Models\Dudika;
 use App\Models\Journal;
 use Illuminate\Http\Request;
@@ -45,7 +45,6 @@ Route::get('/', function () {
 });
 
 Route::view('/offline', 'offline')->name('offline');
-
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', LoginUniversal::class)->name('login');
@@ -81,6 +80,50 @@ Route::middleware(['auth', CheckUserActive::class, 'role:siswa'])->group(functio
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
         ]);
     })->middleware(['auth'])->name('siswa.laporan.download');
+
+
+    Route::get('/siswa/jurnal/cetak', function (\Illuminate\Http\Request $request) {
+        $start = $request->start;
+        $end = $request->end;
+
+        // --- TAMBAHAN PENGAMAN SERVER ---
+        $dateStart = Carbon::parse($start);
+        $dateEnd = Carbon::parse($end);
+        if ($dateStart->diffInDays($dateEnd) > 31) {
+            abort(403, 'Sabar bro! Maksimal cetak jurnal cuma 31 hari supaya server nggak lemot.');
+        }
+        // --------------------------------
+
+        $user = auth()->user();
+
+        // Cari ID Penempatan yang Aktif milik siswa yang sedang login
+        $placement = \App\Models\PklPlacement::with(['student', 'dudika'])
+            ->whereHas('student', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->where('status', 'Aktif')->firstOrFail();
+
+        // Ambil data jurnal sesuai rentang waktu yang direquest
+        $journals = \App\Models\Journal::where('pkl_placement_id', $placement->id)
+            ->whereBetween('date', [$start, $end])
+            ->orderBy('date', 'asc')
+            ->orderBy('time', 'asc')
+            ->get();
+
+        if ($journals->isEmpty()) {
+            return back()->with('error', 'Tidak ada data jurnal di rentang waktu tersebut.');
+        }
+
+        $journalsByStudent = collect([
+            $placement->id => $journals
+        ]);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.journal', compact('journalsByStudent'))
+            ->setPaper('a4', 'portrait');
+
+        $fileName = 'Jurnal_PKL_' . str_replace(' ', '_', $placement->student->name) . '_' . $start . '_sd_' . $end . '.pdf';
+
+        return $pdf->download($fileName);
+    })->name('siswa.jurnal.cetak');
 });
 
 // ==========================================================
