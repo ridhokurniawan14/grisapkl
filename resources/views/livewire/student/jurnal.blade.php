@@ -3,11 +3,12 @@
     showPrintModal: false,
     selectedJournal: null,
     fullScreenImg: null,
+    showIncompleteModal: false,
     openDetail(journal) {
         this.selectedJournal = journal;
         this.showDetailModal = true;
     }
-}">
+}" x-init="showIncompleteModal = @js($incompleteCount > 0)">
 
     <section class="flex justify-between items-center mt-4 px-2">
         <div class="flex flex-col gap-1">
@@ -95,7 +96,27 @@
 
     <section class="flex flex-col gap-3 mt-5 px-1">
 
-        @if (empty($selectedMonth) && empty($selectedStatus) && empty($filterStartDate) && empty($filterEndDate))
+        @if ($showOnlyIncomplete)
+            <div
+                class="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-3.5 py-3">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-500 text-[20px]">warning</span>
+                    <p class="text-[12px] font-bold text-amber-700">Menampilkan jurnal yang foto kegiatannya belum
+                        lengkap.</p>
+                </div>
+                <button wire:click="resetModeLengkap"
+                    class="shrink-0 w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center text-amber-600 hover:bg-white active:scale-95 transition-all">
+                    <span class="material-symbols-outlined text-[16px]">close</span>
+                </button>
+            </div>
+        @endif
+
+        @if (
+            !$showOnlyIncomplete &&
+                empty($selectedMonth) &&
+                empty($selectedStatus) &&
+                empty($filterStartDate) &&
+                empty($filterEndDate))
             <div class="flex flex-col items-center justify-center py-12 px-6 text-center opacity-80 mt-4">
                 <div class="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-4">
                     <span class="material-symbols-outlined text-[36px] text-slate-400">filter_alt</span>
@@ -109,6 +130,15 @@
                 @php
                     $isApproved = $journal->is_valid == true;
                     $isRejected = $journal->is_valid === 0 || $journal->is_valid === false;
+
+                    // Cek kelengkapan foto sesuai status kehadiran
+                    if ($journal->attend_status === 'Hadir') {
+                        $isPhotoIncomplete = empty($journal->attendance_photo_path) || empty($journal->photo_path);
+                    } elseif (in_array($journal->attend_status, ['Sakit', 'Izin'])) {
+                        $isPhotoIncomplete = empty($journal->photo_path);
+                    } else {
+                        $isPhotoIncomplete = false;
+                    }
 
                     if ($journal->attend_status == 'Libur') {
                         $bgColorClass = 'bg-blue-50 text-blue-700';
@@ -147,6 +177,15 @@
                         <p class="text-[12px] text-slate-500 leading-snug line-clamp-2 mt-0.5">
                             {{ $journal->activity ?: 'Belum ada catatan kegiatan.' }}</p>
                     </div>
+
+                    @if ($isPhotoIncomplete)
+                        <div
+                            class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 -mt-0.5">
+                            <span class="material-symbols-outlined text-amber-500 text-[15px]">photo_camera</span>
+                            <p class="text-[10px] font-bold text-amber-700">Foto kegiatan belum lengkap, segera upload.
+                            </p>
+                        </div>
+                    @endif
 
                     @if ($journal->attendance_photo_path || $journal->photo_path)
                         <div
@@ -213,9 +252,10 @@
     <div x-show="showDetailModal" x-cloak
         class="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:px-4">
         <div x-show="showDetailModal" @click.away="if(fullScreenImg === null) showDetailModal = false"
-            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-full"
-            x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-full"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-full" x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 translate-y-full"
             class="bg-white w-full max-w-[400px] sm:rounded-[2rem] rounded-t-[2rem] p-6 pb-8 flex flex-col shadow-2xl relative max-h-[90vh] overflow-y-auto">
 
             <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden"></div>
@@ -295,6 +335,64 @@
                     </div>
                 </div>
             </template>
+        </div>
+    </div>
+
+    <div x-show="showIncompleteModal" x-cloak
+        class="fixed inset-0 z-[10500] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+
+        <div @click.away="showIncompleteModal = false" x-show="showIncompleteModal"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+            class="bg-white w-full max-w-[350px] rounded-[1.5rem] p-5 shadow-2xl relative">
+
+            <button @click="showIncompleteModal = false"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 active:scale-95 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            <div class="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mb-3">
+                <span class="material-symbols-outlined text-amber-500 text-[28px]">photo_camera</span>
+            </div>
+
+            <h3 class="text-lg font-extrabold text-slate-800 mb-1">Foto Kegiatan Belum Lengkap</h3>
+            <p class="text-[12.5px] text-slate-500 leading-relaxed mb-3">
+                Ada <span class="font-bold text-amber-600">{{ $incompleteCount }} jurnal</span> kamu yang belum
+                dilengkapi foto. Ingat ya: <span class="font-semibold text-slate-700">Hadir</span> wajib foto selfie
+                absen &amp; foto kegiatan, sedangkan <span class="font-semibold text-slate-700">Sakit/Izin</span>
+                cukup foto kegiatan saja.
+            </p>
+
+            @if (!empty($incompleteDates))
+                <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-4 max-h-[140px] overflow-y-auto">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tanggal yang perlu
+                        dilengkapi</p>
+                    <ul class="flex flex-col gap-1.5">
+                        @foreach ($incompleteDates as $item)
+                            <li class="flex items-center justify-between text-[11.5px]">
+                                <span class="font-semibold text-slate-600">{{ $item['date'] }}</span>
+                                <span class="text-slate-400">{{ $item['status'] }}</span>
+                            </li>
+                        @endforeach
+                        @if ($incompleteCount > count($incompleteDates))
+                            <li class="text-[10.5px] text-slate-400 italic pt-0.5">
+                                +{{ $incompleteCount - count($incompleteDates) }} jurnal lainnya...</li>
+                        @endif
+                    </ul>
+                </div>
+            @endif
+
+            <div class="flex gap-2">
+                <button @click="showIncompleteModal = false"
+                    class="flex-1 h-[46px] rounded-xl bg-slate-100 text-slate-600 font-bold text-[13px] hover:bg-slate-200 active:scale-95 transition-all">
+                    Nanti Saja
+                </button>
+                <button wire:click="tampilkanBelumLengkap" @click="showIncompleteModal = false"
+                    class="flex-1 h-[46px] rounded-xl bg-[#3525cd] text-white font-bold text-[13px] flex items-center justify-center gap-1.5 hover:bg-indigo-700 active:scale-95 transition-all">
+                    <span class="material-symbols-outlined text-[18px]">edit</span> Perbaiki
+                </button>
+            </div>
         </div>
     </div>
 
