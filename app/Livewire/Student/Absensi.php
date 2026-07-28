@@ -307,17 +307,17 @@ class Absensi extends Component
                 $recap['Sakit'] = $journalsInRange->where('attend_status', 'Sakit')->count();
                 $recap['Libur'] = $journalsInRange->where('attend_status', 'Libur')->count();
 
-                $workingDays = 0;
-                if ($startDate->lessThanOrEqualTo($limitDate)) {
-                    $period = \Carbon\CarbonPeriod::create($startDate, $limitDate);
-                    foreach ($period as $date) {
-                        if ($date->isWeekday()) $workingDays++;
-                    }
-                }
+                // Siswa PKL wajib absen SEMUA hari (termasuk Sabtu/Minggu),
+                // jadi Alpha dihitung dari semua hari kalender, bukan hanya hari kerja.
+                // (Disamakan dengan logic di Livewire\Pembimbing\Siswa.php)
+                $totalDays = $startDate->lessThanOrEqualTo($limitDate)
+                    ? (int) $startDate->diffInDays($limitDate) + 1
+                    : 0;
+
                 $loggedDays = $journalsInRange
-                    ->filter(fn($j) => Carbon::parse($j->date)->isWeekday())
                     ->pluck('date')->unique()->count();
-                $recap['Alpha'] = max(0, $workingDays - $loggedDays);
+
+                $recap['Alpha'] = max(0, $totalDays - $loggedDays);
             } else {
                 // Kalau placement tidak punya range tanggal, hitung semua jurnal seperti biasa
                 $recap['Hadir'] = $allJournals->where('attend_status', 'Hadir')->count();
