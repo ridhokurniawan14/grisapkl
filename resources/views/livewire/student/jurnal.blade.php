@@ -9,7 +9,6 @@
         this.showDetailModal = true;
     }
 }" x-init="showIncompleteModal = @js($incompleteCount > 0)">
-
     <section class="flex justify-between items-center mt-4 px-2">
         <div class="flex flex-col gap-1">
             <h2 class="text-[22px] font-extrabold text-slate-800 tracking-tight">Jurnal Kegiatan</h2>
@@ -68,6 +67,7 @@
                     <option value="Izin">Izin</option>
                     <option value="Sakit">Sakit</option>
                     <option value="Libur">Libur</option>
+                    <option value="Alpha">Alpha</option>
                     <option value="Revisi">Perlu Revisi</option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -140,7 +140,12 @@
                         $isPhotoIncomplete = false;
                     }
 
-                    if ($journal->attend_status == 'Libur') {
+                    $isAlpha = $journal->attend_status === 'Alpha';
+
+                    if ($isAlpha) {
+                        $bgColorClass = 'bg-slate-200 text-slate-600';
+                        $iconClass = 'person_off';
+                    } elseif ($journal->attend_status == 'Libur') {
                         $bgColorClass = 'bg-blue-50 text-blue-700';
                         $iconClass = 'event_available';
                     } elseif ($isApproved) {
@@ -163,19 +168,23 @@
                             <span class="material-symbols-outlined text-[16px]">calendar_clock</span>
                             <span
                                 class="text-[11px] font-bold">{{ \Carbon\Carbon::parse($journal->date)->isoFormat('D MMM YYYY') }}
-                                • {{ \Carbon\Carbon::parse($journal->time)->format('H:i') }}</span>
+                                @if ($journal->time)
+                                    • {{ \Carbon\Carbon::parse($journal->time)->format('H:i') }}
+                                @endif
+                            </span>
                         </div>
                         <span
                             class="inline-flex items-center px-2 py-0.5 rounded-md {{ $bgColorClass }} font-bold text-[10px]">
                             <span class="material-symbols-outlined text-[12px] mr-1">{{ $iconClass }}</span>
-                            {{ $isApproved ? 'Disetujui' : ($isRejected ? 'Revisi' : ($journal->attend_status == 'Libur' ? 'Libur' : 'Menunggu')) }}
+                            {{ $isAlpha ? 'Alpha' : ($isApproved ? 'Disetujui' : ($isRejected ? 'Revisi' : ($journal->attend_status == 'Libur' ? 'Libur' : 'Menunggu'))) }}
                         </span>
                     </header>
 
                     <div>
                         <h3 class="text-[14px] font-bold text-slate-800 line-clamp-1">{{ $journal->attend_status }}</h3>
                         <p class="text-[12px] text-slate-500 leading-snug line-clamp-2 mt-0.5">
-                            {{ $journal->activity ?: 'Belum ada catatan kegiatan.' }}</p>
+                            {{ $journal->activity ?: ($isAlpha ? 'Tidak ada jurnal / absensi pada tanggal ini.' : 'Belum ada catatan kegiatan.') }}
+                        </p>
                     </div>
 
                     @if ($isPhotoIncomplete)
@@ -225,19 +234,21 @@
                         </div>
                     @endif
 
-                    <footer class="flex justify-end gap-2 mt-1 border-t border-slate-50 pt-2">
-                        @if ($journal->is_editable)
-                            <a href="{{ route('siswa.jurnal.edit', $journal->id) }}" wire:navigate
-                                class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#3525cd] hover:bg-indigo-50 active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-[18px]">edit</span>
-                            </a>
-                        @endif
+                    @if (!$isAlpha)
+                        <footer class="flex justify-end gap-2 mt-1 border-t border-slate-50 pt-2">
+                            @if ($journal->is_editable)
+                                <a href="{{ route('siswa.jurnal.edit', $journal->id) }}" wire:navigate
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#3525cd] hover:bg-indigo-50 active:scale-95 transition-all">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </a>
+                            @endif
 
-                        <button @click="openDetail({{ $journal->toJson() }})"
-                            class="h-8 px-3 rounded-lg flex items-center gap-1.5 bg-slate-50 text-slate-600 hover:bg-[#3525cd] hover:text-white active:scale-95 transition-all text-[11px] font-bold">
-                            <span class="material-symbols-outlined text-[16px]">visibility</span> Detail
-                        </button>
-                    </footer>
+                            <button @click="openDetail({{ json_encode($journal) }})"
+                                class="h-8 px-3 rounded-lg flex items-center gap-1.5 bg-slate-50 text-slate-600 hover:bg-[#3525cd] hover:text-white active:scale-95 transition-all text-[11px] font-bold">
+                                <span class="material-symbols-outlined text-[16px]">visibility</span> Detail
+                            </button>
+                        </footer>
+                    @endif
                 </article>
             @empty
                 <div class="flex flex-col items-center justify-center py-10 opacity-60">

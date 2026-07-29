@@ -52,6 +52,7 @@
                     <option value="Semua Status">Semua Status</option>
                     <option value="Revisi">Revisi</option>
                     <option value="Disetujui">Disetujui</option>
+                    <option value="Alpha">Alpha (Siswa Tidak Absen)</option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                     <span class="material-symbols-outlined text-slate-400 text-[18px]">arrow_drop_down</span>
@@ -70,6 +71,13 @@
                     class="w-full h-full bg-white border border-slate-200 text-slate-700 text-[12px] font-bold rounded-xl px-3 outline-none focus:border-[#3525cd] shadow-sm">
             </div>
         </div>
+
+        @if ($filterStatus === 'Alpha' && empty($startDate) && empty($endDate))
+            <p class="text-[10.5px] font-medium text-slate-400 mt-1 italic">
+                *Belum pilih rentang tanggal, jadi ditampilkan Alpha bulan berjalan saja. Pilih tanggal di atas untuk
+                rentang lain.
+            </p>
+        @endif
     </div>
 
     <div class="mt-4 flex flex-col gap-4 px-1" wire:loading.class="opacity-50 transition-opacity duration-200"
@@ -100,6 +108,19 @@
                 <div class="bg-white border border-slate-200 rounded-[1.25rem] overflow-hidden shadow-sm">
 
                     <div class="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+                        @php
+                            $isAlphaJournal = $journal['attend_status'] === 'Alpha';
+                            $badgeClass = $isAlphaJournal
+                                ? 'bg-slate-200 text-slate-600 border-slate-300'
+                                : ($journal['attend_status'] == 'Hadir'
+                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                    : 'bg-amber-50 text-amber-600 border-amber-100');
+                            $dotClass = $isAlphaJournal
+                                ? 'bg-slate-500'
+                                : ($journal['attend_status'] == 'Hadir'
+                                    ? 'bg-emerald-500'
+                                    : 'bg-amber-500');
+                        @endphp
                         <div
                             class="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-[#e2dfff] flex items-center justify-center text-[#3525cd] font-bold shadow-inner">
                             @if ($journal['avatar'])
@@ -117,10 +138,9 @@
                             </p>
                         </div>
 
-                        <div
-                            class="flex items-center gap-1 {{ $journal['attend_status'] == 'Hadir' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100' }} px-2.5 py-1 rounded-full border">
+                        <div class="flex items-center gap-1 {{ $badgeClass }} px-2.5 py-1 rounded-full border">
                             <span
-                                class="w-1.5 h-1.5 rounded-full {{ $journal['attend_status'] == 'Hadir' ? 'bg-emerald-500' : 'bg-amber-500' }} {{ $journal['attend_status'] == 'Hadir' ? 'animate-pulse' : '' }}"></span>
+                                class="w-1.5 h-1.5 rounded-full {{ $dotClass }} {{ $journal['attend_status'] == 'Hadir' ? 'animate-pulse' : '' }}"></span>
                             <span class="text-[10px] font-bold">{{ $journal['attend_status'] }}</span>
                         </div>
                     </div>
@@ -179,6 +199,11 @@
                                     <span class="material-symbols-outlined text-red-500 text-[18px]">error</span>
                                     <span class="text-[11px] font-bold text-red-600 uppercase tracking-wide">Butuh
                                         Revisi</span>
+                                @elseif($journal['status'] === 'Alpha')
+                                    <span
+                                        class="material-symbols-outlined text-slate-500 text-[18px]">person_off</span>
+                                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Tidak
+                                        Ada Jurnal</span>
                                 @endif
                             </div>
 

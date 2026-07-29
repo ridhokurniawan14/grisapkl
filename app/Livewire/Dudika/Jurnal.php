@@ -10,6 +10,8 @@ use App\Models\Journal;
 use App\Models\Dudika;
 use App\Models\PklPlacement;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Carbon\Carbon;
 
 #[Layout('components.layouts.app')]
@@ -75,6 +77,112 @@ class Jurnal extends Component
         }
     }
 
+    /**
+     * Generate entri "Alpha" (virtual, bukan record di DB) untuk siswa-siswa
+     * yang magang di DUDIKA ini, khusus ketika filter status = "Alpha" dipilih.
+     * Dibatasi rentang tanggal (default: bulan berjalan) biar nggak berat.
+     */
+    private function getAlphaJournals(Dudika $dudika)
+    {
+        $rangeStart = !empty($this->startDate)
+            ? Carbon::parse($this->startDate)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+        $rangeEnd = !empty($this->endDate)
+            ? Carbon::parse($this->endDate)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $perPage = 15;
+        $page = Paginator::resolveCurrentPage('page') ?: 1;
+
+        if ($rangeStart->greaterThan($rangeEnd)) {
+            return new LengthAwarePaginator([], 0, $perPage, $page, [
+                'path' => Paginator::resolveCurrentPath(),
+            ]);
+        }
+
+        $placementsQuery = PklPlacement::with('student.user')
+            ->where('dudika_id', $dudika->id)
+            ->where('status', 'Aktif');
+
+        if ($this->filterSiswa !== 'Semua Siswa') {
+            $placementsQuery->whereHas('student.user', function ($q) {
+                $q->where('name', $this->filterSiswa);
+            });
+        }
+
+        $placements = $placementsQuery->get();
+        $alphaList = [];
+
+        foreach ($placements as $placement) {
+            $student = $placement->student;
+            if (!$student) continue;
+
+            $studentName = $student->user->name ?? 'Siswa';
+
+            if (!$placement->start_date) continue;
+
+            $placementStart = Carbon::parse($placement->start_date)->startOfDay();
+            $todayLimit = Carbon::now()->endOfDay();
+            $placementEnd = $placement->end_date
+                ? Carbon::parse($placement->end_date)->endOfDay()
+                : $todayLimit;
+            $placementEnd = $todayLimit->lessThan($placementEnd) ? $todayLimit : $placementEnd;
+
+            $effectiveStart = $placementStart->greaterThan($rangeStart) ? $placementStart : $rangeStart;
+            $effectiveEnd = $placementEnd->lessThan($rangeEnd) ? $placementEnd : $rangeEnd;
+
+            if ($effectiveStart->greaterThan($effectiveEnd)) continue;
+
+            $existingDates = Journal::where('pkl_placement_id', $placement->id)
+                ->whereBetween('date', [$effectiveStart->toDateString(), $effectiveEnd->toDateString()])
+                ->pluck('date')
+                ->map(fn($d) => Carbon::parse($d)->toDateString())
+                ->unique()
+                ->flip()
+                ->all();
+
+            $avatarPath = null;
+            if (!empty($student->user->avatar)) {
+                $avatarPath = asset('storage/' . $student->user->avatar);
+            } elseif (!empty($student->avatar)) {
+                $avatarPath = asset('storage/' . $student->avatar);
+            }
+
+            $period = \Carbon\CarbonPeriod::create($effectiveStart, $effectiveEnd);
+
+            foreach ($period as $date) {
+                $dateStr = $date->toDateString();
+                if (isset($existingDates[$dateStr])) continue;
+
+                $dateRaw = $date->isoFormat('D MMMM YYYY');
+
+                $alphaList[] = [
+                    'id'               => 'alpha-' . $placement->id . '-' . $dateStr,
+                    'student_name'     => $studentName,
+                    'avatar'           => $avatarPath,
+                    'date_str'         => $dateRaw,
+                    'attend_status'    => 'Alpha',
+                    'attendance_photo' => null,
+                    'content'          => 'Siswa tidak mengisi jurnal / absensi pada tanggal ini.',
+                    'images'           => [],
+                    'status'           => 'Alpha',
+                    'revision_note'    => null,
+                    'sort_key'         => $dateStr,
+                ];
+            }
+        }
+
+        usort($alphaList, fn($a, $b) => strcmp($b['sort_key'], $a['sort_key']));
+
+        $total = count($alphaList);
+        $items = array_slice($alphaList, ($page - 1) * $perPage, $perPage);
+
+        return new LengthAwarePaginator($items, $total, $perPage, $page, [
+            'path' => Paginator::resolveCurrentPath(),
+        ]);
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -101,91 +209,95 @@ class Jurnal extends Component
             })->unique()->filter()->values()->toArray();
 
             if ($isFiltered) {
-                $query = Journal::with(['pklPlacement.student.user'])
-                    ->whereHas('pklPlacement', function ($q) use ($dudika) {
-                        $q->where('dudika_id', $dudika->id);
-                    })
-                    ->orderBy('date', 'desc')->orderBy('time', 'desc');
+                if ($this->filterStatus === 'Alpha') {
+                    $filteredJournals = $this->getAlphaJournals($dudika);
+                } else {
+                    $query = Journal::with(['pklPlacement.student.user'])
+                        ->whereHas('pklPlacement', function ($q) use ($dudika) {
+                            $q->where('dudika_id', $dudika->id);
+                        })
+                        ->orderBy('date', 'desc')->orderBy('time', 'desc');
 
-                if (!empty($this->startDate) && !empty($this->endDate)) {
-                    $query->whereBetween('date', [$this->startDate, $this->endDate]);
-                } elseif (!empty($this->startDate)) {
-                    $query->where('date', '>=', $this->startDate);
-                } elseif (!empty($this->endDate)) {
-                    $query->where('date', '<=', $this->endDate);
-                }
-
-                // KHUSUS DUDIKA, "Menunggu" harus dipisah dari "Revisi" agar tau mana yang belum disentuh sama sekali
-                if ($this->filterStatus === 'Disetujui') {
-                    $query->where('is_valid', 1);
-                } elseif ($this->filterStatus === 'Revisi') {
-                    $query->where('is_valid', 0)->whereNotNull('revision_note');
-                } elseif ($this->filterStatus === 'Menunggu') {
-                    $query->where('is_valid', 0)->whereNull('revision_note');
-                }
-
-                if ($this->filterSiswa !== 'Semua Siswa') {
-                    $query->whereHas('pklPlacement.student.user', function ($q) {
-                        $q->where('name', $this->filterSiswa);
-                    });
-                }
-
-                if (!empty($this->search)) {
-                    $searchTerm = '%' . $this->search . '%';
-                    $query->where('activity', 'like', $searchTerm);
-                }
-
-                $results = $query->simplePaginate(15);
-
-                $results->getCollection()->transform(function ($j) {
-                    $student = $j->pklPlacement->student;
-                    $studentName = $student->user->name ?? 'Siswa';
-
-                    if ($j->is_valid) {
-                        $status = 'Disetujui';
-                    } elseif (!$j->is_valid && !empty($j->revision_note)) {
-                        $status = 'Revisi';
-                    } else {
-                        $status = 'Menunggu';
+                    if (!empty($this->startDate) && !empty($this->endDate)) {
+                        $query->whereBetween('date', [$this->startDate, $this->endDate]);
+                    } elseif (!empty($this->startDate)) {
+                        $query->where('date', '>=', $this->startDate);
+                    } elseif (!empty($this->endDate)) {
+                        $query->where('date', '<=', $this->endDate);
                     }
 
-                    $avatarPath = null;
-                    if (!empty($student->user->avatar)) {
-                        $avatarPath = asset('storage/' . $student->user->avatar);
-                    } elseif (!empty($student->avatar)) {
-                        $avatarPath = asset('storage/' . $student->avatar);
+                    // KHUSUS DUDIKA, "Menunggu" harus dipisah dari "Revisi" agar tau mana yang belum disentuh sama sekali
+                    if ($this->filterStatus === 'Disetujui') {
+                        $query->where('is_valid', 1);
+                    } elseif ($this->filterStatus === 'Revisi') {
+                        $query->where('is_valid', 0)->whereNotNull('revision_note');
+                    } elseif ($this->filterStatus === 'Menunggu') {
+                        $query->where('is_valid', 0)->whereNull('revision_note');
                     }
 
-                    $dateRaw = Carbon::parse($j->date)->isoFormat('D MMMM YYYY');
-                    $dateStr = $dateRaw . ', ' . Carbon::parse($j->time)->format('H:i') . ' WIB';
+                    if ($this->filterSiswa !== 'Semua Siswa') {
+                        $query->whereHas('pklPlacement.student.user', function ($q) {
+                            $q->where('name', $this->filterSiswa);
+                        });
+                    }
 
-                    $images = [];
-                    if ($j->photo_path) {
-                        $decoded = json_decode($j->photo_path, true);
-                        if (is_array($decoded)) {
-                            foreach ($decoded as $img) {
-                                $images[] = asset('storage/' . $img);
-                            }
+                    if (!empty($this->search)) {
+                        $searchTerm = '%' . $this->search . '%';
+                        $query->where('activity', 'like', $searchTerm);
+                    }
+
+                    $results = $query->simplePaginate(15);
+
+                    $results->getCollection()->transform(function ($j) {
+                        $student = $j->pklPlacement->student;
+                        $studentName = $student->user->name ?? 'Siswa';
+
+                        if ($j->is_valid) {
+                            $status = 'Disetujui';
+                        } elseif (!$j->is_valid && !empty($j->revision_note)) {
+                            $status = 'Revisi';
                         } else {
-                            $images[] = asset('storage/' . $j->photo_path);
+                            $status = 'Menunggu';
                         }
-                    }
 
-                    return [
-                        'id' => $j->id,
-                        'student_name' => $studentName,
-                        'avatar' => $avatarPath,
-                        'date_str' => $dateStr,
-                        'attend_status' => $j->attend_status,
-                        'attendance_photo' => $j->attendance_photo_path ? asset('storage/' . $j->attendance_photo_path) : null,
-                        'content' => $j->activity,
-                        'images' => $images,
-                        'status' => $status,
-                        'revision_note' => $j->revision_note, // Tambahan field catatan revisi
-                    ];
-                });
+                        $avatarPath = null;
+                        if (!empty($student->user->avatar)) {
+                            $avatarPath = asset('storage/' . $student->user->avatar);
+                        } elseif (!empty($student->avatar)) {
+                            $avatarPath = asset('storage/' . $student->avatar);
+                        }
 
-                $filteredJournals = $results;
+                        $dateRaw = Carbon::parse($j->date)->isoFormat('D MMMM YYYY');
+                        $dateStr = $dateRaw . ', ' . Carbon::parse($j->time)->format('H:i') . ' WIB';
+
+                        $images = [];
+                        if ($j->photo_path) {
+                            $decoded = json_decode($j->photo_path, true);
+                            if (is_array($decoded)) {
+                                foreach ($decoded as $img) {
+                                    $images[] = asset('storage/' . $img);
+                                }
+                            } else {
+                                $images[] = asset('storage/' . $j->photo_path);
+                            }
+                        }
+
+                        return [
+                            'id' => $j->id,
+                            'student_name' => $studentName,
+                            'avatar' => $avatarPath,
+                            'date_str' => $dateStr,
+                            'attend_status' => $j->attend_status,
+                            'attendance_photo' => $j->attendance_photo_path ? asset('storage/' . $j->attendance_photo_path) : null,
+                            'content' => $j->activity,
+                            'images' => $images,
+                            'status' => $status,
+                            'revision_note' => $j->revision_note, // Tambahan field catatan revisi
+                        ];
+                    });
+
+                    $filteredJournals = $results;
+                }
             }
         }
 

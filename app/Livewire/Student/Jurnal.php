@@ -79,6 +79,71 @@ class Jurnal extends Component
             });
     }
 
+    /**
+     * Cari tanggal-tanggal dalam periode PKL (start_date s.d. hari ini / end_date,
+     * mana yang lebih dulu) yang SAMA SEKALI tidak punya record jurnal.
+     * Itu adalah hari-hari "Alpha".
+     */
+    private function getAlphaDates(PklPlacement $placement): array
+    {
+        if (!$placement->start_date) return [];
+
+        $startDate = Carbon::parse($placement->start_date)->startOfDay();
+        $todayLimit = Carbon::now()->endOfDay();
+        $endLimit = $placement->end_date
+            ? Carbon::parse($placement->end_date)->endOfDay()
+            : $todayLimit;
+        $limitDate = $todayLimit->lessThan($endLimit) ? $todayLimit : $endLimit;
+
+        if ($startDate->greaterThan($limitDate)) return [];
+
+        $existingDates = Journal::where('pkl_placement_id', $placement->id)
+            ->whereBetween('date', [$startDate->toDateString(), $limitDate->toDateString()])
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->toDateString())
+            ->unique()
+            ->flip()
+            ->all();
+
+        $alphaDates = [];
+        $period = \Carbon\CarbonPeriod::create($startDate, $limitDate);
+        foreach ($period as $date) {
+            $dateStr = $date->toDateString();
+            if (!isset($existingDates[$dateStr])) {
+                $alphaDates[] = $dateStr;
+            }
+        }
+
+        return $alphaDates;
+    }
+
+    /**
+     * Bikin objek "jurnal palsu" (virtual, tidak ada di DB) untuk hari Alpha,
+     * supaya bisa dirender pakai komponen kartu jurnal yang sama.
+     * PENTING: is_editable selalu false karena tidak ada record aslinya.
+     */
+    private function buildAlphaEntry(string $dateStr): \stdClass
+    {
+        $entry = new \stdClass();
+        $entry->id                     = 'alpha-' . $dateStr;
+        $entry->pkl_placement_id       = $this->placementId;
+        $entry->date                   = $dateStr;
+        $entry->time                   = null;
+        $entry->attend_status          = 'Alpha';
+        $entry->activity               = null;
+        $entry->is_valid               = null;
+        $entry->attendance_photo_path  = null;
+        $entry->photo_path             = null;
+        $entry->latitude               = null;
+        $entry->longitude              = null;
+        $entry->formatted_date         = Carbon::parse($dateStr)->isoFormat('D MMM YYYY');
+        $entry->formatted_time         = '-';
+        $entry->is_editable            = false; // Data Alpha tidak bisa diedit
+        $entry->attendance_photo_url   = null;
+        $entry->activity_photo_url     = null;
+        return $entry;
+    }
+
     public function render()
     {
         $journals = collect();
@@ -184,6 +249,31 @@ class Jurnal extends Component
 
                         return $j;
                     });
+
+                // ==== SISIPKAN ENTRI ALPHA (VIRTUAL) ====
+                // Alpha nggak pernah punya record di DB, jadi kita generate manual
+                // lalu digabung ke $journals sesuai filter yang aktif.
+                // Nggak berlaku di mode "Perbaiki Foto" karena itu khusus jurnal yang sudah ada.
+                $includeAlpha = !$this->showOnlyIncomplete
+                    && (empty($this->selectedStatus) || $this->selectedStatus === 'Alpha');
+
+                if ($includeAlpha) {
+                    foreach ($this->getAlphaDates($placement) as $dateStr) {
+                        // Filter bulan
+                        if (filled($this->selectedMonth) && !str_starts_with($dateStr, $this->selectedMonth)) {
+                            continue;
+                        }
+                        // Filter rentang tanggal
+                        if (filled($this->filterStartDate) && $dateStr < $this->filterStartDate) continue;
+                        if (filled($this->filterEndDate) && $dateStr > $this->filterEndDate) continue;
+
+                        $journals->push($this->buildAlphaEntry($dateStr));
+                    }
+
+                    $journals = $journals
+                        ->sortByDesc(fn($j) => $j->date . ' ' . ($j->time ?? '00:00:00'))
+                        ->values();
+                }
             }
         }
 
