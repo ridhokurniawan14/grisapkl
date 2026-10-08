@@ -184,17 +184,20 @@ class ChatBot extends Component
             $response = Http::withoutVerifying()
                 ->withHeaders([
                     'Content-Type'  => 'application/json',
-                    'Authorization' => 'Bearer ' . config('services.groq.key'),
+                    // Panggil API Key Gemini dari file .env
+                    'Authorization' => 'Bearer ' . env('GEMINI_API_KEY'),
                 ])
                 ->timeout(30)
-                ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model'       => 'llama-3.1-8b-instant',
+                // Ubah URL endpoint ke Gemini API (jalur kompatibilitas OpenAI)
+                ->post('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', [
+                    // Ganti nama model ke model Gemini
+                    'model'       => 'gemini-1.5-flash',
                     'messages'    => array_merge(
                         [['role' => 'system', 'content' => $this->getSystemPrompt()]],
                         $chatHistory
                     ),
                     'max_tokens'  => 512,
-                    'temperature' => 0.5, // Lebih rendah = lebih konsisten & on-topic
+                    'temperature' => 0.5,
                 ]);
 
             if ($response->successful()) {
