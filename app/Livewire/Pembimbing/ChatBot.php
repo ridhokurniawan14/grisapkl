@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 #[Layout('components.layouts.app')]
 #[Title('Asisten AI Guru - GrisaPKL')]
@@ -13,6 +14,48 @@ class ChatBot extends Component
 {
     public string $prompt = '';
     public array $messages = [];
+
+    // Jumlah pesan terakhir yang dikirim ke AI (hemat token & biaya)
+    private const MAX_HISTORY = 10;
+
+    // =========================================================
+    // KONFIGURASI PROVIDER (xai / groq) -> atur AI_PROVIDER di .env
+    // =========================================================
+    protected function getProviderConfig(): array
+    {
+        $provider = config('services.ai_provider', 'xai');
+
+        return match ($provider) {
+            'groq' => $this->groqConfig(),
+            default => [
+                'name'  => 'xai',
+                'url'   => 'https://api.x.ai/v1/chat/completions',
+                'key'   => config('services.xai.key'),
+                'model' => config('services.xai.model', 'grok-4.7'),
+                'extra' => [
+                    'max_tokens' => 1024,
+                ],
+            ],
+        };
+    }
+
+    protected function groqConfig(): array
+    {
+        $model = config('services.groq.model') ?: 'llama-3.3-70b-versatile';
+
+        // Parameter reasoning HANYA untuk model gpt-oss (llama akan menolaknya)
+        $extra = str_starts_with($model, 'openai/gpt-oss')
+            ? ['max_completion_tokens' => 2048, 'reasoning_effort' => 'low', 'include_reasoning' => false]
+            : ['max_tokens' => 1024];
+
+        return [
+            'name'  => 'groq',
+            'url'   => 'https://api.groq.com/openai/v1/chat/completions',
+            'key'   => config('services.groq.key'),
+            'model' => $model,
+            'extra' => $extra,
+        ];
+    }
 
     // =========================================================
     // SYSTEM PROMPT KHUSUS GURU PEMBIMBING
@@ -96,6 +139,18 @@ class ChatBot extends Component
         $this->messages[] = ['role' => 'user', 'text' => $userMessage];
         $this->prompt = '';
 
+        $provider = $this->getProviderConfig();
+
+        if (empty($provider['key'])) {
+            Log::error('ChatBot: API key kosong', ['provider' => $provider['name']]);
+            $this->messages[] = [
+                'role' => 'bot',
+                'text' => 'Layanan AI belum dikonfigurasi. Mohon hubungi admin.',
+            ];
+            return;
+        }
+
+        // Bangun riwayat chat (lewati sapaan awal, ambil N pesan terakhir)
         $chatHistory = [];
         foreach (array_slice($this->messages, 1) as $msg) {
             $chatHistory[] = [
@@ -103,38 +158,73 @@ class ChatBot extends Component
                 'content' => $msg['text'],
             ];
         }
+        $chatHistory = array_slice($chatHistory, -self::MAX_HISTORY);
 
         try {
-            $response = Http::withoutVerifying()
-                ->withHeaders([
-                    'Content-Type'  => 'application/json',
-                    // Panggil API Key Gemini dari file .env
-                    'Authorization' => 'Bearer ' . env('GEMINI_API_KEY'),
-                ])
-                ->timeout(30)
-                // Ubah URL endpoint ke Gemini API (jalur kompatibilitas OpenAI)
-                ->post('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', [
-                    // Ganti nama model ke model Gemini
-                    'model'       => 'gemini-1.5-flash',
+            $response = Http::withHeaders([
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer ' . $provider['key'],
+            ])
+                ->timeout(60)
+                ->retry(2, 1500, function ($exception) {
+                    // Ulangi hanya untuk gangguan sementara
+                    if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
+                        return true;
+                    }
+                    return $exception instanceof \Illuminate\Http\Client\RequestException
+                        && in_array($exception->response->status(), [429, 500, 502, 503], true);
+                }, throw: false)
+                ->post($provider['url'], array_merge([
+                    'model'       => $provider['model'],
                     'messages'    => array_merge(
                         [['role' => 'system', 'content' => $this->getSystemPrompt()]],
                         $chatHistory
                     ),
-                    'max_tokens'  => 512,
                     'temperature' => 0.5,
-                ]);
+                ], $provider['extra'] ?? []));
 
             if ($response->successful()) {
                 $botReply = $response->json('choices.0.message.content')
-                    ?? 'Maaf, saya tidak bisa memproses jawaban saat ini. Silakan coba lagi.';
+                    ?: 'Maaf, saya tidak bisa memproses jawaban saat ini. Silakan coba lagi.';
                 $this->messages[] = ['role' => 'bot', 'text' => $botReply];
-            } else {
-                $errorMsg = $response->json('error.message') ?? 'HTTP Status: ' . $response->status();
-                $this->messages[] = ['role' => 'bot', 'text' => 'Gagal terhubung ke AI. Alasan: ' . $errorMsg];
+                return;
             }
-        } catch (\Exception $e) {
-            $this->messages[] = ['role' => 'bot', 'text' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+
+            // Detail teknis disimpan di log, bukan ditampilkan ke guru
+            Log::warning('ChatBot: respons error dari AI', [
+                'provider' => $provider['name'],
+                'model'    => $provider['model'],
+                'status'   => $response->status(),
+                'body'     => $response->body(),
+            ]);
+
+            $text = $this->friendlyError($response->status());
+
+            // Sementara APP_DEBUG=true: tampilkan detail agar mudah dilacak
+            if (config('app.debug')) {
+                $text .= "\n\n[DEBUG] provider={$provider['name']} | model={$provider['model']} | status={$response->status()} | " . $response->body();
+            }
+
+            $this->messages[] = ['role' => 'bot', 'text' => $text];
+        } catch (\Throwable $e) {
+            Log::error('ChatBot: exception', ['message' => $e->getMessage()]);
+            $this->messages[] = [
+                'role' => 'bot',
+                'text' => 'Maaf, koneksi ke layanan AI sedang bermasalah. Silakan coba lagi beberapa saat lagi.',
+            ];
         }
+    }
+
+    protected function friendlyError(int $status): string
+    {
+        return match (true) {
+            in_array($status, [401, 403], true) => 'Layanan AI belum bisa diakses (autentikasi bermasalah). Mohon hubungi admin.',
+            $status === 402                     => 'Layanan AI sedang tidak tersedia karena kuota/kredit habis. Mohon hubungi admin.',
+            $status === 404                     => 'Model AI tidak ditemukan. Mohon hubungi admin.',
+            $status === 429                     => 'Terlalu banyak permintaan. Silakan coba lagi sebentar lagi, Bapak/Ibu.',
+            $status >= 500                      => 'Layanan AI sedang sibuk. Silakan coba lagi beberapa saat lagi, Bapak/Ibu.',
+            default                             => 'Maaf, terjadi gangguan saat menghubungi AI. Silakan coba lagi.',
+        };
     }
 
     public function clearChat(): void

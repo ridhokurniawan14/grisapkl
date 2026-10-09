@@ -41,9 +41,18 @@ return [
         ],
     ],
 
+    'ai_provider' => env('AI_PROVIDER', 'xai'),
+
     'groq' => [
-        'key' => env('GROQ_API_KEY'),
+        'key'   => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
     ],
+
+    'groq' => [
+        'key'   => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+    ],
+
     'firebase' => [
         'vapid_key' => env('FIREBASE_VAPID_KEY'),
     ],
