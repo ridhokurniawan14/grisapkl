@@ -20,6 +20,7 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
+use Filament\Tables\Filters\TernaryFilter;
 
 class StudentsTable
 {
@@ -89,6 +90,14 @@ class StudentsTable
                     ->tooltip('Geser untuk membuka/menutup akses login siswa'),
             ])
             ->filters([
+                // FILTER STATUS AKTIF
+                TernaryFilter::make('is_active')
+                    ->label('Status Akses Sistem')
+                    ->boolean()
+                    ->trueLabel('Aktif')
+                    ->falseLabel('Tidak Aktif')
+                    ->placeholder('Semua Status'),
+
                 // FILTER KELAS (Revisi 3)
                 SelectFilter::make('student_class_id')
                     ->label('Filter Kelas')
