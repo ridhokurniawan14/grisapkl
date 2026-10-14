@@ -34,9 +34,9 @@ class JurnalEdit extends Component
             $q->where('user_id', Auth::id());
         })->findOrFail($id);
 
-        if (Carbon::parse($journal->date)->diffInDays(now()) > 30) {
-            abort(403, 'Jurnal sudah lebih dari 30 hari dan tidak dapat diedit lagi.');
-        }
+        // if (Carbon::parse($journal->date)->diffInDays(now()) > 30) {
+        //     abort(403, 'Jurnal sudah lebih dari 30 hari dan tidak dapat diedit lagi.');
+        // }
 
         $this->journalId      = $journal->id;
         $this->attend_status  = $journal->attend_status;

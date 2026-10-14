@@ -237,7 +237,8 @@ class Jurnal extends Component
                     ->map(function ($j) {
                         $j->formatted_date = Carbon::parse($j->date)->isoFormat('D MMM YYYY');
                         $j->formatted_time = Carbon::parse($j->time)->format('H:i');
-                        $j->is_editable = Carbon::parse($j->date)->diffInDays(now()) <= 30;
+                        // $j->is_editable = Carbon::parse($j->date)->diffInDays(now()) <= 30;
+                        $j->is_editable = true;
 
                         $j->attendance_photo_url = $j->attendance_photo_path
                             ? asset('storage/' . $j->attendance_photo_path)
