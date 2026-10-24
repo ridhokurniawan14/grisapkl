@@ -46,7 +46,7 @@
     <section class="flex flex-col gap-2 mt-5 px-1 relative z-20">
         <div class="flex gap-2 w-full">
             <div class="relative flex-1 group">
-                <select wire:model.live="selectedMonth"
+                <select wire:model.live.debounce.500ms="selectedMonth"
                     class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] pl-4 pr-10 text-[13px] font-bold text-slate-700 appearance-none !bg-none focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm cursor-pointer hover:bg-slate-50">
                     <option value="">Pilih Bulan...</option>
                     @foreach ($months as $value => $label)
@@ -60,7 +60,7 @@
             </div>
 
             <div class="relative flex-1 group">
-                <select wire:model.live="selectedStatus"
+                <select wire:model.live.debounce.500ms="selectedStatus"
                     class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] pl-4 pr-10 text-[13px] font-bold text-slate-700 appearance-none !bg-none focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm cursor-pointer hover:bg-slate-50">
                     <option value="">Semua Status...</option>
                     <option value="Hadir">Hadir</option>
@@ -81,14 +81,14 @@
             <div class="relative flex-1 group">
                 <span class="absolute -top-2.5 left-3 bg-slate-50 px-1 text-[10px] font-bold text-slate-400 z-10">Mulai
                     Tanggal</span>
-                <input wire:model.live="filterStartDate" type="date"
+                <input wire:model.live.debounce.500ms="filterStartDate" type="date"
                     class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] px-3 text-[13px] text-slate-700 focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm" />
             </div>
 
             <div class="relative flex-1 group">
                 <span class="absolute -top-2.5 left-3 bg-slate-50 px-1 text-[10px] font-bold text-slate-400 z-10">Sampai
                     Tanggal</span>
-                <input wire:model.live="filterEndDate" type="date"
+                <input wire:model.live.debounce.500ms="filterEndDate" type="date"
                     class="w-full bg-white border border-slate-200 rounded-[1rem] h-[46px] px-3 text-[13px] text-slate-700 focus:ring-2 focus:ring-[#3525cd]/20 focus:border-[#3525cd] transition-all shadow-sm" />
             </div>
         </div>

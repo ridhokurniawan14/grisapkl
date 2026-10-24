@@ -181,7 +181,7 @@
                     @enderror
 
                     <div class="flex justify-end">
-                        <button type="submit"
+                        <button type="submit" wire:loading.attr="disabled"
                             class="bg-primary hover:bg-primary-fixed-variant text-white h-12 px-6 rounded-xl font-semibold flex items-center justify-center shadow-md active:scale-95 transition-all">
                             <span wire:loading.remove wire:target="saveJournal">Simpan Laporan</span>
                             <span wire:loading wire:target="saveJournal">Menyimpan...</span>

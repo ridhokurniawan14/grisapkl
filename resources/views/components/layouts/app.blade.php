@@ -150,7 +150,10 @@
 
         <header
             class="{{ $headerBg }} absolute top-0 w-full z-50 flex justify-between items-center px-4 h-16 transition-colors duration-300">
-
+            <div wire:offline
+                class="w-full bg-red-500 text-white text-[12px] font-bold text-center py-1.5 z-[9999] absolute top-16 shadow-md">
+                Koneksi internet Anda terputus.
+            </div>
             @if ($isBeranda)
                 <div class="flex items-center">
                     <h1 class="text-xl font-extrabold text-[#3525cd] font-['Lexend'] tracking-tight">GrisaPKL</h1>
