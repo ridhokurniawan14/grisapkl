@@ -4,6 +4,10 @@ namespace App\Filament\Resources\Journals\Pages;
 
 use App\Filament\Exports\JournalExport;
 use App\Filament\Resources\Journals\JournalResource;
+use App\Models\Journal;
+use App\Models\PklPlacement;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Maatwebsite\Excel\Facades\Excel;
@@ -41,7 +45,8 @@ class ListJournals extends ListRecords
                         'student_id' => $studentId,
                     ]);
                 })
-                ->openUrlInNewTab(), // ✅ buka tab baru, browser render PDF viewer langsung
+                ->openUrlInNewTab(),
+
             // TOMBOL EXCEL
             Action::make('download_excel')
                 ->label('Download Excel')
@@ -50,7 +55,6 @@ class ListJournals extends ListRecords
                 ->action(function () {
                     $ids = $this->getFilteredTableQuery()->pluck('id')->toArray();
 
-                    // MANTRA SAKTI FIX: Langsung ambil dari properti tableFilters
                     $filters = $this->tableFilters;
                     $start = $filters['date_range']['start'] ?? null;
                     $end = $filters['date_range']['end'] ?? null;
@@ -67,19 +71,16 @@ class ListJournals extends ListRecords
                     );
                 }),
 
-            // ====================================================
-            // TOMBOL BARU: DOWNLOAD SEMUA SISWA BELUM UPLOAD FOTO
-            // ====================================================
+            // TOMBOL REKAP BELUM UPLOAD
             Action::make('download_unuploaded')
                 ->label('Rekap Belum Upload')
                 ->icon('heroicon-o-exclamation-triangle')
                 ->color('warning')
-                ->requiresConfirmation() // Menampilkan modal konfirmasi
+                ->requiresConfirmation()
                 ->modalHeading('Download Seluruh Data Belum Upload?')
                 ->modalDescription('Sistem akan mengecek seluruh data jurnal siswa yang belum upload foto. Proses ini mungkin memakan waktu beberapa saat, silakan tunggu.')
-                ->modalSubmitActionLabel('Ya, Download Sekarang') // Tombol ini otomatis akan loading (spinner) saat diklik
+                ->modalSubmitActionLabel('Ya, Download Sekarang')
                 ->action(function () {
-                    // 1. Ambil SEMUA data dari database, hiraukan filter di tabel
                     $query = \App\Models\Journal::query()
                         ->whereIn('attend_status', ['Hadir', 'Izin', 'Sakit'])
                         ->where(function ($q) {
@@ -88,7 +89,6 @@ class ListJournals extends ListRecords
                         })
                         ->with(['pklPlacement.student', 'pklPlacement.dudika', 'pklPlacement.teacher']);
 
-                    // 2. Cek apakah ada datanya
                     if ($query->count() === 0) {
                         Notification::make()
                             ->title('Bagus!')
@@ -98,12 +98,86 @@ class ListJournals extends ListRecords
                         return;
                     }
 
-                    // 3. Download Excel
                     return Excel::download(
                         new \App\Filament\Exports\UnuploadedJournalExport($query),
                         'Semua_Rekap_Belum_Upload_Foto.xlsx'
                     );
                 }),
+
+            // ====================================================
+            // TOMBOL BARU: JURNAL MASAL
+            // ====================================================
+            Action::make('jurnal_masal')
+                ->label('Buat Jurnal Masal')
+                ->icon('heroicon-o-clipboard-document-check')
+                ->color('primary')
+                ->modalHeading('Buat Jurnal Masal (Kendala Server/Internet)')
+                ->modalDescription('Fitur ini akan membuat jurnal otomatis untuk SEMUA siswa PKL di tanggal tertentu. Siswa yang sudah melakukan absen di tanggal tersebut akan dilewati (tidak diduplikasi).')
+                ->form([
+                    DatePicker::make('date')
+                        ->label('Tanggal Jurnal')
+                        ->required()
+                        ->default(now()),
+                    Select::make('attend_status')
+                        ->label('Status Kehadiran')
+                        ->options([
+                            'Hadir' => 'Hadir',
+                            'Sakit' => 'Sakit',
+                            'Izin' => 'Izin',
+                            'Libur' => 'Libur',
+                        ])
+                        ->required()
+                        ->default('Hadir'),
+                ])
+                ->action(function (array $data) {
+                    $date = $data['date'];
+                    $status = $data['attend_status'];
+
+                    // 1. Ambil semua ID penempatan PKL 
+                    $placements = PklPlacement::pluck('id')->toArray();
+
+                    // 2. Ambil ID penempatan PKL yang SUDAH ABSEN di tanggal tersebut
+                    $existingJournals = Journal::whereDate('date', $date)
+                        ->pluck('pkl_placement_id')
+                        ->toArray();
+
+                    $insertData = [];
+                    $now = now();
+
+                    // 3. Looping semua penempatan PKL
+                    foreach ($placements as $placementId) {
+                        if (!in_array($placementId, $existingJournals)) {
+                            $insertData[] = [
+                                'pkl_placement_id' => $placementId,
+                                'date'             => $date,
+                                'time'             => '07:00:00', // Default jam absen karena kolom "time" wajib (NOT NULL)
+                                'attend_status'    => $status,
+                                'activity'         => 'Jurnal dibuat otomatis oleh sistem/admin karena kendala internet atau server.', // Menggunakan kolom "activity"
+                                'is_valid'         => 1, // Langsung set valid (1) karena dibuat oleh admin, "is_valid" wajib (NOT NULL)
+                                'created_at'       => $now,
+                                'updated_at'       => $now,
+                            ];
+                        }
+                    }
+
+                    // 4. Proses Batch Insert
+                    if (!empty($insertData)) {
+                        Journal::insert($insertData);
+
+                        Notification::make()
+                            ->title('Berhasil!')
+                            ->body(count($insertData) . ' Jurnal berhasil ditambahkan untuk tanggal ' . $date)
+                            ->success()
+                            ->send();
+                    } else {
+                        Notification::make()
+                            ->title('Tidak Ada Jurnal Baru')
+                            ->body('Semua siswa sudah melakukan absensi di tanggal tersebut.')
+                            ->warning()
+                            ->send();
+                    }
+                }),
+
             CreateAction::make()
                 ->icon('heroicon-o-plus')
                 ->label('Buat Jurnal'),
